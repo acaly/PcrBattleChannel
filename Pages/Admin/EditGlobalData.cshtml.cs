@@ -26,6 +26,10 @@ namespace PcrBattleChannel.Pages.Admin
         [BindProperty]
         public GlobalData GlobalData { get; set; }
 
+        [Display(Name = "各阶段起始周目")]
+        [BindProperty]
+        public string StageText { get; set; }
+
         [Display(Name = "重置赛季数据")]
         [BindProperty]
         public bool ResetData { get; set; }
@@ -33,6 +37,15 @@ namespace PcrBattleChannel.Pages.Admin
         [Display(Name = "导入角色数据")]
         [BindProperty]
         public bool ResetCharacters { get; set; }
+
+        private async Task<string> GetStageText(int globalDataID)
+        {
+            var stages = await _context.BattleStages
+                .Where(s => s.GlobalDataID == globalDataID)
+                .Select(s => s.Order)
+                .ToListAsync();
+            return string.Join(',', stages);
+        }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -42,6 +55,11 @@ namespace PcrBattleChannel.Pages.Admin
             {
                 GlobalData = new();
             }
+            else
+            {
+                StageText = await GetStageText(GlobalData.GlobalDataID);
+            }
+
             return Page();
         }
 
@@ -79,6 +97,11 @@ namespace PcrBattleChannel.Pages.Admin
             return RedirectToPage("/Admin/Index");
         }
 
+        private static readonly string[] _longNameNumbers = new[]
+        {
+            "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
+        };
+
         private async Task DoResetDataAsync()
         {
             //Remove all existing entries.
@@ -99,6 +122,21 @@ namespace PcrBattleChannel.Pages.Admin
             {
                 _context.Characters.RemoveRange(_context.Characters);
                 ImportCharacters();
+            }
+
+            var stageText = string.IsNullOrWhiteSpace(StageText) ? "1" : StageText;
+            var stages = stageText.Split(',');
+            for (int i = 0; i < stages.Length; ++i)
+            {
+                var stage = new BattleStage
+                {
+                    GlobalData = newData,
+                    Order = i,
+                    Name = $"第{_longNameNumbers[i]}阶段",
+                    ShortName = new string((char)('A' + i), 1),
+                    StartLap = int.Parse(stages[i]) - 1,
+                };
+                _context.BattleStages.Add(stage);
             }
 
             await _context.SaveChangesAsync();
@@ -123,6 +161,7 @@ namespace PcrBattleChannel.Pages.Admin
                     Name = fields[1],
                     Rarity = int.Parse(fields[2]),
                     HasWeapon = int.Parse(fields[3]) != 0,
+                    Range = float.Parse(fields[4]),
                 };
                 _context.Characters.Add(c);
             }

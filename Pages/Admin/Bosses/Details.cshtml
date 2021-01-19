@@ -1,0 +1,48 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.Bosses.DetailsModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Boss信息";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div>
+    <h4>Boss</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Boss.BattleStage)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Boss.BattleStage.BattleStageID)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Boss.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Boss.Name)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Boss.ShortName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Boss.ShortName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Boss.Life)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Boss.Life)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Boss.Score)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Boss.Score)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-page="./Edit" asp-route-id="@Model.Boss.BossID">Edit</a> |
+    <a asp-page="./Index">Back to List</a>
+</div>

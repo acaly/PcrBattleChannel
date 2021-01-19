@@ -30,7 +30,8 @@ namespace PcrBattleChannel.Migrations
                     InternalID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Rarity = table.Column<int>(type: "int", nullable: false),
-                    HasWeapon = table.Column<bool>(type: "bit", nullable: false)
+                    HasWeapon = table.Column<bool>(type: "bit", nullable: false),
+                    Range = table.Column<float>(type: "real", nullable: false)
                 },
                 constraints: table =>
                 {

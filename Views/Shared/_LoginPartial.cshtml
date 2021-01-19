@@ -1,7 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @inject SignInManager<PcrBattleChannel.Models.PcrIdentityUser> SignInManager
 @inject UserManager<PcrBattleChannel.Models.PcrIdentityUser> UserManager
-@inject PcrBattleChannel.Data.ApplicationDbContext Context
+@inject PcrBattleChannel.Data.ApplicationDbContext DbContext
 
 <ul class="navbar-nav">
     @{
@@ -10,7 +10,7 @@
         bool isOwner = false;
         if (u is not null && u.GuildID.HasValue)
         {
-            var guild = await Context.Guilds.FindAsync(u.GuildID);
+            var guild = await DbContext.Guilds.FindAsync(u.GuildID);
             if (guild.OwnerID == u.Id) isOwner = true;
         }
     }

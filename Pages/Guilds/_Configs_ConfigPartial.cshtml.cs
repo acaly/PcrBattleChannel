@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace PcrBattleChannel.Pages.Guild
+namespace PcrBattleChannel.Pages.Guilds
 {
     public class _Configs_ConfigPartialModel : PageModel
     {

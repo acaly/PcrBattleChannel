@@ -18,5 +18,7 @@ namespace PcrBattleChannel.Models
         public int Rarity { get; set; }
         [Display(Name = "专武")]
         public bool HasWeapon { get; set; }
+        [Display(Name = "攻击距离")]
+        public float Range { get; set; }
     }
 }

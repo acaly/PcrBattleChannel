@@ -228,6 +228,9 @@ namespace PcrBattleChannel.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<float>("Range")
+                        .HasColumnType("real");
+
                     b.Property<int>("Rarity")
                         .HasColumnType("int");
 

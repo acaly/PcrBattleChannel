@@ -28,6 +28,11 @@
                 <input asp-for="GlobalData.EndTime" class="form-control" />
                 <span asp-validation-for="GlobalData.EndTime" class="text-danger"></span>
             </div>
+            <div class="form-group">
+                <label asp-for="StageText" class="control-label"></label>
+                <input asp-for="StageText" class="form-control" />
+                <span asp-validation-for="StageText" class="text-danger"></span>
+            </div>
             <div class="form-group form-check">
                 <label class="form-check-label">
                     <input class="form-check-input" asp-for="ResetData" /> @Html.DisplayNameFor(model => model.ResetData)

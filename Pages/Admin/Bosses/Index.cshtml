@@ -1,0 +1,60 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.Bosses.IndexModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Boss列表";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<p>
+    <a asp-page="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Boss[0].BattleStage)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Boss[0].Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Boss[0].ShortName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Boss[0].Life)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Boss[0].Score)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Boss)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.BattleStage.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.ShortName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Life)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Score)
+                </td>
+                <td>
+                    <a asp-page="./Edit" asp-route-id="@item.BossID">Edit</a> |
+                    <a asp-page="./Details" asp-route-id="@item.BossID">Details</a> |
+                    <a asp-page="./Delete" asp-route-id="@item.BossID">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

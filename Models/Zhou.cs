@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,11 +16,16 @@ namespace PcrBattleChannel.Models
         public int GuildID { get; set; }
         public Guild Guild { get; set; }
 
+        [Display(Name = "轴名")]
         public string Name { get; set; }
+
+        [Display(Name = "说明")]
+        [DataType(DataType.MultilineText)]
         public string Description { get; set; }
 
         [ForeignKey(nameof(Boss))]
         public int BossID { get; set; }
+        [Display(Name = "Boss")]
         public Boss Boss { get; set; }
 
         [ForeignKey(nameof(C1))]

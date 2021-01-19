@@ -1,0 +1,112 @@
+﻿@page
+@model PcrBattleChannel.Pages.Zhous.CreateModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "写轴";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>写轴</h4>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input id="characterliststring" type="hidden" asp-for="Input.CharacterListString" />
+            <div class="form-group">
+                <label asp-for="Input.Name" class="control-label"></label>
+                <input asp-for="Input.Name" class="form-control" />
+                <span asp-validation-for="Input.Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Input.Description" class="control-label"></label>
+                <textarea asp-for="Input.Description" class="form-control"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Input.BossID" class="control-label"></label>
+                <select asp-for="Input.BossID" class="form-control" asp-items="ViewBag.BossID"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="Input.CharacterListString" class="control-label"></label>
+                <table class="character-list-table">
+                    @{ const int Columns = 14; }
+                    @for (int i = 0; i < Model.Characters.Count; i += Columns)
+                    {
+                        <tr>
+                            @for (int j = 0; j < Columns; ++j)
+                            {
+                                var index = i + j;
+                                if (index >= Model.Characters.Count) break;
+                                <td data-character-id="@Model.Characters[index].CharacterID">
+                                    <img src="~/images/icons/@(Model.Characters[index].InternalID)31.jpg"
+                                         style="height:50px" />
+                                    <div class="tick-mark">
+                                        <img src="~/images/tick-mark.png" />
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </table>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-page="Index">Back to List</a>
+</div>
+<style>
+    .character-list-table td {
+        position: relative
+    }
+
+    .character-list-table .tick-mark {
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        width: 25px;
+        height: 25px;
+        z-index: 1;
+        display: none;
+    }
+
+    .character-list-table .tick-mark img {
+        width: 100%;
+    }
+
+    .character-list-table .selected .tick-mark {
+        display: block;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            selectedCount = 0;
+            $('.character-list-table td').click(function () {
+                var isSelected = $(this).hasClass('selected');
+                if (!isSelected && selectedCount == 5) {
+                    return;
+                }
+                selectedCount += isSelected ? -1 : 1;
+                $(this).toggleClass('selected');
+
+                var allSelected = $('.character-list-table .selected');
+                var str = '';
+                console.log(allSelected);
+                allSelected.each(function (a, b) {
+                    if (str.length > 0) str = str + ',';
+                    str = str + b.getAttribute('data-character-id');
+                });
+                $('#characterliststring').val(str);
+            });
+            $('.character-list-table td img').on('dragstart', function (event) { event.preventDefault(); });
+        });
+    </script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

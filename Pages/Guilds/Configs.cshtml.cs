@@ -10,22 +10,20 @@ using Microsoft.EntityFrameworkCore;
 using PcrBattleChannel.Data;
 using PcrBattleChannel.Models;
 
-namespace PcrBattleChannel.Pages.Guild
+namespace PcrBattleChannel.Pages.Guilds
 {
     public class ConfigsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
-        private readonly IRazorPartialToStringRenderer _renderer;
 
         public ConfigsModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
-            UserManager<PcrIdentityUser> userManager, IRazorPartialToStringRenderer renderer)
+            UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
             _signInManager = signInManager;
             _userManager = userManager;
-            _renderer = renderer;
         }
 
         public (Character Character, CharacterConfig[] Configs)[] Characters { get; set; }

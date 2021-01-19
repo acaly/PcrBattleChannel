@@ -1,0 +1,86 @@
+﻿@page
+@model PcrBattleChannel.Pages.Zhous.IndexModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "公会轴表";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div>
+    <h4>公会轴表 - @Model.Guild.Name</h4>
+    <hr />
+    @if (Model.IsAdmin)
+    {
+        <p>
+            <a asp-page="Create">写新轴</a>
+        </p>
+    }
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Zhou[0].Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Zhou[0].Boss)
+            </th>
+            <th style="width:12%">
+                @Html.DisplayNameFor(model => model.Zhou[0].C1)
+            </th>
+            <th style="width:12%">
+                @Html.DisplayNameFor(model => model.Zhou[0].C2)
+            </th>
+            <th style="width:12%">
+                @Html.DisplayNameFor(model => model.Zhou[0].C3)
+            </th>
+            <th style="width:12%">
+                @Html.DisplayNameFor(model => model.Zhou[0].C4)
+            </th>
+            <th style="width:12%">
+                @Html.DisplayNameFor(model => model.Zhou[0].C5)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Zhou)
+        {
+            <tr>
+                <td>
+                    <a asp-page="./Details" asp-route-id="@item.ZhouID">
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </a>
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Boss.ShortName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.C1.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.C2.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.C3.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.C4.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.C5.Name)
+                </td>
+                <td>
+                    @if (Model.IsAdmin)
+                    {
+                        <p>
+                            <a asp-page="./Edit" asp-route-id="@item.ZhouID">Edit</a> | 
+                            <a asp-page="./Delete" asp-route-id="@item.ZhouID">Delete</a>
+                        </p>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -11,10 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using PcrBattleChannel.Data;
 using PcrBattleChannel.Models;
 
-namespace PcrBattleChannel.Pages.Guild
+namespace PcrBattleChannel.Pages.Guilds
 {
-    using Guild = PcrBattleChannel.Models.Guild;
-
     public class EditModel : PageModel
     {
         private readonly ApplicationDbContext _context;

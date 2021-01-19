@@ -10,7 +10,7 @@ using PcrBattleChannel.Data;
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210119001645_InitialCreate")]
+    [Migration("20210119051649_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -229,6 +229,9 @@ namespace PcrBattleChannel.Migrations
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<float>("Range")
+                        .HasColumnType("real");
 
                     b.Property<int>("Rarity")
                         .HasColumnType("int");

@@ -29,7 +29,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pages\Zhou\" />
     <Folder Include="wwwroot\images\icons\" />
   </ItemGroup>
 
