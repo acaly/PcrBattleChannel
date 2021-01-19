@@ -1,0 +1,54 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.EditGlobalDataModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "编辑全站数据";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>编辑赛季数据</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="GlobalData.GlobalDataID" />
+            <div class="form-group">
+                <label asp-for="GlobalData.SeasonName" class="control-label"></label>
+                <input asp-for="GlobalData.SeasonName" class="form-control" />
+                <span asp-validation-for="GlobalData.SeasonName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="GlobalData.StartTime" class="control-label"></label>
+                <input asp-for="GlobalData.StartTime" class="form-control" />
+                <span asp-validation-for="GlobalData.StartTime" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="GlobalData.EndTime" class="control-label"></label>
+                <input asp-for="GlobalData.EndTime" class="form-control" />
+                <span asp-validation-for="GlobalData.EndTime" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="ResetData" /> @Html.DisplayNameFor(model => model.ResetData)
+                </label>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="ResetCharacters" /> @Html.DisplayNameFor(model => model.ResetCharacters)
+                </label>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-page="./Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

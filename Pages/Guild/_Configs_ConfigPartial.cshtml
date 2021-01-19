@@ -1,0 +1,20 @@
+﻿@model PcrBattleChannel.Models.CharacterConfig
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<tr>
+    <td>@Html.DisplayFor(m => m.Kind)</td>
+    <td>@Html.DisplayFor(m => m.Name)</td>
+    <td>@Html.DisplayFor(m => m.Description)</td>
+    <td>
+        @if (Model.Kind != default)
+        {
+            <form method="post" asp-page-handler="delete" data-ajax="true" data-ajax-method="post" asp-route-id="@Model.CharacterConfigID"
+                  data-ajax-success="config_list_delete_success" data-ajax-failure="config_list_delete_failure"
+                  data-character-id="@(Model.CharacterID)">
+                <button type="submit" class="btn btn-danger">
+                    删除
+                </button>
+            </form>
+        }
+    </td>
+</tr>

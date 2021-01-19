@@ -1,0 +1,36 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.AddGuildModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "创建公会";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>Guild @Model.Input.GuildName.</h4>
+<hr />
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+
+<div class="row">
+    <div class="col-md-4">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="Input.GuildName"></label>
+                <input asp-for="Input.GuildName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="Input.OwnerEmail"></label>
+                <input asp-for="Input.OwnerEmail" class="form-control" />
+            </div>
+            <button id="update-profile-button" type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-page="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

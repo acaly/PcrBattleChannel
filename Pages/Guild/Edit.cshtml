@@ -1,0 +1,101 @@
+﻿@page
+@model PcrBattleChannel.Pages.Guild.EditModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "编辑公会信息";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>公会 - @Model.Guild.Name</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Guild.GuildID" />
+            <div class="form-group">
+                <label asp-for="Guild.Name" class="control-label"></label>
+                <input asp-for="Guild.Name" class="form-control" />
+                <span asp-validation-for="Guild.Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Guild.Description" class="control-label"></label>
+                <textarea asp-for="Guild.Description" class="form-control"></textarea>
+                <span asp-validation-for="Guild.Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+    <div class="col-md-6 col-md-offset-2">
+        <h4>成员列表</h4>
+        <form method="post">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>成员</th>
+                        <th>QQ号</th>
+                        <th>权限</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Guild.Members)
+                    {
+                        <tr>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.GameID)
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.QQID)
+                            </td>
+                            <td>
+                                @(item.Id == Model.Guild.OwnerID ? "会长" :  item.IsGuildAdmin ? "管理员" : "")
+                            </td>
+                            <td>
+                                @if (item.Id != Model.Guild.OwnerID)
+                                {
+                                    @if (item.IsGuildAdmin)
+                                    {
+                                        <button type="submit" asp-page-handler="admin" asp-route-id="@item.Id">取消管理员</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" asp-page-handler="admin" asp-route-id="@item.Id">设为管理员</button>
+                                    }
+                                    <button type="submit" asp-page-handler="delete" asp-route-id="@item.Id">移出公会</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><td colspan="4" /></tr>
+                </tfoot>
+            </table>
+        </form>
+        <h4>邀请成员</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        <form method="post">
+                            <input type="hidden" asp-for="Guild.GuildID" />
+                            <div class="form-group">
+                                <label asp-for="InviteMemberEmail" class="control-label"></label>
+                                <input asp-for="InviteMemberEmail" class="form-control" />
+                                <span asp-validation-for="InviteMemberEmail" class="text-danger"></span>
+                            </div>
+                            <button type="submit" asp-page-handler="invite">邀请</button>
+                        </form>
+                    </th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

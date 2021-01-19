@@ -1,0 +1,49 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.RemoveGuildModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "删除公会";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<form method="post">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>公会名</th>
+                <th>会长</th>
+                <th>会长ID</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Guilds)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    @if (item.Owner is not null)
+                    {
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Owner.Email)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Owner.GameID)
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                        </td>
+                        <td>
+                        </td>
+                    }
+                    <td>
+                        <button type="submit" asp-page-handler="delete" asp-route-id="@item.GuildID">删除</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</form>

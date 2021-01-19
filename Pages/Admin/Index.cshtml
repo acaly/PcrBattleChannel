@@ -1,0 +1,19 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.IndexModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "管理";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div>
+    <a asp-page="EditGlobalData">编辑赛季数据</a>
+</div>
+
+<div>
+    <a asp-page="AddGuild">创建公会</a>
+</div>
+
+<div>
+    <a asp-page="RemoveGuild">删除公会</a>
+</div>

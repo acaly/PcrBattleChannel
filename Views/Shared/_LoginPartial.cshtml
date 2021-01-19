@@ -1,0 +1,49 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<PcrBattleChannel.Models.PcrIdentityUser> SignInManager
+@inject UserManager<PcrBattleChannel.Models.PcrIdentityUser> UserManager
+@inject PcrBattleChannel.Data.ApplicationDbContext Context
+
+<ul class="navbar-nav">
+    @{
+        var u = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+        var roles = u is null ? null : await UserManager.GetRolesAsync(u);
+        bool isOwner = false;
+        if (u is not null && u.GuildID.HasValue)
+        {
+            var guild = await Context.Guilds.FindAsync(u.GuildID);
+            if (guild.OwnerID == u.Id) isOwner = true;
+        }
+    }
+    @if (u is not null)
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">已登录 @u.GameID</a>
+        </li>
+        @if (roles.Contains("Admin"))
+        {
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-page="/Admin/Index" title="Manage">管理</a>
+            </li>
+        }
+        @if (isOwner)
+        {
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-page="/Guild/Edit" title="Manage">公会管理</a>
+            </li>
+        }
+        <li class="nav-item">
+            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                <button type="submit" class="nav-link btn btn-link text-dark">登出</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">注册</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">登录</a>
+        </li>
+    }
+</ul>
