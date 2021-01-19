@@ -26,7 +26,5 @@ namespace PcrBattleChannel.Models
         //all groups are and'ed together.
         //This can be automatically decided by CharacterConfig.Kind.
         public int OrGroupIndex { get; set; }
-
-        public bool AllowBorrow { get; set; }
     }
 }

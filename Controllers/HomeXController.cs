@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Controllers
 {
-    public class HomeController : Controller
+    public class HomeXController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger<HomeXController> _logger;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeXController(ILogger<HomeXController> logger)
         {
             _logger = logger;
         }

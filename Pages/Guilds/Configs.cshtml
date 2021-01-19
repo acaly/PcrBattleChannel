@@ -142,26 +142,18 @@
         this.reset();
         config_list_update_count(this);
     }
-    function config_list_add_failure(data, code) {
+    function config_list_add_failure() {
         alert('添加失败');
     }
     function config_list_delete_success() {
         $(this).parents('tr')[0].remove();
         config_list_update_count(this);
     }
-    function config_list_delete_failure(data, code) {
+    function config_list_delete_failure() {
         alert('删除失败');
     }
 </script>
 @section scripts
 {
     <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
-    <script>
-        completed = function (xhr) {
-            alert(`Hi ${xhr.responseText}!`);
-        };
-        failed = function (xhr) {
-            alert(`Status: {xhr.status}, Status Text: {xhr.statusText}`);
-        };
-    </script>
 }

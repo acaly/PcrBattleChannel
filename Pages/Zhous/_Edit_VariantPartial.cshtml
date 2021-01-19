@@ -1,0 +1,154 @@
+﻿@model PcrBattleChannel.Pages.Zhous.EditModel.EditPartialModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{ 
+    var allConfigs = (List<(string name, PcrBattleChannel.Models.CharacterConfig[][] configs)>)ViewData["allConfigs"];
+}
+<div id="variant-@Model.EditVariant.ZhouVariantID">
+    @if (!Model.IsNew)
+    {
+        <div id="variant-info-@Model.EditVariant.ZhouVariantID">
+            <div class="row">
+                <div class="col-md-2">
+                    <p>@(string.IsNullOrWhiteSpace(Model.EditVariant.Name) ? "配置" : Model.EditVariant.Name)：</p>
+                </div>
+                <div class="col-md-6">
+                    <div>
+                        <p>@(Model.EditVariant.Content)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <form method="post" asp-page-handler="deletev" asp-route-id="@Model.EditVariant.ZhouVariantID"
+                          data-ajax="true" data-ajax-method="post"
+                          data-ajax-success="variant_delete_success"
+                          data-ajax-failure="variant_delete_failure"
+                          data-ajax-confirm="确认删除这个配置吗？"
+                          data-variant-id="@Model.EditVariant.ZhouVariantID"
+                          style="display:inline-block">
+                        <button type="button" class="btn btn-primary"
+                                data-variant-id="@Model.EditVariant.ZhouVariantID"
+                                onclick="variant_edit_begin(this)">
+                            编辑
+                        </button>
+                        <button type="submit" class="btn btn-danger">删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="row" id="variant-edit-@Model.EditVariant.ZhouVariantID"
+         style="@(Model.IsNew ? "" : "display:none")">
+        <div class="col-md-8">
+            @{ 
+                //Prepare for attributes used in the form.
+                (string mode, string update, string suc, string fail) data_ajax_attributes = Model.IsNew switch
+                {
+                    true => ("after", $"#variant-container", "variant_add_success", "variant_add_failure"),
+                    false => ("replace", $"#variant-{Model.EditVariant.ZhouVariantID}", "", "variant_edit_failure"),
+                };
+            }
+            <form method="post"
+                  asp-page-handler="@(Model.IsNew ? "addv" : "editv")"
+                  asp-route-id="@Model.EditVariant.ZhouVariantID"
+                  data-ajax="true" data-ajax-method="post"
+                  data-ajax-mode="@data_ajax_attributes.mode"
+                  data-ajax-update="@data_ajax_attributes.update"
+                  data-ajax-success="@data_ajax_attributes.suc"
+                  data-ajax-failure="@data_ajax_attributes.fail"
+                  data-variant-id="@Model.EditVariant.ZhouVariantID">
+                <input type="hidden" asp-for="Zhou.ZhouID" />
+                <input type="hidden" asp-for="EditVariant.ZhouVariantID" />
+                <input type="hidden" asp-for="EditVariantConfigs" id="variant-configs-hidden-input-@Model.EditVariant.ZhouVariantID"/>
+                <div class="form-group">
+                    <label asp-for="EditVariant.Name" class="control-label"></label>
+                    <input asp-for="EditVariant.Name" class="form-control" />
+                    <span asp-validation-for="EditVariant.Name" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EditVariant.Content" class="control-label"></label>
+                    <textarea asp-for="EditVariant.Content" class="form-control"></textarea>
+                    <span asp-validation-for="EditVariant.Content" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EditVariant.Damage" class="control-label"></label>
+                    <input asp-for="EditVariant.Damage" class="form-control" />
+                    <span asp-validation-for="EditVariant.Damage" class="text-danger"></span>
+                </div>
+                <div class="form-group form-check">
+                    <label class="form-check-label">
+                        <input class="form-check-input" asp-for="EditVariant.IsDraft" />
+                        @Html.DisplayNameFor(model => model.EditVariant.IsDraft)
+                    </label>
+                </div>
+                <table>
+                    <tbody>
+                        @for (int i = 0; i < allConfigs.Count; ++i)
+                        {
+                            @if (allConfigs[i].configs.Length == 1 && allConfigs[i].configs[0].Length == 1)
+                            {
+                                //Single config available (the default config).
+                                <tr>
+                                    <td>
+                                        <p>@allConfigs[i].name</p>
+                                    </td>
+                                    <td>
+                                        <div class="form-group form-check">
+                                            <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" checked disabled="disabled" />
+                                                @allConfigs[i].configs[0][0].Name
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                //Add checkbox for each group.
+                                bool isFirst = true;
+                                foreach (var gg in allConfigs[i].configs)
+                                {
+                                    foreach (var cc in gg)
+                                    {
+                                        if (cc.Kind == PcrBattleChannel.Models.CharacterConfigKind.Default) continue;
+                                        var setChecked = Model.SelectedConfigIDs.Contains(cc.CharacterConfigID) ? "checked" : "";
+                                        <tr>
+                                            <td>
+                                                @if (isFirst)
+                                                {
+                                                    isFirst = false;
+                                                    <p>@allConfigs[i].name</p>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="form-group form-check">
+                                                    <label class="form-check-label">
+                                                        <input type="checkbox" class="form-check-input" @Html.Raw(setChecked)
+                                                               onchange="variant_config_checked_changed(this)"
+                                                               data-variant-id="@Model.EditVariant.ZhouVariantID"
+                                                               data-variant-config-id="@cc.CharacterConfigID"/>@cc.Name
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                }
+                        }
+                    </tbody>
+                </table>
+                <button class="btn btn-primary" type="submit">@(Model.IsNew ? "创建" : "完成")</button>
+                @if (!Model.IsNew)
+                {
+                    <button class="btn btn-light" type="button"
+                            data-variant-id="@Model.EditVariant.ZhouVariantID"
+                            onclick="variant_edit_cancel(this)">
+                        取消
+                    </button>
+                }
+            </form>
+        </div>
+    </div>
+    <hr />
+</div>

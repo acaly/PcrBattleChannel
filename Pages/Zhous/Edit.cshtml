@@ -1,0 +1,168 @@
+﻿@page
+@model PcrBattleChannel.Pages.Zhous.EditModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "改轴";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>改轴</h4>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" id="zhou-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Zhou.ZhouID" />
+            <div class="form-group">
+                <label asp-for="Zhou.Name" class="control-label"></label>
+                <input asp-for="Zhou.Name" class="form-control" />
+                <span asp-validation-for="Zhou.Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Zhou.Description" class="control-label"></label>
+                <textarea asp-for="Zhou.Description" class="form-control"></textarea>
+                <span asp-validation-for="Zhou.Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Zhou.BossID" class="control-label"></label>
+                <select asp-for="Zhou.BossID" class="form-control" asp-items="ViewBag.BossID"></select>
+                <span asp-validation-for="Zhou.BossID" class="text-danger"></span>
+            </div>
+        </form>
+        <div class="form-group">
+            <label class="control-label">阵容</label>
+            <table>
+                <tbody>
+                    <tr>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C1?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:50px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C2?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:50px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C3?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:50px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C4?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:50px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C5?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:50px;max-width:100%;height:auto" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>@(Model.Zhou.C1.Name)</td>
+                        <td>@(Model.Zhou.C2.Name)</td>
+                        <td>@(Model.Zhou.C3.Name)</td>
+                        <td>@(Model.Zhou.C4.Name)</td>
+                        <td>@(Model.Zhou.C5.Name)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="form-group">
+            <input type="submit" value="保存" class="btn btn-primary" form="zhou-form" />
+            <form method="post" asp-page-handler="delete" style="display:inline-block">
+                <input type="submit" value="删除" class="btn btn-danger" />
+            </form>
+        </div>
+    </div>
+</div>
+
+<h4>详细配置 (<span id="variant-count">@Model.Zhou.Variants.Count</span>)</h4>
+<hr />
+<div id="variant-container">
+    @foreach (var variant in Model.Zhou.Variants)
+    {
+        <partial name="_Edit_VariantPartial" model="await Model.VariantModel(variant)" view-data="ViewData" />
+    }
+</div>
+
+<h4>新建配置</h4>
+<hr />
+<partial name="_Edit_VariantPartial" model="Model.NewVariantModel()" view-data="ViewData" />
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" asp-page-handler="addv" data-ajax="true" data-ajax-method="post"
+              data-ajax-mode="after" data-ajax-update="#variant-container">
+            <input type="hidden" asp-for="Zhou.ZhouID" />
+            <div class="form-group">
+                <label asp-for="EditVariant.Name" class="control-label"></label>
+                <input asp-for="EditVariant.Name" class="form-control" />
+                <span asp-validation-for="EditVariant.Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EditVariant.Content" class="control-label"></label>
+                <textarea asp-for="EditVariant.Content" class="form-control"></textarea>
+                <span asp-validation-for="EditVariant.Content" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EditVariant.Damage" class="control-label"></label>
+                <input asp-for="EditVariant.Damage" class="form-control" />
+                <span asp-validation-for="EditVariant.Damage" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="EditVariant.IsDraft" />
+                    @Html.DisplayNameFor(model => model.EditVariant.IsDraft)
+                </label>
+            </div>
+            <input type="submit" value="创建" class="btn btn-primary" />
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
+    <script>
+        function variant_add_success() {
+            this.reset();
+            $('#variant-count').html($('#variant-container').children().length);
+        }
+        function variant_add_failure() {
+            alert('创建失败');
+        }
+        function variant_delete_success() {
+            var id = this.getAttribute('data-variant-id');
+            $('#variant-' + id).remove();
+            $('#variant-count').html($('#variant-container').children().length);
+        }
+        function variant_delete_failure() {
+            alert('删除失败');
+        }
+        function variant_edit_begin(e) {
+            var id = e.getAttribute('data-variant-id');
+            $('#variant-info-' + id).hide();
+            $('#variant-edit-' + id).show();
+        }
+        function variant_edit_cancel(e) {
+            var id = e.getAttribute('data-variant-id');
+            $('#variant-info-' + id).show();
+            $('#variant-edit-' + id).hide();
+        }
+        function variant_edit_failure() {
+            alert('编辑失败');
+        }
+        function variant_config_checked_changed(e) {
+            var vid = e.getAttribute('data-variant-id');
+            var cid = e.getAttribute('data-variant-config-id');
+            var str = $('#variant-configs-hidden-input-' + vid).val();
+            var list = str.length == 0 ? [] : str.split(',');
+            var index = list.indexOf(cid);
+            if (index == -1) {
+                list.push(cid);
+            }
+            else {
+                list.splice(index, 1);
+            }
+            $('#variant-configs-hidden-input-' + vid).val(list.join(','));
+        }
+    </script>
+}

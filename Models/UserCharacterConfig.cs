@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Models
 {
-    //Many-to-mant relationship between PcrIdentityUser and CharacterConfig.
+    //Many-to-many relationship between PcrIdentityUser and CharacterConfig.
     public class UserCharacterConfig
     {
         public int UserCharacterConfigID { get; set; }
