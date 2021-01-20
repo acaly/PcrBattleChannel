@@ -2,18 +2,35 @@
 @inject SignInManager<PcrBattleChannel.Models.PcrIdentityUser> SignInManager
 @inject UserManager<PcrBattleChannel.Models.PcrIdentityUser> UserManager
 @inject PcrBattleChannel.Data.ApplicationDbContext DbContext
-
-<ul class="navbar-nav">
-    @{
-        var u = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
-        var roles = u is null ? null : await UserManager.GetRolesAsync(u);
-        bool isOwner = false;
-        if (u is not null && u.GuildID.HasValue)
-        {
-            var guild = await DbContext.Guilds.FindAsync(u.GuildID);
-            if (guild.OwnerID == u.Id) isOwner = true;
-        }
+@{
+    var u = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+    var roles = u is null ? null : await UserManager.GetRolesAsync(u);
+    bool isOwner = false;
+    if (u is not null && u.GuildID.HasValue)
+    {
+        var guild = await DbContext.Guilds.FindAsync(u.GuildID);
+        if (guild.OwnerID == u.Id) isOwner = true;
     }
+}
+
+<ul class="navbar-nav flex-grow-1">
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-page="/Home/Index">面板</a>
+    </li>
+    @if (u?.GuildID is not null)
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Guilds/Index">公会</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Home/Box" title="Manage">Box</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Home/Combos" title="Manage">分刀</a>
+        </li>
+    }
+</ul>
+<ul class="navbar-nav">
     @if (u is not null)
     {
         <li class="nav-item">
@@ -22,7 +39,7 @@
         @if (roles.Contains("Admin"))
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="/Admin/Index" title="Manage">管理</a>
+                <a class="nav-link text-dark" asp-page="/Admin/Index" title="Manage">站点管理</a>
             </li>
         }
         @if (isOwner)
