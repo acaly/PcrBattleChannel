@@ -10,8 +10,8 @@ using PcrBattleChannel.Data;
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210119051649_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20210120164141_AddUserBorrow")]
+    partial class AddUserBorrow
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -563,6 +563,9 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("int")
                         .UseIdentityColumn();
 
+                    b.Property<int?>("Borrow")
+                        .HasColumnType("int");
+
                     b.Property<string>("UserID")
                         .HasColumnType("nvarchar(450)");
 
@@ -666,9 +669,6 @@ namespace PcrBattleChannel.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .UseIdentityColumn();
-
-                    b.Property<bool>("AllowBorrow")
-                        .HasColumnType("bit");
 
                     b.Property<int?>("CharacterConfigID")
                         .HasColumnType("int");

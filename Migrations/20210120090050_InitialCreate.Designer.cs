@@ -10,8 +10,8 @@ using PcrBattleChannel.Data;
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210119170231_RemoveBorrowFlag")]
-    partial class RemoveBorrowFlag
+    [Migration("20210120090050_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

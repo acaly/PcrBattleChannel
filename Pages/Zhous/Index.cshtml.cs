@@ -27,7 +27,8 @@ namespace PcrBattleChannel.Pages.Zhous
 
         public bool IsAdmin { get; set; }
         public Guild Guild { get; set; }
-        public List<Zhou> Zhou { get;set; }
+        public List<Zhou> Zhou { get; set; }
+        public HashSet<int> UserZhouSettings { get; set; }
 
         private async Task<PcrIdentityUser> CheckUserPrivilege()
         {
@@ -66,6 +67,15 @@ namespace PcrBattleChannel.Pages.Zhous
                 .Include(z => z.C5)
                 .Include(z => z.Guild)
                 .Where(z => z.GuildID == user.GuildID).ToListAsync();
+
+            var allSettings = await _context.UserZhouVariants
+                .Include(uv => uv.ZhouVariant)
+                .Where(uv => uv.UserID == user.Id)
+                .ToListAsync();
+            UserZhouSettings = allSettings
+                .GroupBy(uv => uv.ZhouVariant.ZhouID)
+                .Select(g => g.Key).ToHashSet();
+
             return Page();
         }
     }

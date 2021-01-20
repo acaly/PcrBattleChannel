@@ -90,7 +90,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 cidList.RemoveAll(ii => ii == -1);
 
                 //Collect info of all configs.
-                var selectedIds = str.Split(',').Select(i => int.Parse(i));
+                var selectedIds = str?.Split(',').Select(i => int.Parse(i)) ?? Enumerable.Empty<int>();
                 Dictionary<CharacterConfigKind, List<CharacterConfig>> dict = new();
                 foreach (var ccid in selectedIds)
                 {
@@ -113,7 +113,7 @@ namespace PcrBattleChannel.Pages.Zhous
                         if (cid == -1) return false; //The character is not in this Zhou.
                         var ccInfo = new ZhouVariantCharacterConfig()
                         {
-                            ZhouVariantID = v.ZhouVariantID,
+                            ZhouVariant = v,
                             CharacterConfigID = cc.CharacterConfigID,
                             CharacterIndex = cid,
                             OrGroupIndex = (int)kind,

@@ -1,4 +1,4 @@
-﻿@page
+﻿@page "/Box"
 @model PcrBattleChannel.Pages.Home.BoxModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
@@ -9,7 +9,7 @@
 
 <h4>个人Box设置</h4>
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <table class="table">
             <thead><tr><th colspan="@(Columns * 2)"></th></tr></thead>
             <tbody>
@@ -42,8 +42,7 @@
                                               data-ajax-failure="config_update_failure">
                                             <label class="form-check-label">
                                                 <input type="checkbox" class="form-check-input"
-                                                       @Html.Raw(isChecked) onchange="$(this.form).submit()" />@cc.Name
-                                                <button type="submit">确定</button>
+                                                       @Html.Raw(isChecked) onchange="$(this.form).submit()" /> @Html.DisplayFor(m => cc.Name)
                                             </label>
                                         </form>
                                     </div>

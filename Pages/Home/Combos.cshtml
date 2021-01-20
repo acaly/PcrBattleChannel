@@ -1,0 +1,107 @@
+﻿@page "/Combo"
+@model PcrBattleChannel.Pages.Home.CombosModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "个人分刀";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>个人分刀</h4>
+<div class="row pt-2 pb-2">
+    <div class="col-md-10">
+        <form method="post" asp-page-handler="refresh">
+            <button type="submit" class="btn btn-primary">重新计算</button>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-10">
+
+    </div>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].IsSelected)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].NetValue)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Value)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].User)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Guild)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou1)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou1Borrow)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou2)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou2Borrow)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou3)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou3Borrow)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.UserCombo)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.IsSelected)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.NetValue)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Value)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.User.Id)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Guild.GuildID)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Zhou1.UserZhouVariantID)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Zhou1Borrow)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Zhou2.UserZhouVariantID)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Zhou2Borrow)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Zhou3.UserZhouVariantID)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Zhou3Borrow)
+                </td>
+                <td>
+                    <a asp-page="./Edit" asp-route-id="@item.UserComboID">Edit</a> |
+                    <a asp-page="./Details" asp-route-id="@item.UserComboID">Details</a> |
+                    <a asp-page="./Delete" asp-route-id="@item.UserComboID">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

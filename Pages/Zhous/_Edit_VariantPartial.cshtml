@@ -13,9 +13,7 @@
                     <p>@(string.IsNullOrWhiteSpace(Model.EditVariant.Name) ? "配置" : Model.EditVariant.Name)：</p>
                 </div>
                 <div class="col-md-6">
-                    <div>
-                        <p>@(Model.EditVariant.Content)</p>
-                    </div>
+                    <div style="white-space: pre-wrap">@Html.DisplayFor(m => m.EditVariant.Content)</div>
                 </div>
             </div>
             <div class="row">
@@ -127,7 +125,7 @@
                                                         <input type="checkbox" class="form-check-input" @Html.Raw(setChecked)
                                                                onchange="variant_config_checked_changed(this)"
                                                                data-variant-id="@Model.EditVariant.ZhouVariantID"
-                                                               data-variant-config-id="@cc.CharacterConfigID"/>@cc.Name
+                                                               data-variant-config-id="@cc.CharacterConfigID"/> @Html.DisplayFor(m => cc.Name)
                                                         </label>
                                                     </div>
                                                 </td>

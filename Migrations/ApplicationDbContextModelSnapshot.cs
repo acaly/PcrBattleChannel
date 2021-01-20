@@ -561,6 +561,9 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("int")
                         .UseIdentityColumn();
 
+                    b.Property<int?>("Borrow")
+                        .HasColumnType("int");
+
                     b.Property<string>("UserID")
                         .HasColumnType("nvarchar(450)");
 

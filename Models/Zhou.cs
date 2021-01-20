@@ -21,6 +21,7 @@ namespace PcrBattleChannel.Models
 
         [Display(Name = "说明")]
         [DataType(DataType.MultilineText)]
+        [DisplayFormat(NullDisplayText = "(无)")]
         public string Description { get; set; }
 
         [ForeignKey(nameof(Boss))]

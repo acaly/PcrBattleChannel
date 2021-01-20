@@ -23,10 +23,13 @@
             <a class="nav-link text-dark" asp-page="/Guilds/Index">公会</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-page="/Home/Box" title="Manage">Box</a>
+            <a class="nav-link text-dark" asp-page="/Zhous/Index">轴表</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-page="/Home/Combos" title="Manage">分刀</a>
+            <a class="nav-link text-dark" asp-page="/Home/Box">Box</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Home/Combos">分刀</a>
         </li>
     }
 </ul>
@@ -34,18 +37,18 @@
     @if (u is not null)
     {
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">已登录 @u.GameID</a>
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index">已登录 @u.GameID</a>
         </li>
         @if (roles.Contains("Admin"))
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="/Admin/Index" title="Manage">站点管理</a>
+                <a class="nav-link text-dark" asp-page="/Admin/Index">站点管理</a>
             </li>
         }
         @if (isOwner)
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="/Guilds/Edit" title="Manage">公会管理</a>
+                <a class="nav-link text-dark" asp-page="/Guilds/Edit">公会管理</a>
             </li>
         }
         <li class="nav-item">

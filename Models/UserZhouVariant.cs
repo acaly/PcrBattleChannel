@@ -18,5 +18,8 @@ namespace PcrBattleChannel.Models
         [ForeignKey(nameof(ZhouVariant))]
         public int ZhouVariantID { get; set; }
         public ZhouVariant ZhouVariant { get; set; }
+
+        //0-4 if user needs to borrow specific character to use this variant.
+        public int? Borrow { get; set; }
     }
 }

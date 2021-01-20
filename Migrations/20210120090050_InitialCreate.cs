@@ -472,8 +472,7 @@ namespace PcrBattleChannel.Migrations
                     ZhouVariantID = table.Column<int>(type: "int", nullable: false),
                     CharacterConfigID = table.Column<int>(type: "int", nullable: true),
                     CharacterIndex = table.Column<int>(type: "int", nullable: false),
-                    OrGroupIndex = table.Column<int>(type: "int", nullable: false),
-                    AllowBorrow = table.Column<bool>(type: "bit", nullable: false)
+                    OrGroupIndex = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

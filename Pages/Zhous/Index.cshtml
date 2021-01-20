@@ -29,20 +29,12 @@
             <th colspan="5">阵容</th>
             <th></th>
         </tr>
-        <tr>
-            <th></th>
-            <th></th>
-            <th style="width:12%"></th>
-            <th style="width:12%"></th>
-            <th style="width:12%"></th>
-            <th style="width:12%"></th>
-            <th style="width:12%"></th>
-            <th></th>
-        </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model.Zhou)
+        @for(int i = 0; i < Model.Zhou.Count; ++i)
         {
+            var item = Model.Zhou[i];
+            var style = i == 0 ? @"style=""width:12%""" : "";
             <tr>
                 <td rowspan="2">
                     @Html.DisplayFor(modelItem => item.Boss.ShortName)
@@ -53,20 +45,21 @@
                             @Html.DisplayFor(modelItem => item.Name)
                         </a>
                     </p>
+                    <p>个人设置：@(Model.UserZhouSettings.Contains(item.ZhouID) ? "可出此轴" : "不可出此轴")</p>
                 </td>
-                <td>
+                <td @Html.Raw(style)>
                     <img src="~/images/icons/@(item.C1?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto"/>
                 </td>
-                <td>
+                <td @Html.Raw(style)>
                     <img src="~/images/icons/@(item.C2?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                 </td>
-                <td>
+                <td @Html.Raw(style)>
                     <img src="~/images/icons/@(item.C3?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                 </td>
-                <td>
+                <td @Html.Raw(style)>
                     <img src="~/images/icons/@(item.C4?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                 </td>
-                <td>
+                <td @Html.Raw(style)>
                     <img src="~/images/icons/@(item.C5?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                 </td>
                 <td rowspan="2">
