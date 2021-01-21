@@ -112,6 +112,27 @@ namespace PcrBattleChannel.Pages.Home
                 .Where(u => u.UserID == user.Id)
                 .OrderByDescending(u => u.NetValue)
                 .ToListAsync();
+            foreach (var c in UserCombo)
+            {
+                if (c.Zhou1ID.HasValue)
+                {
+                    await _context.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.Entry(c.Zhou1.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                }
+                if (c.Zhou2ID.HasValue)
+                {
+                    await _context.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.Entry(c.Zhou2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                }
+                if (c.Zhou3ID.HasValue)
+                {
+                    await _context.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.Entry(c.Zhou3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                }
+            }
 
             UsedCharacters = await _context.UserCharacterStatuses
                 .Include(s => s.Character)

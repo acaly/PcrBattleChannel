@@ -26,19 +26,7 @@
     <thead>
         <tr>
             <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].SelectedZhou)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].NetValue)
-            </th>
-            <th>
                 @Html.DisplayNameFor(model => model.UserCombo[0].Value)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].User)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Guild)
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.UserCombo[0].Zhou1)
@@ -57,37 +45,51 @@
         {
             <tr>
                 <td>
-                    @Html.DisplayFor(modelItem => item.SelectedZhou)
+                    @Html.DisplayFor(modelItem => item.NetValue) / @Html.DisplayFor(modelItem => item.Value)
                 </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.NetValue)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Value)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.User.Id)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Guild.GuildID)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Zhou1.UserZhouVariantID)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Zhou2.UserZhouVariantID)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Zhou3.UserZhouVariantID)
-                </td>
-                <td>
-                    <a asp-page="./Edit" asp-route-id="@item.UserComboID">Edit</a> |
-                    <a asp-page="./Details" asp-route-id="@item.UserComboID">Details</a> |
-                    <a asp-page="./Delete" asp-route-id="@item.UserComboID">Delete</a>
-                </td>
+                @if (item.Zhou1ID.HasValue)
+                {
+                    <td>
+                        @Html.DisplayFor(m => item.Zhou1.ZhouVariant.Zhou.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details"
+                            asp-route-id="@item.Zhou1.ZhouVariant.ZhouID">@Html.DisplayFor(m => item.Zhou1.ZhouVariant.Zhou.Name)</a>)
+                    </td>
+                }
+                else
+                {
+                    <td>(无)</td>
+                }
+                @if (item.Zhou2ID.HasValue)
+                {
+                    <td>
+                        @Html.DisplayFor(m => item.Zhou2.ZhouVariant.Zhou.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details"
+                            asp-route-id="@item.Zhou2.ZhouVariant.ZhouID">@Html.DisplayFor(m => item.Zhou2.ZhouVariant.Zhou.Name)</a>)
+                    </td>
+                }
+                else
+                {
+                    <td>(无)</td>
+                }
+                @if (item.Zhou3ID.HasValue)
+                {
+                    <td>
+                        @Html.DisplayFor(m => item.Zhou3.ZhouVariant.Zhou.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details"
+                            asp-route-id="@item.Zhou3.ZhouVariant.ZhouID">@Html.DisplayFor(m => item.Zhou3.ZhouVariant.Zhou.Name)</a>)
+                    </td>
+                }
+                else
+                {
+                    <td>(无)</td>
+                }
+                <td>选定此套餐</td>
             </tr>
         }
     </tbody>
+    <tfoot>
+        <tr><td colspan="5"/></tr>
+    </tfoot>
 </table>
 
 <style>

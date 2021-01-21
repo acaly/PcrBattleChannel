@@ -79,6 +79,10 @@
         <h4>详细配置：@Html.DisplayFor(m => variant.Name)</h4>
     }
     <hr />
+    <div class="row form-group">
+        <div class="col-md-4">预计伤害</div>
+        <div class="col-md-8">@Html.DisplayFor(m => variant.Damage)</div>
+    </div>
     var configs = await Model.GetConfigs(variant);
     <form method="post" asp-page-handler="borrow"
           asp-route-vid="@variant.ZhouVariantID"
@@ -141,10 +145,12 @@
                                 }
                         </div>
                         <div class="col-md-8">
-                            @for (int j = 0; j < g[i].Length; ++j)
-                            {
-                                @(j != 0 ? "/" : "")@Html.DisplayFor(m => g[i][j].CharacterConfig.Name)
-                            }
+                            <div class="form-group">
+                                @for (int j = 0; j < g[i].Length; ++j)
+                                {
+                                    @(j != 0 ? "/" : "")@Html.DisplayFor(m => g[i][j].CharacterConfig.Name)
+                                }
+                            </div>
                         </div>
                     </div>
                 }
@@ -169,6 +175,7 @@
             <div style="white-space: pre-wrap">@Html.DisplayFor(m => variant.Content)</div>
         </div>
     </div>
+    <hr />
 }
 
 @section Scripts {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,14 +33,17 @@ namespace PcrBattleChannel.Models
 
         [ForeignKey(nameof(Zhou1))]
         public int? Zhou1ID { get; set; }
+        [Display(Name = "第一刀")]
         public UserZhouVariant Zhou1 { get; set; }
 
         [ForeignKey(nameof(Zhou2))]
         public int? Zhou2ID { get; set; }
+        [Display(Name = "第二刀")]
         public UserZhouVariant Zhou2 { get; set; }
 
         [ForeignKey(nameof(Zhou3))]
         public int? Zhou3ID { get; set; }
+        [Display(Name = "第三刀")]
         public UserZhouVariant Zhou3 { get; set; }
     }
 }

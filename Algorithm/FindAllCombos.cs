@@ -13,8 +13,8 @@ namespace PcrBattleChannel.Algorithm
         private class ZVWrapper
         {
             public UserZhouVariant UV { get; }
-            public HashSet<int> Characters { get; }
-            public int? BorrowCID { get; }
+            public Dictionary<int, int> Characters { get; } // CharacterID -> character index in Zhou
+            public int? ActualBorrowIndex { get; set; }
 
             public ZVWrapper(ApplicationDbContext context, UserZhouVariant uv)
             {
@@ -26,38 +26,63 @@ namespace PcrBattleChannel.Algorithm
                 //Calculate the hash set.
                 Characters = new();
                 var z = uv.ZhouVariant.Zhou;
-                if (z.C1ID.HasValue && uv.Borrow != 0) Characters.Add(z.C1ID.Value);
-                if (z.C2ID.HasValue && uv.Borrow != 1) Characters.Add(z.C2ID.Value);
-                if (z.C3ID.HasValue && uv.Borrow != 2) Characters.Add(z.C3ID.Value);
-                if (z.C4ID.HasValue && uv.Borrow != 3) Characters.Add(z.C4ID.Value);
-                if (z.C5ID.HasValue && uv.Borrow != 4) Characters.Add(z.C5ID.Value);
-                if (uv.Borrow.HasValue)
+                if (z.C1ID.HasValue && uv.Borrow != 0) Characters.Add(z.C1ID.Value, 0);
+                if (z.C2ID.HasValue && uv.Borrow != 1) Characters.Add(z.C2ID.Value, 1);
+                if (z.C3ID.HasValue && uv.Borrow != 2) Characters.Add(z.C3ID.Value, 2);
+                if (z.C4ID.HasValue && uv.Borrow != 3) Characters.Add(z.C4ID.Value, 3);
+                if (z.C5ID.HasValue && uv.Borrow != 4) Characters.Add(z.C5ID.Value, 4);
+                ActualBorrowIndex = uv.Borrow;
+            }
+
+            public bool ApplyUsedCharacterList(HashSet<int> usedCharacters, HashSet<int> test)
+            {
+                test.Clear();
+                test.UnionWith(usedCharacters);
+                test.IntersectWith(Characters.Keys);
+                if (test.Count == 0)
                 {
-                    BorrowCID = uv.Borrow.Value switch
-                    {
-                        0 => z.C1ID,
-                        1 => z.C2ID,
-                        2 => z.C3ID,
-                        3 => z.C4ID,
-                        4 => z.C5ID,
-                        _ => default,
-                    };
+                    return true;
                 }
+                if (ActualBorrowIndex.HasValue || test.Count > 1)
+                {
+                    return false;
+                }
+                Characters.Remove(test.First(), out var borrow);
+                ActualBorrowIndex = borrow;
+                return true;
             }
         }
 
         public static async Task Run(ApplicationDbContext context, PcrIdentityUser user)
         {
+            HashSet<int> test = new();
+
             //Collect all variants.
             var allVariants = await context.UserZhouVariants
                 .Include(v => v.ZhouVariant)
                 .Where(v => v.UserID == user.Id)
                 .ToListAsync();
 
+            //Get all used characters.
+            var allUsedCharacterList = await context.UserCharacterStatuses
+                .Where(s => s.UserID == user.Id && s.IsUsed == true)
+                .Select(s => s.CharacterID)
+                .ToListAsync();
+            var allUsedCharacterSet = allUsedCharacterList.ToHashSet();
+
+            var wrappedVariants = new List<ZVWrapper>();
+            foreach (var v in allVariants.Select(v => new ZVWrapper(context, v)))
+            {
+                if (v.ApplyUsedCharacterList(allUsedCharacterSet, test))
+                {
+                    wrappedVariants.Add(v);
+                }
+            }
+
             //Merge by Zhou+BorrowIndex, select highest.
-            var highestVariants = allVariants
-                .GroupBy(v => (v.ZhouVariant.ZhouID, v.Borrow))
-                .Select(g => new ZVWrapper(context, g.OrderByDescending(v => v.ZhouVariant.Damage).First()))
+            var highestVariants = wrappedVariants
+                .GroupBy(v => (v.UV.ZhouVariant.ZhouID, v.ActualBorrowIndex))
+                .Select(g => g.OrderByDescending(v => v.UV.ZhouVariant.Damage).First())
                 .ToList();
 
             //Calculate most-used 4 characters.
@@ -124,20 +149,19 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Helper functions.
-            HashSet<int> test = new();
             bool IsCompatible2(ZVWrapper uv1, ZVWrapper uv2)
             {
                 test.Clear();
-                test.UnionWith(uv1.Characters);
-                test.UnionWith(uv2.Characters);
+                test.UnionWith(uv1.Characters.Keys);
+                test.UnionWith(uv2.Characters.Keys);
                 return test.Count >= 8;
             }
             bool IsCompatible3(ZVWrapper uv1, ZVWrapper uv2, ZVWrapper uv3)
             {
                 test.Clear();
-                test.UnionWith(uv1.Characters);
-                test.UnionWith(uv2.Characters);
-                test.UnionWith(uv3.Characters);
+                test.UnionWith(uv1.Characters.Keys);
+                test.UnionWith(uv2.Characters.Keys);
+                test.UnionWith(uv3.Characters.Keys);
                 return test.Count >= 12;
             }
             void Output(ZVWrapper uv1, ZVWrapper uv2, ZVWrapper uv3)
@@ -176,11 +200,13 @@ namespace PcrBattleChannel.Algorithm
                 //A (1) + C (2)
                 foreach (var x in groupA)
                 {
-                    foreach (var y in groupC)
+                    for (int j = 0; j < groupC.Count; ++j)
                     {
+                        var y = groupC[j];
                         if (!IsCompatible2(x, y)) continue;
-                        foreach (var z in groupC)
+                        for (int k = j + 1; k < groupC.Count; ++k)
                         {
+                            var z = groupC[k];
                             if (!IsCompatible2(x, z) || !IsCompatible2(y, z)) continue;
                             if (!IsCompatible3(x, y, z)) continue;
                             Output(x, y, z);
@@ -191,11 +217,13 @@ namespace PcrBattleChannel.Algorithm
                 //B (1) + C (2)
                 foreach (var x in groupB)
                 {
-                    foreach (var y in groupC)
+                    for (int j = 0; j < groupC.Count; ++j)
                     {
+                        var y = groupC[j];
                         if (!IsCompatible2(x, y)) continue;
-                        foreach (var z in groupC)
+                        for (int k = j + 1; k < groupC.Count; ++k)
                         {
+                            var z = groupC[k];
                             if (!IsCompatible2(x, z) || !IsCompatible2(y, z)) continue;
                             if (!IsCompatible3(x, y, z)) continue;
                             Output(x, y, z);
@@ -204,13 +232,16 @@ namespace PcrBattleChannel.Algorithm
                 }
 
                 //C (3)
-                foreach (var x in groupC)
+                for (int i = 0; i < groupC.Count; ++i)
                 {
-                    foreach (var y in groupC)
+                    var x = groupC[i];
+                    for (int j = i + 1; j < groupC.Count; ++j)
                     {
+                        var y = groupC[j];
                         if (!IsCompatible2(x, y)) continue;
-                        foreach (var z in groupC)
+                        for (int k = j + 1; k < groupC.Count; ++k)
                         {
+                            var z = groupC[k];
                             if (!IsCompatible2(x, z) || !IsCompatible2(y, z)) continue;
                             if (!IsCompatible3(x, y, z)) continue;
                             Output(x, y, z);
@@ -251,10 +282,12 @@ namespace PcrBattleChannel.Algorithm
                 }
 
                 //C (2)
-                foreach (var x in groupC)
+                for (int i = 0; i < groupC.Count; ++i)
                 {
-                    foreach (var y in groupC)
+                    var x = groupC[i];
+                    for (int j = i + 1; j < groupC.Count; ++j)
                     {
+                        var y = groupC[j];
                         if (!IsCompatible2(x, y)) continue;
                         Output(x, y, null);
                     }
