@@ -148,13 +148,12 @@ namespace PcrBattleChannel.Pages.Guilds
             user.GuildID = null;
             user.IsGuildAdmin = false;
             user.Attempts = 0;
-            user.NextAttemptPlanIndex = 0;
             _context.Users.Update(user);
 
-            _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == user.Id));
-            _context.UserZhouVariants.RemoveRange(_context.UserZhouVariants.Where(c => c.UserID == user.Id));
-            _context.UserCharacterConfigs.RemoveRange(_context.UserCharacterConfigs.Where(c => c.UserID == user.Id));
-            _context.UserCharacterStatuses.RemoveRange(_context.UserCharacterStatuses.Where(c => c.UserID == user.Id));
+            await _context.UserCombos.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
+            await _context.UserZhouVariants.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
+            await _context.UserCharacterConfigs.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
+            await _context.UserCharacterStatuses.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
 
             await _context.SaveChangesAsync();
 

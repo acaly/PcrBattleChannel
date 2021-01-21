@@ -7,16 +7,18 @@
 }
 
 <h4>个人分刀</h4>
+<hr />
+
+<partial name="_Combo_StatusPartial" model="Model" />
+
+<h4>分刀套餐</h4>
 <div class="row pt-2 pb-2">
     <div class="col-md-10">
         <form method="post" asp-page-handler="refresh">
             <button type="submit" class="btn btn-primary">重新计算</button>
         </form>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-10">
-
+        <table>
+        </table>
     </div>
 </div>
 
@@ -24,7 +26,7 @@
     <thead>
         <tr>
             <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].IsSelected)
+                @Html.DisplayNameFor(model => model.UserCombo[0].SelectedZhou)
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.UserCombo[0].NetValue)
@@ -42,19 +44,10 @@
                 @Html.DisplayNameFor(model => model.UserCombo[0].Zhou1)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou1Borrow)
-            </th>
-            <th>
                 @Html.DisplayNameFor(model => model.UserCombo[0].Zhou2)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou2Borrow)
-            </th>
-            <th>
                 @Html.DisplayNameFor(model => model.UserCombo[0].Zhou3)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou3Borrow)
             </th>
             <th></th>
         </tr>
@@ -64,7 +57,7 @@
         {
             <tr>
                 <td>
-                    @Html.DisplayFor(modelItem => item.IsSelected)
+                    @Html.DisplayFor(modelItem => item.SelectedZhou)
                 </td>
                 <td>
                     @Html.DisplayFor(modelItem => item.NetValue)
@@ -82,19 +75,10 @@
                     @Html.DisplayFor(modelItem => item.Zhou1.UserZhouVariantID)
                 </td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.Zhou1Borrow)
-                </td>
-                <td>
                     @Html.DisplayFor(modelItem => item.Zhou2.UserZhouVariantID)
                 </td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.Zhou2Borrow)
-                </td>
-                <td>
                     @Html.DisplayFor(modelItem => item.Zhou3.UserZhouVariantID)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Zhou3Borrow)
                 </td>
                 <td>
                     <a asp-page="./Edit" asp-route-id="@item.UserComboID">Edit</a> |
@@ -105,3 +89,56 @@
         }
     </tbody>
 </table>
+
+<style>
+    #character-list .character-list-item {
+        display: inline-block;
+        position: relative;
+    }
+
+    #character-list .tick-mark {
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        width: 25px;
+        height: 25px;
+        z-index: 1;
+        display: none;
+    }
+
+    #character-list .tick-mark img {
+        width: 100%;
+    }
+
+    #character-list .selected .tick-mark {
+        display: block;
+    }
+</style>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
+    <script>
+        function user_status_confirm_success() {
+            $('#status-confirm-button').prop('disabled', true);
+            $('.guessed').hide();
+        }
+        function toggle_user_status_edit(btn) {
+            btn.form.reset();
+            $('#user-status-display').toggle();
+            $('#user-status-edit').toggle();
+        }
+        function user_status_update_failure() {
+            alert('更新失败');
+        }
+        function user_status_edit_character_click(e) {
+            $(e).toggleClass('selected');
+            var allSelected = $('#character-list .selected');
+            var str = '';
+            allSelected.each(function (a, b) {
+                if (str.length > 0) str = str + ',';
+                str = str + b.getAttribute('data-character-id');
+            });
+            $('#characterliststring').val(str);
+        }
+    </script>
+}

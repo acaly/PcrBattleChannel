@@ -26,6 +26,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.jQuery.Unobtrusive.Ajax" Version="3.2.6" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.1" />
+    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="5.1.13" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using PcrBattleChannel.Algorithm;
 using PcrBattleChannel.Data;
 using PcrBattleChannel.Models;
 
@@ -25,7 +27,69 @@ namespace PcrBattleChannel.Pages.Home
             _userManager = userManager;
         }
 
-        public List<UserCombo> UserCombo { get;set; }
+        public List<UserCombo> UserCombo { get; set; }
+        public PcrIdentityUser AppUser { get; set; }
+        public List<UserCharacterStatus> UsedCharacters { get; set; }
+
+        public List<Character> AllCharacters { get; set; }
+
+        [BindProperty]
+        [Display(Name = "选择已用角色（不含助战）")]
+        public string UsedCharacterString { get; set; }
+
+        private async Task GetUserInfo(PcrIdentityUser user)
+        {
+            AppUser = user;
+
+            if (user.Attempt1ID.HasValue)
+            {
+                await _context.Entry(user).Reference(u => u.Attempt1).LoadAsync();
+                await _context.Entry(user.Attempt1).Reference(uv => uv.ZhouVariant).LoadAsync();
+                await _context.Entry(user.Attempt1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                await _context.Entry(user.Attempt1.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+            }
+            if (user.Attempt2ID.HasValue)
+            {
+                await _context.Entry(user).Reference(u => u.Attempt2).LoadAsync();
+                await _context.Entry(user.Attempt2).Reference(uv => uv.ZhouVariant).LoadAsync();
+                await _context.Entry(user.Attempt2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                await _context.Entry(user.Attempt2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+            }
+            if (user.Attempt3ID.HasValue)
+            {
+                await _context.Entry(user).Reference(u => u.Attempt3).LoadAsync();
+                await _context.Entry(user.Attempt3).Reference(uv => uv.ZhouVariant).LoadAsync();
+                await _context.Entry(user.Attempt3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                await _context.Entry(user.Attempt3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+            }
+        }
+
+        private async Task GetAllCharacters(PcrIdentityUser user)
+        {
+            var allZhous = _context.Zhous
+                .Where(z => z.GuildID == user.GuildID);
+            var cid = new HashSet<int>();
+            foreach (var z in allZhous)
+            {
+                if (z.C1ID.HasValue) cid.Add(z.C1ID.Value);
+                if (z.C2ID.HasValue) cid.Add(z.C2ID.Value);
+                if (z.C3ID.HasValue) cid.Add(z.C3ID.Value);
+                if (z.C4ID.HasValue) cid.Add(z.C4ID.Value);
+                if (z.C5ID.HasValue) cid.Add(z.C5ID.Value);
+            }
+            AllCharacters = new();
+            foreach (var c in cid)
+            {
+                if (!await _context.UserCharacterConfigs
+                    .Include(cc => cc.CharacterConfig)
+                    .AnyAsync(cc => cc.UserID == user.Id && cc.CharacterConfig.CharacterID == c))
+                {
+                    continue;
+                }
+                AllCharacters.Add(await _context.Characters.FirstOrDefaultAsync(cc => cc.CharacterID == c));
+            }
+            AllCharacters.Sort((c1, c2) => Math.Sign(c1.Range - c2.Range));
+        }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -38,31 +102,122 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return Redirect("/");
             }
+            await GetUserInfo(user);
 
             UserCombo = await _context.UserCombos
                 .Include(u => u.Zhou1)
                 .Include(u => u.Zhou2)
-                .Include(u => u.Zhou3).ToListAsync();
+                .Include(u => u.Zhou3)
+                .Where(u => u.UserID == user.Id)
+                .OrderByDescending(u => u.NetValue)
+                .ToListAsync();
+
+            UsedCharacters = await _context.UserCharacterStatuses
+                .Include(s => s.Character)
+                .Where(s => s.UserID == user.Id && s.IsUsed == true)
+                .ToListAsync();
+
+            await GetAllCharacters(user);
 
             return Page();
         }
 
-        public async Task<IActionResult> OnPostRecalcAsync()
+        public async Task<IActionResult> OnPostRefreshAsync()
         {
-            //collect all variants
-            //merge by Zhou+BorrowIndex, select highest
-            //calculate most-used 4 characters, put variants with all 3 in a special group A
-            //  at most only one of these can be chosen
-            //put variants with 1st, 2nd, 4th most-used characters in another special group B
-            //  at most only one of these can be chosen
-            //put all others (without these 4) in another group C
-            //iterate and generate results
-            //  A (1) + B (1) + C (1)
-            //  A (1) + C (2)
-            //  B (1) + C (2)
-            //  C (3)
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return Redirect("/");
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (!user.GuildID.HasValue)
+            {
+                return Redirect("/");
+            }
+
+            await _context.UserCombos.Where(u => u.UserID == user.Id).DeleteFromQueryAsync();
+            await FindAllCombos.Run(_context, user);
+            _context.SaveChanges();
+
+            return RedirectToPage();
+        }
+
+        //Ajax
+        public async Task<IActionResult> OnPostConfirmAsync()
+        {
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return StatusCode(400);
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (!user.GuildID.HasValue)
+            {
+                return StatusCode(400);
+            }
+
+            user = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+            user.GuessedAttempts = 0;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
 
             return StatusCode(200);
+        }
+
+        //Ajax
+        public async Task<IActionResult> OnPostUpdateStatusAsync()
+        {
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return StatusCode(400);
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (!user.GuildID.HasValue)
+            {
+                return StatusCode(400);
+            }
+            await GetUserInfo(user);
+
+            await _context.UserCharacterStatuses
+                .Where(s => s.UserID == user.Id)
+                .DeleteFromQueryAsync();
+            UsedCharacters = new();
+            try
+            {
+                var list = UsedCharacterString.Split(',');
+                foreach (var item in list)
+                {
+                    var cid = int.Parse(item);
+                    var s = new UserCharacterStatus
+                    {
+                        UserID = user.Id,
+                        //Page will need this reference, so load it here.
+                        Character = await _context.Characters.FirstAsync(c => c.CharacterID == cid),
+                        CharacterID = cid,
+                        IsUsed = true,
+                    };
+                    UsedCharacters.Add(s);
+                    _context.UserCharacterStatuses.Add(s);
+                }
+                user.Attempts = list.Length switch
+                {
+                    > 10 => 3,
+                    > 5 => 2,
+                    > 0 => 1,
+                    _ => 0,
+                };
+                user.Attempt1ID = null;
+                user.Attempt2ID = null;
+                user.Attempt3ID = null;
+                user.GuessedAttempts = 0;
+            }
+            catch
+            {
+                return StatusCode(400);
+            }
+            await _context.SaveChangesAsync();
+
+            await GetAllCharacters(user);
+
+            return Partial("_Combo_StatusPartial", this);
         }
     }
 }

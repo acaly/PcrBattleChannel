@@ -10,7 +10,7 @@ namespace PcrBattleChannel.Models
     {
         public int UserComboID { get; set; }
 
-        public bool IsSelected { get; set; }
+        public int? SelectedZhou { get; set; }
 
         //Value of this combo if all members do not select any combo.
         //This reflects how favored is a combo among all members.
@@ -33,16 +33,13 @@ namespace PcrBattleChannel.Models
         [ForeignKey(nameof(Zhou1))]
         public int? Zhou1ID { get; set; }
         public UserZhouVariant Zhou1 { get; set; }
-        public int? Zhou1Borrow { get; set; }
 
         [ForeignKey(nameof(Zhou2))]
         public int? Zhou2ID { get; set; }
         public UserZhouVariant Zhou2 { get; set; }
-        public int? Zhou2Borrow { get; set; }
 
         [ForeignKey(nameof(Zhou3))]
         public int? Zhou3ID { get; set; }
         public UserZhouVariant Zhou3 { get; set; }
-        public int? Zhou3Borrow { get; set; }
     }
 }

@@ -1,0 +1,132 @@
+﻿@model PcrBattleChannel.Pages.Home.CombosModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    bool canConfirm = Model.AppUser.GuessedAttempts > 0;
+}
+
+<div id="user-status-container">
+    <h4>今日已出：@Model.AppUser.Attempts 刀</h4>
+    <div class="row pt-2 pb-4" id="user-status-display">
+        @if (Model.AppUser.Attempts > 0)
+        {
+            <div class="col-md-2">
+                <p>
+                    第一刀<span class="guessed">@(0 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? "" : "（推测）")</span>
+                </p>
+            </div>
+            <div class="col-md-10">
+                @if (Model.AppUser.Attempt1 is null)
+                {
+                    <p>(未知)</p>
+                }
+                else
+                {
+                    <p>
+                        @Html.DisplayFor(m => m.AppUser.Attempt1.ZhouVariant.Zhou.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details" asp-route-id="@Model.AppUser.Attempt1.ZhouVariant.ZhouID">
+                            @Html.DisplayFor(m => m.AppUser.Attempt1.ZhouVariant.Zhou.Name)
+                        </a>)
+                    </p>
+                }
+            </div>
+        }
+        @if (Model.AppUser.Attempts > 1)
+        {
+            <div class="col-md-2">
+                <p>
+                    第二刀<span class="guessed">@(1 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? "" : "（推测）")</span>
+                </p>
+            </div>
+            <div class="col-md-10">
+                @if (Model.AppUser.Attempt2 is null)
+                {
+                    <p>(未知)</p>
+                }
+                else
+                {
+                    <p>
+                        @Html.DisplayFor(m => m.AppUser.Attempt2.ZhouVariant.Zhou.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details" asp-route-id="@Model.AppUser.Attempt2.ZhouVariant.ZhouID">
+                            @Html.DisplayFor(m => m.AppUser.Attempt2.ZhouVariant.Zhou.Name)
+                        </a>)
+                    </p>
+                }
+            </div>
+        }
+        @if (Model.AppUser.Attempts > 2)
+        {
+            <div class="col-md-2">
+                <p>
+                    第三刀<span class="guessed">@(2 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? "" : "（推测）")</span>
+                </p>
+            </div>
+            <div class="col-md-10">
+                @if (Model.AppUser.Attempt3 is null)
+                {
+                    <p>(未知)</p>
+                }
+                else
+                {
+                    <p>
+                        @Html.DisplayFor(m => m.AppUser.Attempt3.ZhouVariant.Zhou.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details" asp-route-id="@Model.AppUser.Attempt3.ZhouVariant.ZhouID">
+                            @Html.DisplayFor(m => m.AppUser.Attempt3.ZhouVariant.Zhou.Name)
+                        </a>)
+                    </p>
+                }
+            </div>
+        }
+        <div class="col-md-2"><p>已用角色</p></div>
+        <div class="col-md-10">
+            @if (Model.UsedCharacters.Count == 0)
+            {
+                <p>(无)</p>
+            }
+            @foreach (var usedCharacter in Model.UsedCharacters)
+            {
+                <img src="~/images/icons/@(usedCharacter.Character.InternalID)31.jpg" style="max-width:20%;width:50px" />
+            }
+        </div>
+        <div class="col-md-2">
+            <form method="post" asp-page-handler="confirm"
+                  data-ajax="true" data-ajax-method="post"
+                  data-ajax-success="user_status_confirm_success">
+                @if (canConfirm)
+                {
+                    <button type="submit" class="btn btn-primary" id="status-confirm-button">确认</button>
+                }
+                <button type="button" class="btn btn-warning" onclick="toggle_user_status_edit(this)">修正</button>
+            </form>
+        </div>
+    </div>
+    <div class="row pt-2 pb-4" id="user-status-edit" style="display:none">
+        <div class="col-md-12">
+            <form method="post" asp-page-handler="updatestatus"
+                  data-ajax="true" data-ajax-method="post"
+                  data-ajax-mode="replace" data-ajax-update="#user-status-container"
+                  data-ajax-failure="user_status_update_failure">
+                <input id="characterliststring" type="hidden" asp-for="UsedCharacterString" />
+                <div class="form-group">
+                    <label asp-for="UsedCharacterString" class="control-label"></label>
+                    <div id="character-list">
+                        @foreach (var c in Model.AllCharacters)
+                        {
+                            <div class="character-list-item"
+                                 data-character-id="@c.CharacterID" onclick="user_status_edit_character_click(this)">
+                                <img src="~/images/icons/@(c.InternalID)31.jpg"
+                                     style="height:50px" />
+                                <div class="tick-mark">
+                                    <img src="~/images/tick-mark.png" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">确认</button>
+                    <button type="button" class="btn btn-light" onclick="toggle_user_status_edit(this)">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

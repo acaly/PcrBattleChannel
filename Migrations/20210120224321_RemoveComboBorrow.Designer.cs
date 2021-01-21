@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PcrBattleChannel.Data;
 
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210120224321_RemoveComboBorrow")]
+    partial class RemoveComboBorrow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -374,24 +376,6 @@ namespace PcrBattleChannel.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Attempt1Borrow")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Attempt1ID")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Attempt2Borrow")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Attempt2ID")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Attempt3Borrow")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Attempt3ID")
-                        .HasColumnType("int");
-
                     b.Property<int>("Attempts")
                         .HasColumnType("int");
 
@@ -409,9 +393,6 @@ namespace PcrBattleChannel.Migrations
                     b.Property<string>("GameID")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("GuessedAttempts")
-                        .HasColumnType("int");
-
                     b.Property<int?>("GuildID")
                         .HasColumnType("int");
 
@@ -423,6 +404,9 @@ namespace PcrBattleChannel.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("NextAttemptPlanIndex")
+                        .HasColumnType("int");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -455,12 +439,6 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Attempt1ID");
-
-                    b.HasIndex("Attempt2ID");
-
-                    b.HasIndex("Attempt3ID");
 
                     b.HasIndex("GuildID");
 
@@ -533,11 +511,11 @@ namespace PcrBattleChannel.Migrations
                     b.Property<int>("GuildID")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsSelected")
+                        .HasColumnType("bit");
+
                     b.Property<float>("NetValue")
                         .HasColumnType("real");
-
-                    b.Property<int?>("SelectedZhou")
-                        .HasColumnType("int");
 
                     b.Property<string>("UserID")
                         .HasColumnType("nvarchar(450)");
@@ -826,27 +804,9 @@ namespace PcrBattleChannel.Migrations
 
             modelBuilder.Entity("PcrBattleChannel.Models.PcrIdentityUser", b =>
                 {
-                    b.HasOne("PcrBattleChannel.Models.UserZhouVariant", "Attempt1")
-                        .WithMany()
-                        .HasForeignKey("Attempt1ID");
-
-                    b.HasOne("PcrBattleChannel.Models.UserZhouVariant", "Attempt2")
-                        .WithMany()
-                        .HasForeignKey("Attempt2ID");
-
-                    b.HasOne("PcrBattleChannel.Models.UserZhouVariant", "Attempt3")
-                        .WithMany()
-                        .HasForeignKey("Attempt3ID");
-
                     b.HasOne("PcrBattleChannel.Models.Guild", "Guild")
                         .WithMany("Members")
                         .HasForeignKey("GuildID");
-
-                    b.Navigation("Attempt1");
-
-                    b.Navigation("Attempt2");
-
-                    b.Navigation("Attempt3");
 
                     b.Navigation("Guild");
                 });

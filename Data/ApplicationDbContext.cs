@@ -24,6 +24,16 @@ namespace PcrBattleChannel.Data
                 .HasMany(g => g.Members)
                 .WithOne(m => m.Guild)
                 .HasForeignKey(m => m.GuildID);
+
+            builder.Entity<UserZhouVariant>()
+                .HasOne(v => v.User)
+                .WithMany(u => u.ZhouVariants)
+                .HasForeignKey(v => v.UserID);
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.LogTo(Console.WriteLine);
         }
 
         //Game characters. Imported from Admin/EditGlobalData.

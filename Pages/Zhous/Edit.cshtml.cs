@@ -249,7 +249,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
 
             var zhou = await _context.Zhous.FirstOrDefaultAsync(z => z.ZhouID == Zhou.ZhouID);
-            if (zhou is null)
+            if (zhou is null || zhou.GuildID != user.GuildID)
             {
                 return NotFound();
             }
@@ -264,8 +264,26 @@ namespace PcrBattleChannel.Pages.Zhous
             return RedirectToPage("./Index");
         }
 
-        public async Task<IActionResult> OnPostDeleteAsync()
+        public async Task<IActionResult> OnPostDeleteAsync(int? id)
         {
+            var user = await CheckUserPrivilege();
+            if (user is null)
+            {
+                return RedirectToPage("/Index");
+            }
+            if (!id.HasValue)
+            {
+                return RedirectToPage("/Index");
+            }
+
+            var zhou = await _context.Zhous.FirstOrDefaultAsync(z => z.ZhouID == Zhou.ZhouID);
+            if (zhou is null || zhou.GuildID != user.GuildID)
+            {
+                return NotFound();
+            }
+            _context.Zhous.Remove(zhou);
+            await _context.SaveChangesAsync();
+
             return RedirectToPage("./Index");
         }
 
