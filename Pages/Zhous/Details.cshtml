@@ -89,7 +89,7 @@
             var checkedYes = enabled ? "checked" : "";
             var checkedNo = !enabled ? "checked" : "";
             <div class="row">
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <div class="form-group form-check">
                         <label class="form-check-label">
                             <input type="radio" class="form-check-input"
@@ -114,7 +114,7 @@
             foreach (var (index, c, g) in configs)
             {
                 <div class="row">
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <div class="form-group form-check">
                             <label class="form-check-label">
                                 <input type="radio" class="form-check-input"
@@ -128,7 +128,7 @@
                 {
                     var checkedCharacter = enabled && borrow == index ? "checked" : "";
                     <div class="row">
-                        <div class="col-md-2">
+                        <div class="col-md-4">
                             @if (i == 0)
                             {
                                 <div class="form-group form-check">
@@ -149,7 +149,7 @@
                     </div>
                 }
                 <div class="row">
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <div class="form-group form-check">
                             <label class="form-check-label">
                                 <input type="radio" class="form-check-input"
@@ -164,7 +164,7 @@
     </form>
     <hr />
     <div class="row pb-4">
-        <div class="col-md-2">@Html.DisplayNameFor(m => variant.Content)</div>
+        <div class="col-md-4">@Html.DisplayNameFor(m => variant.Content)</div>
         <div class="col-md-8">
             <div style="white-space: pre-wrap">@Html.DisplayFor(m => variant.Content)</div>
         </div>

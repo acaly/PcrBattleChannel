@@ -30,6 +30,7 @@ namespace PcrBattleChannel.Pages.Home
         public List<UserCombo> UserCombo { get; set; }
         public PcrIdentityUser AppUser { get; set; }
         public List<UserCharacterStatus> UsedCharacters { get; set; }
+        public HashSet<int> UsedCharacterIds { get; set; }
 
         public List<Character> AllCharacters { get; set; }
 
@@ -116,6 +117,8 @@ namespace PcrBattleChannel.Pages.Home
                 .Include(s => s.Character)
                 .Where(s => s.UserID == user.Id && s.IsUsed == true)
                 .ToListAsync();
+            UsedCharacters.Sort((a, b) => Math.Sign(a.Character.Range - b.Character.Range));
+            UsedCharacterIds = UsedCharacters.Select(c => c.CharacterID).ToHashSet();
 
             await GetAllCharacters(user);
 
@@ -182,7 +185,7 @@ namespace PcrBattleChannel.Pages.Home
             UsedCharacters = new();
             try
             {
-                var list = UsedCharacterString.Split(',');
+                var list = UsedCharacterString?.Split(',') ?? Array.Empty<string>();
                 foreach (var item in list)
                 {
                     var cid = int.Parse(item);
@@ -216,6 +219,9 @@ namespace PcrBattleChannel.Pages.Home
             await _context.SaveChangesAsync();
 
             await GetAllCharacters(user);
+
+            UsedCharacters.Sort((a, b) => Math.Sign(a.Character.Range - b.Character.Range));
+            UsedCharacterIds = UsedCharacters.Select(c => c.CharacterID).ToHashSet();
 
             return Partial("_Combo_StatusPartial", this);
         }

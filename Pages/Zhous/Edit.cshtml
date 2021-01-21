@@ -88,37 +88,6 @@
 <hr />
 <partial name="_Edit_VariantPartial" model="Model.NewVariantModel()" view-data="ViewData" />
 
-<div class="row">
-    <div class="col-md-8">
-        <form method="post" asp-page-handler="addv" data-ajax="true" data-ajax-method="post"
-              data-ajax-mode="after" data-ajax-update="#variant-container">
-            <input type="hidden" asp-for="Zhou.ZhouID" />
-            <div class="form-group">
-                <label asp-for="EditVariant.Name" class="control-label"></label>
-                <input asp-for="EditVariant.Name" class="form-control" />
-                <span asp-validation-for="EditVariant.Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="EditVariant.Content" class="control-label"></label>
-                <textarea asp-for="EditVariant.Content" class="form-control"></textarea>
-                <span asp-validation-for="EditVariant.Content" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="EditVariant.Damage" class="control-label"></label>
-                <input asp-for="EditVariant.Damage" class="form-control" />
-                <span asp-validation-for="EditVariant.Damage" class="text-danger"></span>
-            </div>
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                    <input class="form-check-input" asp-for="EditVariant.IsDraft" />
-                    @Html.DisplayNameFor(model => model.EditVariant.IsDraft)
-                </label>
-            </div>
-            <input type="submit" value="创建" class="btn btn-primary" />
-        </form>
-    </div>
-</div>
-
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>

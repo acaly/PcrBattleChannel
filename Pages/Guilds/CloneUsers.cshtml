@@ -1,0 +1,38 @@
+﻿@page
+@model PcrBattleChannel.Pages.Guilds.CloneUsersModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "克隆会员";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<h4>克隆会员</h4>
+<div class="row">
+    <div class="col-md-12">
+        <form method="post">
+            <hr />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="TemplateUserEmail"></label>
+                <input asp-for="TemplateUserEmail" class="form-control" />
+                <span asp-validation-for="TemplateUserEmail" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CloneCount"></label>
+                <input asp-for="CloneCount" class="form-control" />
+                <span asp-validation-for="CloneCount" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EmailFormat"></label>
+                <input asp-for="EmailFormat" class="form-control" />
+                <span asp-validation-for="EmailFormat" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">确认</button>
+        </form>
+    </div>
+</div>

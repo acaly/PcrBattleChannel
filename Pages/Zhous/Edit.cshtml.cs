@@ -76,7 +76,7 @@ namespace PcrBattleChannel.Pages.Zhous
             };
         }
 
-        private async Task<bool> ApplyConfigString(Zhou z, ZhouVariant v, string str)
+        private async Task<List<ZhouVariantCharacterConfig>> ApplyConfigString(Zhou z, ZhouVariant v, string str)
         {
             try
             {
@@ -110,7 +110,7 @@ namespace PcrBattleChannel.Pages.Zhous
                     foreach (var cc in list)
                     {
                         var cid = cidList.IndexOf(cc.CharacterID);
-                        if (cid == -1) return false; //The character is not in this Zhou.
+                        if (cid == -1) return null; //The character is not in this Zhou.
                         var ccInfo = new ZhouVariantCharacterConfig()
                         {
                             ZhouVariant = v,
@@ -135,11 +135,11 @@ namespace PcrBattleChannel.Pages.Zhous
                     _context.ZhouVariantCharacterConfigs.Add(info);
                 }
 
-                return true;
+                return newInfoList;
             }
             catch
             {
-                return false;
+                return null;
             }
         }
 
@@ -320,8 +320,41 @@ namespace PcrBattleChannel.Pages.Zhous
                 Damage = EditVariant.Damage,
             };
 
-            _context.Add(variant);
-            await ApplyConfigString(Zhou, variant, EditVariantConfigs);
+            _context.ZhouVariants.Add(variant);
+            var configs = await ApplyConfigString(Zhou, variant, EditVariantConfigs);
+
+            //Setup user variants.
+            foreach (var u in _context.Users.Where(u => u.GuildID == user.GuildID))
+            {
+                ZhouVariantCharacterConfig unavailable = null;
+                bool result = true;
+                foreach (var c in configs)
+                {
+                    var s = await _context.UserCharacterConfigs
+                        .FirstOrDefaultAsync(cc => cc.UserID == u.Id && cc.CharacterConfigID == c.CharacterConfigID);
+                    if (s is null)
+                    {
+                        if (unavailable is null)
+                        {
+                            unavailable = c;
+                        }
+                        else
+                        {
+                            result = false;
+                            break;
+                        }
+                    }
+                }
+                if (result)
+                {
+                    _context.UserZhouVariants.Add(new UserZhouVariant
+                    {
+                        UserID = u.Id,
+                        ZhouVariant = variant,
+                        Borrow = unavailable?.CharacterIndex,
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
 

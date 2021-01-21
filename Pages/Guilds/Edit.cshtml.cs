@@ -155,6 +155,12 @@ namespace PcrBattleChannel.Pages.Guilds
             await _context.UserCharacterConfigs.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
             await _context.UserCharacterStatuses.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
 
+            if (user.Email is null)
+            {
+                //Cloned user has no email.
+                _context.Users.Remove(user);
+            }
+
             await _context.SaveChangesAsync();
 
             return RedirectToPage("/Guild/Index");
