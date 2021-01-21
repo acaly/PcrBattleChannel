@@ -25,70 +25,19 @@
 <table class="table">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Value)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou1)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou2)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserCombo[0].Zhou3)
-            </th>
+            <th>推荐度（当前值/初始值）</th>
+            <th colspan="2">阵容</th>
             <th></th>
         </tr>
     </thead>
-    <tbody>
-        @foreach (var item in Model.UserCombo)
-        {
-            <tr>
-                <td>
-                    @Html.DisplayFor(modelItem => item.NetValue) / @Html.DisplayFor(modelItem => item.Value)
-                </td>
-                @if (item.Zhou1ID.HasValue)
-                {
-                    <td>
-                        @Html.DisplayFor(m => item.Zhou1.ZhouVariant.Zhou.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details"
-                            asp-route-id="@item.Zhou1.ZhouVariant.ZhouID">@Html.DisplayFor(m => item.Zhou1.ZhouVariant.Zhou.Name)</a>)
-                    </td>
-                }
-                else
-                {
-                    <td>(无)</td>
-                }
-                @if (item.Zhou2ID.HasValue)
-                {
-                    <td>
-                        @Html.DisplayFor(m => item.Zhou2.ZhouVariant.Zhou.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details"
-                            asp-route-id="@item.Zhou2.ZhouVariant.ZhouID">@Html.DisplayFor(m => item.Zhou2.ZhouVariant.Zhou.Name)</a>)
-                    </td>
-                }
-                else
-                {
-                    <td>(无)</td>
-                }
-                @if (item.Zhou3ID.HasValue)
-                {
-                    <td>
-                        @Html.DisplayFor(m => item.Zhou3.ZhouVariant.Zhou.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details"
-                            asp-route-id="@item.Zhou3.ZhouVariant.ZhouID">@Html.DisplayFor(m => item.Zhou3.ZhouVariant.Zhou.Name)</a>)
-                    </td>
-                }
-                else
-                {
-                    <td>(无)</td>
-                }
-                <td>选定此套餐</td>
-            </tr>
-        }
-    </tbody>
+    @foreach (var item in Model.UserCombo)
+    {
+        <tbody id="combo-@item.UserComboID">
+            <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
+        </tbody>
+    }
     <tfoot>
-        <tr><td colspan="5"/></tr>
+        <tr><td colspan="4" /></tr>
     </tfoot>
 </table>
 

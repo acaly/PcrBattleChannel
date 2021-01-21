@@ -21,10 +21,11 @@
                 }
                 else
                 {
+                    var z = Model.CachedZhouData[Model.AppUser.Attempt1.ZhouVariant.ZhouID];
                     <p>
-                        @Html.DisplayFor(m => m.AppUser.Attempt1.ZhouVariant.Zhou.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details" asp-route-id="@Model.AppUser.Attempt1.ZhouVariant.ZhouID">
-                            @Html.DisplayFor(m => m.AppUser.Attempt1.ZhouVariant.Zhou.Name)
+                        @Html.DisplayFor(m => z.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details" asp-route-id="@z.ZhouID">
+                            @Html.DisplayFor(m => z.Name)
                         </a>)
                     </p>
                 }
@@ -44,10 +45,11 @@
                 }
                 else
                 {
+                    var z = Model.CachedZhouData[Model.AppUser.Attempt2.ZhouVariant.ZhouID];
                     <p>
-                        @Html.DisplayFor(m => m.AppUser.Attempt2.ZhouVariant.Zhou.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details" asp-route-id="@Model.AppUser.Attempt2.ZhouVariant.ZhouID">
-                            @Html.DisplayFor(m => m.AppUser.Attempt2.ZhouVariant.Zhou.Name)
+                        @Html.DisplayFor(m => z.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details" asp-route-id="@z.ZhouID">
+                            @Html.DisplayFor(m => z.Name)
                         </a>)
                     </p>
                 }
@@ -67,10 +69,11 @@
                 }
                 else
                 {
+                    var z = Model.CachedZhouData[Model.AppUser.Attempt3.ZhouVariant.ZhouID];
                     <p>
-                        @Html.DisplayFor(m => m.AppUser.Attempt3.ZhouVariant.Zhou.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details" asp-route-id="@Model.AppUser.Attempt3.ZhouVariant.ZhouID">
-                            @Html.DisplayFor(m => m.AppUser.Attempt3.ZhouVariant.Zhou.Name)
+                        @Html.DisplayFor(m => z.Boss.ShortName)
+                        (<a asp-page="/Zhous/Details" asp-route-id="@z.ZhouID">
+                            @Html.DisplayFor(m => z.Name)
                         </a>)
                     </p>
                 }

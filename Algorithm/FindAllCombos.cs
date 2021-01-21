@@ -13,7 +13,8 @@ namespace PcrBattleChannel.Algorithm
         private class ZVWrapper
         {
             public UserZhouVariant UV { get; }
-            public Dictionary<int, int> Characters { get; } // CharacterID -> character index in Zhou
+            public Dictionary<int, int> CharactersNoBorrow { get; } // CharacterID -> character index in Zhou
+            public Dictionary<int, int> Characters { get; }
             public int? ActualBorrowIndex { get; set; }
 
             public ZVWrapper(ApplicationDbContext context, UserZhouVariant uv)
@@ -26,11 +27,19 @@ namespace PcrBattleChannel.Algorithm
                 //Calculate the hash set.
                 Characters = new();
                 var z = uv.ZhouVariant.Zhou;
-                if (z.C1ID.HasValue && uv.Borrow != 0) Characters.Add(z.C1ID.Value, 0);
-                if (z.C2ID.HasValue && uv.Borrow != 1) Characters.Add(z.C2ID.Value, 1);
-                if (z.C3ID.HasValue && uv.Borrow != 2) Characters.Add(z.C3ID.Value, 2);
-                if (z.C4ID.HasValue && uv.Borrow != 3) Characters.Add(z.C4ID.Value, 3);
-                if (z.C5ID.HasValue && uv.Borrow != 4) Characters.Add(z.C5ID.Value, 4);
+                if (z.C1ID.HasValue) Characters.Add(z.C1ID.Value, 0);
+                if (z.C2ID.HasValue) Characters.Add(z.C2ID.Value, 1);
+                if (z.C3ID.HasValue) Characters.Add(z.C3ID.Value, 2);
+                if (z.C4ID.HasValue) Characters.Add(z.C4ID.Value, 3);
+                if (z.C5ID.HasValue) Characters.Add(z.C5ID.Value, 4);
+
+                CharactersNoBorrow = new(Characters);
+                if (uv.Borrow == 0) CharactersNoBorrow.Remove(z.C1ID.Value);
+                if (uv.Borrow == 1) CharactersNoBorrow.Remove(z.C2ID.Value);
+                if (uv.Borrow == 2) CharactersNoBorrow.Remove(z.C3ID.Value);
+                if (uv.Borrow == 3) CharactersNoBorrow.Remove(z.C4ID.Value);
+                if (uv.Borrow == 4) CharactersNoBorrow.Remove(z.C5ID.Value);
+
                 ActualBorrowIndex = uv.Borrow;
             }
 
@@ -38,7 +47,7 @@ namespace PcrBattleChannel.Algorithm
             {
                 test.Clear();
                 test.UnionWith(usedCharacters);
-                test.IntersectWith(Characters.Keys);
+                test.IntersectWith(CharactersNoBorrow.Keys);
                 if (test.Count == 0)
                 {
                     return true;
@@ -47,7 +56,7 @@ namespace PcrBattleChannel.Algorithm
                 {
                     return false;
                 }
-                Characters.Remove(test.First(), out var borrow);
+                CharactersNoBorrow.Remove(test.First(), out var borrow);
                 ActualBorrowIndex = borrow;
                 return true;
             }
@@ -56,6 +65,7 @@ namespace PcrBattleChannel.Algorithm
         public static async Task Run(ApplicationDbContext context, PcrIdentityUser user)
         {
             HashSet<int> test = new();
+            var borrowCalculator = new FindBorrowCases();
 
             //Collect all variants.
             var allVariants = await context.UserZhouVariants
@@ -152,16 +162,16 @@ namespace PcrBattleChannel.Algorithm
             bool IsCompatible2(ZVWrapper uv1, ZVWrapper uv2)
             {
                 test.Clear();
-                test.UnionWith(uv1.Characters.Keys);
-                test.UnionWith(uv2.Characters.Keys);
+                test.UnionWith(uv1.CharactersNoBorrow.Keys);
+                test.UnionWith(uv2.CharactersNoBorrow.Keys);
                 return test.Count >= 8;
             }
             bool IsCompatible3(ZVWrapper uv1, ZVWrapper uv2, ZVWrapper uv3)
             {
                 test.Clear();
-                test.UnionWith(uv1.Characters.Keys);
-                test.UnionWith(uv2.Characters.Keys);
-                test.UnionWith(uv3.Characters.Keys);
+                test.UnionWith(uv1.CharactersNoBorrow.Keys);
+                test.UnionWith(uv2.CharactersNoBorrow.Keys);
+                test.UnionWith(uv3.CharactersNoBorrow.Keys);
                 return test.Count >= 12;
             }
             void Output(ZVWrapper uv1, ZVWrapper uv2, ZVWrapper uv3)
@@ -173,6 +183,8 @@ namespace PcrBattleChannel.Algorithm
                     Zhou1ID = uv1.UV.ZhouVariantID,
                     Zhou2ID = uv2?.UV.ZhouVariantID,
                     Zhou3ID = uv3?.UV.ZhouVariantID,
+                    BorrowInfo = borrowCalculator.Run(uv1.Characters, uv2?.Characters, uv3?.Characters,
+                        uv1.ActualBorrowIndex, uv2?.ActualBorrowIndex, uv3?.ActualBorrowIndex),
                 };
                 context.UserCombos.Add(combo);
             }

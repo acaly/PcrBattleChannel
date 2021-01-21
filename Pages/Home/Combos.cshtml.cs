@@ -38,6 +38,32 @@ namespace PcrBattleChannel.Pages.Home
         [Display(Name = "选择已用角色（不含助战）")]
         public string UsedCharacterString { get; set; }
 
+        public Dictionary<int, Zhou> CachedZhouData { get; set; } = new();
+
+        public class SingleComboModel
+        {
+            public UserCombo Item { get; init; }
+            public CombosModel Parent { get; init; }
+        }
+
+        public SingleComboModel CreateSingleModel(UserCombo c) => new() { Item = c, Parent = this };
+
+        private async Task CacheZhouData(int zid)
+        {
+            if (!CachedZhouData.ContainsKey(zid))
+            {
+                var z = await _context.Zhous
+                    .Include(z => z.Boss)
+                    .Include(z => z.C1)
+                    .Include(z => z.C2)
+                    .Include(z => z.C3)
+                    .Include(z => z.C4)
+                    .Include(z => z.C5)
+                    .FirstOrDefaultAsync(z => z.ZhouID == zid);
+                CachedZhouData.Add(zid, z);
+            }
+        }
+
         private async Task GetUserInfo(PcrIdentityUser user)
         {
             AppUser = user;
@@ -47,21 +73,21 @@ namespace PcrBattleChannel.Pages.Home
                 await _context.Entry(user).Reference(u => u.Attempt1).LoadAsync();
                 await _context.Entry(user.Attempt1).Reference(uv => uv.ZhouVariant).LoadAsync();
                 await _context.Entry(user.Attempt1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                await _context.Entry(user.Attempt1.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                await CacheZhouData(user.Attempt1.ZhouVariant.ZhouID);
             }
             if (user.Attempt2ID.HasValue)
             {
                 await _context.Entry(user).Reference(u => u.Attempt2).LoadAsync();
                 await _context.Entry(user.Attempt2).Reference(uv => uv.ZhouVariant).LoadAsync();
                 await _context.Entry(user.Attempt2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                await _context.Entry(user.Attempt2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                await CacheZhouData(user.Attempt2.ZhouVariant.ZhouID);
             }
             if (user.Attempt3ID.HasValue)
             {
                 await _context.Entry(user).Reference(u => u.Attempt3).LoadAsync();
                 await _context.Entry(user.Attempt3).Reference(uv => uv.ZhouVariant).LoadAsync();
                 await _context.Entry(user.Attempt3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                await _context.Entry(user.Attempt3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                await CacheZhouData(user.Attempt3.ZhouVariant.ZhouID);
             }
         }
 
@@ -118,19 +144,21 @@ namespace PcrBattleChannel.Pages.Home
                 {
                     await _context.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
                     await _context.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await _context.Entry(c.Zhou1.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await CacheZhouData(c.Zhou1.ZhouVariant.ZhouID);
                 }
                 if (c.Zhou2ID.HasValue)
                 {
                     await _context.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
                     await _context.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await _context.Entry(c.Zhou2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await CacheZhouData(c.Zhou2.ZhouVariant.ZhouID);
                 }
                 if (c.Zhou3ID.HasValue)
                 {
                     await _context.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
                     await _context.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await _context.Entry(c.Zhou3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
                 }
             }
 
@@ -245,6 +273,72 @@ namespace PcrBattleChannel.Pages.Home
             UsedCharacterIds = UsedCharacters.Select(c => c.CharacterID).ToHashSet();
 
             return Partial("_Combo_StatusPartial", this);
+        }
+
+        //Ajax
+        public async Task<IActionResult> OnPostBorrowSwapAsync(int? id)
+        {
+            if (!id.HasValue)
+            {
+                return StatusCode(400);
+            }
+            if (!_signInManager.IsSignedIn(User))
+            {
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (!user.GuildID.HasValue)
+            {
+                return StatusCode(400);
+            }
+            await GetUserInfo(user);
+
+            SingleComboModel model;
+            {
+                var c = await _context.UserCombos
+                    .Include(u => u.Zhou1)
+                    .Include(u => u.Zhou2)
+                    .Include(u => u.Zhou3)
+                    .FirstOrDefaultAsync(u => u.UserComboID == id.Value);
+                if (c.Zhou1ID.HasValue)
+                {
+                    await _context.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await CacheZhouData(c.Zhou1.ZhouVariant.ZhouID);
+                }
+                if (c.Zhou2ID.HasValue)
+                {
+                    await _context.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.Entry(c.Zhou2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await CacheZhouData(c.Zhou2.ZhouVariant.ZhouID);
+                }
+                if (c.Zhou3ID.HasValue)
+                {
+                    await _context.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.Entry(c.Zhou3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
+                }
+                model = CreateSingleModel(c);
+            }
+
+            try
+            {
+                var borrowLists = model.Item.BorrowInfo;
+                var index = borrowLists.IndexOf(';');
+                if (index != -1)
+                {
+                    model.Item.BorrowInfo = borrowLists.Substring(index + 1) + ";" + borrowLists.Substring(0, index);
+                    _context.Update(model.Item);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch
+            {
+                return StatusCode(400);
+            }
+
+            return Partial("_Combo_ComboPartial", model);
         }
     }
 }

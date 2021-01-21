@@ -96,13 +96,14 @@ namespace PcrBattleChannel.Pages.Zhous
 
             var characters = Input.CharacterListString?.Split(',') ?? Array.Empty<string>()
                 .Distinct().ToArray();
-            if (characters.Length == 0 || characters.Length > 5)
+            if (characters.Length != 5)
             {
+                //Many of the algorithms assume every Zhou has 5 characters.
                 return RedirectToPage("./Index");
             }
 
-            (float range, int? id)[] characterData = new (float, int?)[5];
-            for (int i = 0; i < characters.Length; ++i)
+            (float range, int id)[] characterData = new (float, int)[5];
+            for (int i = 0; i < 5; ++i)
             {
                 if (!int.TryParse(characters[i], out var id))
                 {
@@ -114,10 +115,6 @@ namespace PcrBattleChannel.Pages.Zhous
                     return RedirectToPage("./Index");
                 }
                 characterData[i] = (ch.Range, ch.CharacterID);
-            }
-            for (int i = characters.Length; i < 5; ++i)
-            {
-                characterData[i] = (1000, null);
             }
             Array.Sort(characterData, (a, b) => Math.Sign(a.range - b.range));
 

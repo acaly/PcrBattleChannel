@@ -45,5 +45,7 @@ namespace PcrBattleChannel.Models
         public int? Zhou3ID { get; set; }
         [Display(Name = "第三刀")]
         public UserZhouVariant Zhou3 { get; set; }
+
+        public string BorrowInfo { get; set; }
     }
 }
