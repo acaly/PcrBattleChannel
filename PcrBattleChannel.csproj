@@ -5,6 +5,14 @@
     <UserSecretsId>aspnet-PcrBattleChannel-4ECC64FD-F456-428B-BD68-4BF6A8DAD2F8</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="Models\InitCharacterData.csv" />
     <None Remove="Models\InitCharacterData.txt" />

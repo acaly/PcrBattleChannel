@@ -8,3 +8,58 @@
 <div class="text-center">
     <h1 class="display-4">欢迎!</h1>
 </div>
+<hr />
+
+@if (Model.Guild is null)
+{
+    <div class="text-center">
+        <p>请登录并加入公会。</p>
+    </div>
+}
+else
+{
+    var startIndex = Model.Guild.BossIndex;
+    var startConv = Model.ConvLap(startIndex);
+    var predIndex = Model.Guild.PredictBossIndex;
+    var predConv = Model.ConvLap(predIndex);
+    var m = Model;
+    <div class="row pt-5">
+        <div class="col-md-6">
+            <h4>总体状态</h4>
+            <dl>
+                <dt>当前进度</dt>
+                <dd>
+                    @(startConv.lap + 1) 周目 @(startConv.boss + 1) 号Boss
+                    @(Model.GetBossName(startConv.stage, startConv.boss))
+                    (@(Model.GetBossShortName(startConv.stage, startConv.boss)) -
+                    @(Model.Guild.BossDamageRatio.ToString("P0")))
+                </dd>
+                <dt>预计进度</dt>
+                <dd>
+                    @(predConv.lap + 1) 周目 @(predConv.boss + 1) 号Boss
+                    @(Model.GetBossName(predConv.stage, predConv.boss))
+                    (@(Model.GetBossShortName(predConv.stage, predConv.boss)) -
+                    @(Model.Guild.PredictBossDamageRatio.ToString("P0")))
+                </dd>
+                <dt>今日已出</dt>
+                <dd>
+                    @(Model.Attempts) 刀 （待确认 @(Model.GuessedAttempts) 刀）
+                </dd>
+                <dt>今日剩余</dt>
+                <dd>
+                    @(Model.RemainingAttempts) 刀
+                </dd>
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h4>分刀平衡度</h4>
+            <dl>
+                @foreach (var s in Model.BossStatus)
+                {
+                    <dt>@(s.Boss.Name) (@(s.Boss.ShortName))</dt>
+                    <dd>@(s.DamageRatio.ToString("P0"))</dd>
+                }
+            </dl>
+        </div>
+    </div>
+}

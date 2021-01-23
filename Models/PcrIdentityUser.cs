@@ -16,6 +16,8 @@ namespace PcrBattleChannel.Models
         public Guild Guild { get; set; }
         public bool IsGuildAdmin { get; set; }
 
+        //TODO some of these navigation collections are not used
+
         public ICollection<UserZhouVariant> ZhouVariants { get; set; }
         public ICollection<UserCombo> Combos { get; set; }
 

@@ -64,59 +64,59 @@
             <tr style="display:none" id="config-list-toggle-@(item.Character.CharacterID)">
                 <td colspan="7">
                     <p>@item.Character.Name 的配置:</p>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <td>@Html.DisplayNameFor(m => item.Configs[0].Kind)</td>
-                                    <td>@Html.DisplayNameFor(m => item.Configs[0].Name)</td>
-                                    <td>@Html.DisplayNameFor(m => item.Configs[0].Description)</td>
-                                    <td></td>
-                                </tr>
-                            </thead>
-                            <tbody id="config-list-insert-container-@(item.Character.CharacterID)">
-                                @foreach (var configItem in item.Configs)
-                                {
-                                    <partial name="_Configs_ConfigPartial" model="configItem" />
-                                }
-                            </tbody>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <select asp-for="NewConfig.Kind" class="form-control"
-                                                form="config-list-new-config-form-@(item.Character.CharacterID)">
-                                            <option value="1">星级</option>
-                                            <option value="2">等级</option>
-                                            <option value="3">装备</option>
-                                            <option value="4">专武</option>
-                                            <option value="5">其他</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input asp-for="NewConfig.Name" class="form-control"
-                                               form="config-list-new-config-form-@(item.Character.CharacterID)" />
-                                    </td>
-                                    <td>
-                                        <input asp-for="NewConfig.Description" class="form-control"
-                                               form="config-list-new-config-form-@(item.Character.CharacterID)"/>
-                                    </td>
-                                    <td>
-                                        <form method="post" asp-page-handler="add" data-ajax="true" data-ajax-method="post"
-                                              data-ajax-mode="after" data-ajax-update="#config-list-insert-container-@(item.Character.CharacterID)"
-                                              data-ajax-success="config_list_add_success" data-ajax-failure="config_list_add_failure"
-                                              id="config-list-new-config-form-@(item.Character.CharacterID)"
-                                              data-character-id="@(item.Character.CharacterID)">
-                                            <input type="hidden" asp-for="NewConfig.CharacterID" value="@item.Character.CharacterID" />
-                                            <button type="submit" class="btn btn-primary">
-                                                添加
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr><td colspan="4" /></tr>
-                            </tfoot>
-                        </table>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <td>@Html.DisplayNameFor(m => item.Configs[0].Kind)</td>
+                                <td>@Html.DisplayNameFor(m => item.Configs[0].Name)</td>
+                                <td>@Html.DisplayNameFor(m => item.Configs[0].Description)</td>
+                                <td></td>
+                            </tr>
+                        </thead>
+                        <tbody id="config-list-insert-container-@(item.Character.CharacterID)">
+                            @foreach (var configItem in item.Configs)
+                            {
+                                <partial name="_Configs_ConfigPartial" model="configItem" />
+                            }
+                        </tbody>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <select asp-for="NewConfig.Kind" class="form-control"
+                                            form="config-list-new-config-form-@(item.Character.CharacterID)">
+                                        <option value="1">星级</option>
+                                        <option value="2">等级</option>
+                                        <option value="3">装备</option>
+                                        <option value="4">专武</option>
+                                        <option value="5">其他</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input asp-for="NewConfig.Name" class="form-control"
+                                           form="config-list-new-config-form-@(item.Character.CharacterID)" />
+                                </td>
+                                <td>
+                                    <input asp-for="NewConfig.Description" class="form-control"
+                                           form="config-list-new-config-form-@(item.Character.CharacterID)" />
+                                </td>
+                                <td>
+                                    <form method="post" asp-page-handler="add" data-ajax="true" data-ajax-method="post"
+                                          data-ajax-mode="after" data-ajax-update="#config-list-insert-container-@(item.Character.CharacterID)"
+                                          data-ajax-success="config_list_add_success" data-ajax-failure="config_list_add_failure"
+                                          id="config-list-new-config-form-@(item.Character.CharacterID)"
+                                          data-character-id="@(item.Character.CharacterID)">
+                                        <input type="hidden" asp-for="NewConfig.CharacterID" value="@item.Character.CharacterID" />
+                                        <button type="submit" class="btn btn-primary">
+                                            添加
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr><td colspan="4" /></tr>
+                        </tfoot>
+                    </table>
                 </td>
             </tr>
         }
@@ -125,35 +125,35 @@
         <tr><td colspan="7" /></tr>
     </tfoot>
 </table>
-<script>
-    function config_list_update_count(element) {
-        var id = element.getAttribute('data-character-id');
-        $('#config-list-config-count-' + id).html($('#config-list-insert-container-' + id + ' tr').length);
-    }
-    function config_list_toggle_visible_button_click(id) {
-        var x = document.getElementById(id);
-        if (x.style.display === "none") {
-            x.style.display = "";
-        } else {
-            x.style.display = "none";
-        }
-    }
-    function config_list_add_success() {
-        this.reset();
-        config_list_update_count(this);
-    }
-    function config_list_add_failure() {
-        alert('添加失败');
-    }
-    function config_list_delete_success() {
-        $(this).parents('tr')[0].remove();
-        config_list_update_count(this);
-    }
-    function config_list_delete_failure() {
-        alert('删除失败');
-    }
-</script>
 @section scripts
 {
     <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
+    <script>
+        function config_list_update_count(element) {
+            var id = element.getAttribute('data-character-id');
+            $('#config-list-config-count-' + id).html($('#config-list-insert-container-' + id + ' tr').length);
+        }
+        function config_list_toggle_visible_button_click(id) {
+            var x = document.getElementById(id);
+            if (x.style.display === "none") {
+                x.style.display = "";
+            } else {
+                x.style.display = "none";
+            }
+        }
+        function config_list_add_success() {
+            this.reset();
+            config_list_update_count(this);
+        }
+        function config_list_add_failure() {
+            alert('添加失败');
+        }
+        function config_list_delete_success() {
+            $(this).parents('tr')[0].remove();
+            config_list_update_count(this);
+        }
+        function config_list_delete_failure() {
+            alert('删除失败');
+        }
+    </script>
 }

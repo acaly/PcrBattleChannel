@@ -5,7 +5,7 @@
     var borrowList = allBorrowLists[0].Split(',').Select(x => int.Parse(x)).ToArray();
     string borrowTagStyle(int z, int c)
     {
-        return borrowList[z] == c ? "position:absolute;top:0px;width:100%;height:100%;border:2px solid #000" : "display:none";
+        return borrowList[z] == c ? "position:absolute;top:0px;width:100%;height:100%;border:4px solid #000" : "display:none";
     }
 }
 

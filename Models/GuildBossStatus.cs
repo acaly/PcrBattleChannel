@@ -22,7 +22,7 @@ namespace PcrBattleChannel.Models
 
         public int DisplayRow { get; set; }
         public int DisplayColumn { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } //TODO delete this
 
         public float DamageRatio { get; set; }
     }
