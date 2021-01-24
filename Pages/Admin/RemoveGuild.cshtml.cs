@@ -11,8 +11,6 @@ using PcrBattleChannel.Models;
 
 namespace PcrBattleChannel.Pages.Admin
 {
-    using Guild = PcrBattleChannel.Models.Guild;
-
     [Authorize(Roles = "Admin")]
     public class RemoveGuildModel : PageModel
     {
@@ -22,6 +20,9 @@ namespace PcrBattleChannel.Pages.Admin
         {
             _context = context;
         }
+
+        [TempData]
+        public string StatusMessage { get; set; }
 
         public List<Guild> Guilds { get; set; }
 
@@ -34,14 +35,26 @@ namespace PcrBattleChannel.Pages.Admin
 
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
-            var guild = await _context.Guilds.Include(g => g.Members).FirstOrDefaultAsync(g => g.GuildID == id);
+            var guild = await _context.Guilds
+                .Include(g => g.Members)
+                .FirstOrDefaultAsync(g => g.GuildID == id);
             if (guild is null)
             {
+                StatusMessage = "错误：未找到该公会。";
                 return RedirectToPage();
+            }
+            foreach (var member in guild.Members)
+            {
+                if (member.Email is null)
+                {
+                    _context.Users.Remove(member);
+                }
             }
             guild.Members.Clear();
             _context.Guilds.Remove(guild);
             await _context.SaveChangesAsync();
+
+            StatusMessage = "公会已删除。";
             return RedirectToPage();
         }
     }

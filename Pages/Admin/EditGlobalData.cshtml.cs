@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -14,6 +15,7 @@ using PcrBattleChannel.Models;
 
 namespace PcrBattleChannel.Pages.Admin
 {
+    [Authorize(Roles = "Admin")]
     public class EditGlobalDataModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -23,6 +25,9 @@ namespace PcrBattleChannel.Pages.Admin
             _context = context;
         }
 
+        [TempData]
+        public string StatusMessage { get; set; }
+
         [BindProperty]
         public GlobalData GlobalData { get; set; }
 
@@ -30,7 +35,7 @@ namespace PcrBattleChannel.Pages.Admin
         [BindProperty]
         public string StageText { get; set; }
 
-        [Display(Name = "重置赛季数据")]
+        [Display(Name = "重置全站数据")]
         [BindProperty]
         public bool ResetData { get; set; }
 
@@ -42,9 +47,9 @@ namespace PcrBattleChannel.Pages.Admin
         {
             var stages = await _context.BattleStages
                 .Where(s => s.GlobalDataID == globalDataID)
-                .Select(s => s.Order)
+                .Select(s => s.StartLap)
                 .ToListAsync();
-            return string.Join(',', stages);
+            return string.Join(',', stages.Select(i => i + 1));
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -54,6 +59,9 @@ namespace PcrBattleChannel.Pages.Admin
             if (GlobalData == null)
             {
                 GlobalData = new();
+                ResetData = true;
+                ResetCharacters = true;
+                StageText = "1";
             }
             else
             {
@@ -70,31 +78,23 @@ namespace PcrBattleChannel.Pages.Admin
                 return Page();
             }
 
-            if (ResetData)
+            var globalData = await _context.GlobalData.FirstOrDefaultAsync();
+            if (ResetData || globalData is null)
             {
-                await DoResetDataAsync();
-                return RedirectToPage("/Admin/Index");
+                await DoResetDataAsync(globalData is null);
+                StatusMessage = "数据已重置。";
+                return RedirectToPage();
             }
 
-            _context.Attach(GlobalData).State = EntityState.Modified;
+            globalData.SeasonName = GlobalData.SeasonName;
+            globalData.StartTime = GlobalData.StartTime;
+            globalData.EndTime = GlobalData.EndTime;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GlobalDataExists(GlobalData.GlobalDataID))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            _context.Update(globalData);
+            await _context.SaveChangesAsync();
 
-            return RedirectToPage("/Admin/Index");
+            StatusMessage = "数据已修改。";
+            return RedirectToPage();
         }
 
         private static readonly string[] _longNameNumbers = new[]
@@ -102,12 +102,12 @@ namespace PcrBattleChannel.Pages.Admin
             "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
         };
 
-        private async Task DoResetDataAsync()
+        private async Task DoResetDataAsync(bool forceResetCharacters)
         {
             //Remove all existing entries.
             if (_context.GlobalData.Any())
             {
-                _context.GlobalData.RemoveRange(_context.GlobalData);
+                await _context.GlobalData.DeleteFromQueryAsync();
             }
 
             var newData = new GlobalData
@@ -118,9 +118,9 @@ namespace PcrBattleChannel.Pages.Admin
             };
             _context.GlobalData.Add(newData);
 
-            if (ResetCharacters)
+            if (ResetCharacters || forceResetCharacters)
             {
-                _context.Characters.RemoveRange(_context.Characters);
+                await _context.Characters.DeleteFromQueryAsync();
                 ImportCharacters();
             }
 
@@ -144,7 +144,7 @@ namespace PcrBattleChannel.Pages.Admin
 
         private void ImportCharacters()
         {
-            var res = @"PcrBattleChannel.Models.InitCharacterData.csv";
+            var res = "PcrBattleChannel.Models.InitCharacterData.csv";
             using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(res);
             using var reader = new StreamReader(stream);
 
@@ -165,11 +165,6 @@ namespace PcrBattleChannel.Pages.Admin
                 };
                 _context.Characters.Add(c);
             }
-        }
-
-        private bool GlobalDataExists(int id)
-        {
-            return _context.GlobalData.Any(e => e.GlobalDataID == id);
         }
     }
 }

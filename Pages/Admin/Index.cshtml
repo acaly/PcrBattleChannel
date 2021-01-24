@@ -4,18 +4,29 @@
     ViewData["Title"] = "管理";
 }
 
-<div>
-    <a asp-page="EditGlobalData">编辑赛季数据</a>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h4>站点管理</h4>
+        <hr />
+    </div>
 </div>
 
-<div>
-    <a asp-page="Bosses/Index">编辑Boss数据</a>
-</div>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div>
+            <a asp-page="EditGlobalData">编辑赛季数据</a>
+        </div>
 
-<div>
-    <a asp-page="AddGuild">创建公会</a>
-</div>
+        <div>
+            <a asp-page="Bosses/Index">编辑Boss数据</a>
+        </div>
 
-<div>
-    <a asp-page="RemoveGuild">删除公会</a>
+        <div>
+            <a asp-page="AddGuild">创建公会</a>
+        </div>
+
+        <div>
+            <a asp-page="RemoveGuild">删除公会</a>
+        </div>
+    </div>
 </div>

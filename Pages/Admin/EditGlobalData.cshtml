@@ -4,10 +4,16 @@
     ViewData["Title"] = "编辑全站数据";
 }
 
-<h4>编辑赛季数据</h4>
-<hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-8 offset-md-2">
+        <h4>编辑全站数据</h4>
+        <hr />
+        <partial name="_StatusMessage" model="Model.StatusMessage" />
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="GlobalData.GlobalDataID" />
@@ -46,10 +52,6 @@
             </div>
         </form>
     </div>
-</div>
-
-<div>
-    <a asp-page="./Index">Back to List</a>
 </div>
 
 @section Scripts {

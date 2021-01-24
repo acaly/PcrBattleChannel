@@ -13,8 +13,6 @@ using PcrBattleChannel.Models;
 
 namespace PcrBattleChannel.Pages.Admin
 {
-    using Guild = PcrBattleChannel.Models.Guild;
-
     [Authorize(Roles = "Admin")]
     public class AddGuildModel : PageModel
     {
@@ -31,21 +29,21 @@ namespace PcrBattleChannel.Pages.Admin
         {
             [Display(Name = "公会名称")]
             public string GuildName { get; set; }
-            [Display(Name = "会长")]
+            [Display(Name = "会长Email")]
             public string OwnerEmail { get; set; }
         }
 
-        [BindProperty]
-        public InputModel Input { get; set; }
-
         [TempData]
         public string StatusMessage { get; set; }
+
+        [BindProperty]
+        public InputModel Input { get; set; }
 
         public IActionResult OnGetAsync()
         {
             Input = new InputModel
             {
-                GuildName = "Name",
+                GuildName = "",
                 OwnerEmail = "",
             };
             return Page();
@@ -59,6 +57,11 @@ namespace PcrBattleChannel.Pages.Admin
             }
 
             var owner = _context.Users.FirstOrDefault(xx => xx.Email == Input.OwnerEmail);
+            if (owner is null)
+            {
+                StatusMessage = "错误：会长用户不存在。";
+                return Page();
+            }
 
             var guild = new Guild()
             {

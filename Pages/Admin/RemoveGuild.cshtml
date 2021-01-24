@@ -4,44 +4,59 @@
     ViewData["Title"] = "删除公会";
 }
 
-<form method="post">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>公会名</th>
-                <th>会长</th>
-                <th>会长ID</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model.Guilds)
-            {
-                <tr>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Name)
-                    </td>
-                    @if (item.Owner is not null)
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h4>删除公会</h4>
+        <hr />
+        <partial name="_StatusMessage" model="Model.StatusMessage" />
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <form method="post">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>公会名</th>
+                        <th>会长</th>
+                        <th>会长ID</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Guilds)
                     {
-                        <td>
-                            @Html.DisplayFor(modelItem => item.Owner.Email)
-                        </td>
-                        <td>
-                            @Html.DisplayFor(modelItem => item.Owner.GameID)
-                        </td>
+                        <tr>
+                            <td>@Html.DisplayFor(modelItem => item.Name)</td>
+                            @if (item.Owner is not null)
+                            {
+                                <td>@Html.DisplayFor(modelItem => item.Owner.Email)</td>
+                                <td>@Html.DisplayFor(modelItem => item.Owner.GameID)</td>
+                            }
+                            else
+                            {
+                                <td></td>
+                                <td></td>
+                            }
+                            <td>
+                                <button type="submit" data-guild-name="@item.Name" onclick="return confirm_delete(this)"
+                                        asp-page-handler="delete" asp-route-id="@item.GuildID">
+                                    删除
+                                </button>
+                            </td>
+                        </tr>
                     }
-                    else
-                    {
-                        <td>
-                        </td>
-                        <td>
-                        </td>
-                    }
-                    <td>
-                        <button type="submit" asp-page-handler="delete" asp-route-id="@item.GuildID">删除</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</form>
+                </tbody>
+            </table>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirm_delete(e) {
+            return confirm('确认删除公会“' + e.getAttribute('data-guild-name') + '”？');
+        }
+    </script>
+}

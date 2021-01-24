@@ -4,12 +4,16 @@
     ViewData["Title"] = "创建公会";
 }
 
-<h4>Guild @Model.Input.GuildName.</h4>
-<hr />
-<partial name="_StatusMessage" model="Model.StatusMessage" />
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h4>Guild @Model.Input.GuildName.</h4>
+        <hr />
+        <partial name="_StatusMessage" model="Model.StatusMessage" />
+    </div>
+</div>
 
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-8 offset-md-2">
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
@@ -23,10 +27,6 @@
             <button id="update-profile-button" type="submit" class="btn btn-primary">Save</button>
         </form>
     </div>
-</div>
-
-<div>
-    <a asp-page="Index">Back to List</a>
 </div>
 
 @section Scripts {
