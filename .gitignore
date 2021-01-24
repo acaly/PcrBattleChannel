@@ -341,3 +341,4 @@ healthchecksdb
 
 # sqlite database
 *.sqlite
+/.config

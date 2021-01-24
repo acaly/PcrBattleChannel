@@ -20,6 +20,8 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account
     [AllowAnonymous]
     public class RegisterModel : PageModel
     {
+        internal static string AdminEmail { get; set; }
+
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
@@ -82,7 +84,7 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account
                 var result = await _userManager.CreateAsync(user, Input.Password);
                 if (result.Succeeded)
                 {
-                    if (Input.Email == "wuzhenwei35@gmail.com")
+                    if (Input.Email == AdminEmail)
                     {
                         if (!await _roleManager.RoleExistsAsync("Admin"))
                         {

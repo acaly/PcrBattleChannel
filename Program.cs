@@ -13,6 +13,10 @@ namespace PcrBattleChannel
     {
         public static void Main(string[] args)
         {
+            if (args.Length > 0 && args[0].StartsWith("admin="))
+            {
+                Areas.Identity.Pages.Account.RegisterModel.AdminEmail = args[0].Substring(6);
+            }
             CreateHostBuilder(args).Build().Run();
         }
 
