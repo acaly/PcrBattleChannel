@@ -73,7 +73,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
             var user = await _userManager.GetUserAsync(User);
-            if (!user.GuildID.HasValue)
+            if (user is null || !user.GuildID.HasValue)
             {
                 return NotFound();
             }
@@ -109,7 +109,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
             var user = await _userManager.GetUserAsync(User);
-            if (!user.GuildID.HasValue)
+            if (user is null || !user.GuildID.HasValue)
             {
                 return NotFound();
             }

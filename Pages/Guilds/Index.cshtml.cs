@@ -34,7 +34,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return Redirect("/");
             }
             var user = await _userManager.GetUserAsync(User);
-            if (!user.GuildID.HasValue)
+            if (user is null || !user.GuildID.HasValue)
             {
                 return Redirect("/");
             }

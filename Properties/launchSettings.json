@@ -9,7 +9,7 @@
   },
   "profiles": {
     "IIS Express": {
-      "commandName": "IISExpress",
+      "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -17,6 +17,7 @@
     },
     "PcrBattleChannel": {
       "commandName": "Project",
+      "commandLineArgs": "admin=wuzhenwei35@gmail.com",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

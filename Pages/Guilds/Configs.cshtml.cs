@@ -52,7 +52,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return null;
             }
             var user = await _userManager.GetUserAsync(User);
-            if (!user.GuildID.HasValue || !user.IsGuildAdmin)
+            if (user is null || !user.GuildID.HasValue || !user.IsGuildAdmin)
             {
                 return null;
             }
