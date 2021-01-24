@@ -232,7 +232,7 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             //3. Calculate values.
-            await CalcComboValues.Run(_context, guild);
+            await CalcComboValues.RunAllAsync(_context, guild);
             await _context.SaveChangesAsync();
 
             return RedirectToPage();

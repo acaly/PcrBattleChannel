@@ -12,7 +12,7 @@ namespace PcrBattleChannel.Algorithm
     using ComboVariantExpr = System.Linq.Expressions.Expression<Func<UserCombo, UserZhouVariant>>;
     public static class CalcComboValues
     {
-        private class ResultStorage
+        public class ResultStorage
         {
             //0: OK. >0: try more bosses. <0: try less bosses.
             public int Balance { get; set; }
@@ -23,7 +23,7 @@ namespace PcrBattleChannel.Algorithm
             public Dictionary<int, float> BossValues { get; } = new();
         }
 
-        private struct BossIndexInfo
+        public struct BossIndexInfo
         {
             public int Stage { get; init; }
             public int Lap { get; init; }
@@ -37,12 +37,14 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        private class StaticInfo
+        public class StaticInfo
         {
+            public Guild Guild { get; init; }
             public List<int> FirstLapForStages { get; init; }
             public List<List<GuildBossStatus>> Bosses { get; init; }
             public Dictionary<int, ZhouVariant> Zhous { get; set; } //with .Zhou loaded
             public Dictionary<int, float> BossPlanRatios { get; init; } //BossID -> plan ratio
+            public List<PcrIdentityUser> Users { get; set; } //with .Combos.ZhouX loaded
 
             public BossIndexInfo ConvertBossIndex(int bossIndex)
             {
@@ -155,7 +157,6 @@ namespace PcrBattleChannel.Algorithm
             public float AdjustmentCoefficient { get; set; } = 0.1f;
 
             public StaticInfo StaticInfo { get; set; }
-            public List<PcrIdentityUser> Users { get; set; } //with .Combos.ZhouX loaded
             public bool FixSelectedCombo { get; set; }
             
             public BossIndexInfo FirstBoss { get; set; }
@@ -285,7 +286,7 @@ namespace PcrBattleChannel.Algorithm
                 }
                 _splitCombos.Clear();
                 _userFirstSplitComboIndex.Clear();
-                foreach (var user in Users)
+                foreach (var user in StaticInfo.Users)
                 {
                     _userFirstSplitComboIndex.Add(_splitCombos.Count);
                     if (FixSelectedCombo)
@@ -526,7 +527,7 @@ namespace PcrBattleChannel.Algorithm
 
         private static float coefficient = 0.01f;
 
-        public static async Task Run(ApplicationDbContext context, Guild guild)
+        public static async Task RunAllAsync(ApplicationDbContext context, Guild guild)
         {
             //TODO avoid recalculating static data in second calculation
 
@@ -540,8 +541,8 @@ namespace PcrBattleChannel.Algorithm
                 .Where(u => u.GuildID == guild.GuildID)
                 .ToListAsync();
 
-            var totalResult = await Run(context, guild, allUsers, false);
-            var nonselectedResult = await Run(context, guild, allUsers, true);
+            var totalResult = await RunAsync(context, guild, allUsers, false);
+            var nonselectedResult = await RunAsync(context, guild, allUsers, true);
 
             foreach (var user in allUsers)
             {
@@ -581,7 +582,7 @@ namespace PcrBattleChannel.Algorithm
             guild.PredictBossDamageRatio = nonselectedResult.EndBossDamage;
         }
 
-        private static async Task<ResultStorage> Run(ApplicationDbContext context, Guild guild,
+        public static async Task<ResultStorage> RunAsync(ApplicationDbContext context, Guild guild,
             List<PcrIdentityUser> allUsers, bool fixSelected)
         {
             var stages = await context.BattleStages
@@ -594,7 +595,7 @@ namespace PcrBattleChannel.Algorithm
                 stageLapList.Add(stages[i].StartLap);
                 bossList.Add(new());
             }
-            
+
             var bossPlans = await context.GuildBossStatuses
                 .Include(s => s.Boss)
                 .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
@@ -633,11 +634,18 @@ namespace PcrBattleChannel.Algorithm
                 Bosses = bossList,
                 Zhous = variants,
                 BossPlanRatios = planRatios,
+                Users = allUsers,
+                Guild = guild,
             };
+
+            return Run(staticInfo, fixSelected);
+        }
+
+        public static ResultStorage Run(StaticInfo staticInfo, bool fixSelected)
+        {
             var solver = new Solver
             {
                 StaticInfo = staticInfo,
-                Users = allUsers,
                 FixSelectedCombo = fixSelected,
             };
             solver.AdjustmentCoefficient = coefficient;
@@ -646,14 +654,14 @@ namespace PcrBattleChannel.Algorithm
             solver.DamageScale = 1f;
 
             //Close the current lap.
-            var firstBoss = staticInfo.ConvertBossIndex(guild.BossIndex);
+            var firstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex);
             var totalPower = 1f;
-            if (guild.BossDamageRatio != 0 || firstBoss.Step != 0)
+            if (staticInfo.Guild.BossDamageRatio != 0 || firstBoss.Step != 0)
             {
-                var lastBossStep = bossList[firstBoss.Stage].Count - 1;
+                var lastBossStep = staticInfo.Bosses[firstBoss.Stage].Count - 1;
                 var lastBoss = new BossIndexInfo(firstBoss.Stage, firstBoss.Lap, lastBossStep);
 
-                solver.FirstBossHp = guild.BossDamageRatio;
+                solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
                 solver.LastBoss = lastBoss;
 
                 var avgDamageRatio = solver.RunEstimate();
@@ -673,7 +681,7 @@ namespace PcrBattleChannel.Algorithm
                     return result;
                 }
                 totalPower -= 1f / avgDamageRatio;
-                firstBoss = staticInfo.ConvertBossIndex(guild.BossIndex + (lastBossStep - firstBoss.Step) + 1);
+                firstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex + (lastBossStep - firstBoss.Step) + 1);
                 solver.FirstBossHp = 0;
             }
 
@@ -682,9 +690,10 @@ namespace PcrBattleChannel.Algorithm
             {
                 solver.DamageScale = totalPower;
                 solver.FirstBoss = firstBoss;
-                solver.LastBoss = new(stage, firstBoss.Lap, bossList[firstBoss.Stage].Count - 1);
+                solver.LastBoss = new(stage, firstBoss.Lap, staticInfo.Bosses[firstBoss.Stage].Count - 1);
                 var estimatedLaps = solver.RunEstimate();
-                var nextStageStart = stage == stageLapList.Count - 1 ? int.MaxValue : stageLapList[stage + 1];
+                var nextStageStart = stage == staticInfo.FirstLapForStages.Count - 1 ?
+                    int.MaxValue : staticInfo.FirstLapForStages[stage + 1];
                 var numLapsInThisStage = nextStageStart - firstBoss.Lap;
                 if (estimatedLaps < numLapsInThisStage)
                 {
@@ -696,13 +705,13 @@ namespace PcrBattleChannel.Algorithm
                 }
                 else
                 {
-                    firstBoss = new(stage + 1, stageLapList[stage + 1], 0);
+                    firstBoss = new(stage + 1, staticInfo.FirstLapForStages[stage + 1], 0);
                     totalPower -= numLapsInThisStage / estimatedLaps * totalPower;
                 }
             }
 
             //Now we have a basic estimation. Run with binary search.
-            var firstBossIndex = guild.BossIndex;
+            var firstBossIndex = staticInfo.Guild.BossIndex;
             var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss); //estimated position.
             var searchStep = 2;
             //var lastBossIndex = firstBossIndex;

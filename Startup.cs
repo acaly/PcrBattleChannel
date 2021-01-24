@@ -28,11 +28,15 @@ namespace PcrBattleChannel
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //services.AddDbContext<ApplicationDbContext>(options =>
+            //    options.UseSqlServer(
+            //        Configuration.GetConnectionString("DefaultConnection")));
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlite(
+                    Configuration.GetConnectionString("DefaultSqliteConnection")));
+
             services.AddDatabaseDeveloperPageExceptionFilter();
-            //services.AddScoped<RoleManager<IdentityRole>>();
+
             services.AddDefaultIdentity<PcrIdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -45,7 +49,7 @@ namespace PcrBattleChannel
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ApplicationDbContext dataContext)
         {
             if (env.IsDevelopment())
             {
@@ -80,6 +84,8 @@ namespace PcrBattleChannel
                 .AddSupportedCultures(supportedCultures)
                 .AddSupportedUICultures(supportedCultures);
             app.UseRequestLocalization(localizationOptions);
+
+            dataContext.Database.Migrate();
         }
     }
 }

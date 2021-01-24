@@ -11,10 +11,10 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetRoles",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<string>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -25,13 +25,13 @@ namespace PcrBattleChannel.Migrations
                 name: "Characters",
                 columns: table => new
                 {
-                    CharacterID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InternalID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Rarity = table.Column<int>(type: "int", nullable: false),
-                    HasWeapon = table.Column<bool>(type: "bit", nullable: false),
-                    Range = table.Column<float>(type: "real", nullable: false)
+                    CharacterID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    InternalID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    Rarity = table.Column<int>(type: "INTEGER", nullable: false),
+                    HasWeapon = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Range = table.Column<float>(type: "REAL", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -42,11 +42,11 @@ namespace PcrBattleChannel.Migrations
                 name: "GlobalData",
                 columns: table => new
                 {
-                    GlobalDataID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SeasonName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    GlobalDataID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    SeasonName = table.Column<string>(type: "TEXT", nullable: true),
+                    StartTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -57,11 +57,11 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    RoleId = table.Column<string>(type: "TEXT", nullable: false),
+                    ClaimType = table.Column<string>(type: "TEXT", nullable: true),
+                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -78,13 +78,13 @@ namespace PcrBattleChannel.Migrations
                 name: "BattleStages",
                 columns: table => new
                 {
-                    BattleStageID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GlobalDataID = table.Column<int>(type: "int", nullable: false),
-                    Order = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ShortName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    StartLap = table.Column<int>(type: "int", nullable: false)
+                    BattleStageID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    GlobalDataID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Order = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    ShortName = table.Column<string>(type: "TEXT", nullable: true),
+                    StartLap = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -101,13 +101,13 @@ namespace PcrBattleChannel.Migrations
                 name: "Bosses",
                 columns: table => new
                 {
-                    BossID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BattleStageID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ShortName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Life = table.Column<int>(type: "int", nullable: false),
-                    Score = table.Column<float>(type: "real", nullable: false)
+                    BossID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    BattleStageID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    ShortName = table.Column<string>(type: "TEXT", nullable: true),
+                    Life = table.Column<int>(type: "INTEGER", nullable: false),
+                    Score = table.Column<float>(type: "REAL", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -124,8 +124,8 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetUserRoles",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    RoleId = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -142,11 +142,11 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetUserClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    ClaimType = table.Column<string>(type: "TEXT", nullable: true),
+                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -157,10 +157,10 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    LoginProvider = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    ProviderKey = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    ProviderDisplayName = table.Column<string>(type: "TEXT", nullable: true),
+                    UserId = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -171,10 +171,10 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetUserTokens",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    LoginProvider = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    Value = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -185,16 +185,16 @@ namespace PcrBattleChannel.Migrations
                 name: "Guilds",
                 columns: table => new
                 {
-                    GuildID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    OwnerID = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    BossIndex = table.Column<int>(type: "int", nullable: false),
-                    BossDamageRatio = table.Column<float>(type: "real", nullable: false),
-                    PredictBossIndex = table.Column<int>(type: "int", nullable: false),
-                    PredictBossDamageRatio = table.Column<float>(type: "real", nullable: false),
-                    LastCalculation = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    GuildID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    Description = table.Column<string>(type: "TEXT", nullable: true),
+                    OwnerID = table.Column<string>(type: "TEXT", nullable: true),
+                    BossIndex = table.Column<int>(type: "INTEGER", nullable: false),
+                    BossDamageRatio = table.Column<float>(type: "REAL", nullable: false),
+                    PredictBossIndex = table.Column<int>(type: "INTEGER", nullable: false),
+                    PredictBossDamageRatio = table.Column<float>(type: "REAL", nullable: false),
+                    LastCalculation = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -202,53 +202,16 @@ namespace PcrBattleChannel.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetUsers",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    GameID = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    QQID = table.Column<decimal>(type: "decimal(20,0)", nullable: false),
-                    GuildID = table.Column<int>(type: "int", nullable: true),
-                    IsGuildAdmin = table.Column<bool>(type: "bit", nullable: false),
-                    Attempts = table.Column<int>(type: "int", nullable: false),
-                    NextAttemptPlanIndex = table.Column<int>(type: "int", nullable: false),
-                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AspNetUsers_Guilds_GuildID",
-                        column: x => x.GuildID,
-                        principalTable: "Guilds",
-                        principalColumn: "GuildID",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "CharacterConfigs",
                 columns: table => new
                 {
-                    CharacterConfigID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GuildID = table.Column<int>(type: "int", nullable: false),
-                    CharacterID = table.Column<int>(type: "int", nullable: false),
-                    Kind = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    CharacterConfigID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    GuildID = table.Column<int>(type: "INTEGER", nullable: false),
+                    CharacterID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Kind = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    Description = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -271,15 +234,15 @@ namespace PcrBattleChannel.Migrations
                 name: "GuildBossStatuses",
                 columns: table => new
                 {
-                    GuildBossStatusID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    IsPlan = table.Column<bool>(type: "bit", nullable: false),
-                    GuildID = table.Column<int>(type: "int", nullable: false),
-                    BossID = table.Column<int>(type: "int", nullable: false),
-                    DisplayRow = table.Column<int>(type: "int", nullable: false),
-                    DisplayColumn = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DamageRatio = table.Column<float>(type: "real", nullable: false)
+                    GuildBossStatusID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    IsPlan = table.Column<bool>(type: "INTEGER", nullable: false),
+                    GuildID = table.Column<int>(type: "INTEGER", nullable: false),
+                    BossID = table.Column<int>(type: "INTEGER", nullable: false),
+                    DisplayRow = table.Column<int>(type: "INTEGER", nullable: false),
+                    DisplayColumn = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    DamageRatio = table.Column<float>(type: "REAL", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -302,17 +265,17 @@ namespace PcrBattleChannel.Migrations
                 name: "Zhous",
                 columns: table => new
                 {
-                    ZhouID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GuildID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BossID = table.Column<int>(type: "int", nullable: false),
-                    C1ID = table.Column<int>(type: "int", nullable: true),
-                    C2ID = table.Column<int>(type: "int", nullable: true),
-                    C3ID = table.Column<int>(type: "int", nullable: true),
-                    C4ID = table.Column<int>(type: "int", nullable: true),
-                    C5ID = table.Column<int>(type: "int", nullable: true)
+                    ZhouID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    GuildID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    Description = table.Column<string>(type: "TEXT", nullable: true),
+                    BossID = table.Column<int>(type: "INTEGER", nullable: false),
+                    C1ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    C2ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    C3ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    C4ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    C5ID = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -362,69 +325,16 @@ namespace PcrBattleChannel.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserCharacterStatuses",
-                columns: table => new
-                {
-                    UserCharacterStatusID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserID = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    CharacterID = table.Column<int>(type: "int", nullable: false),
-                    IsUsed = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserCharacterStatuses", x => x.UserCharacterStatusID);
-                    table.ForeignKey(
-                        name: "FK_UserCharacterStatuses_AspNetUsers_UserID",
-                        column: x => x.UserID,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_UserCharacterStatuses_Characters_CharacterID",
-                        column: x => x.CharacterID,
-                        principalTable: "Characters",
-                        principalColumn: "CharacterID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UserCharacterConfigs",
-                columns: table => new
-                {
-                    UserCharacterConfigID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserID = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CharacterConfigID = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserCharacterConfigs", x => x.UserCharacterConfigID);
-                    table.ForeignKey(
-                        name: "FK_UserCharacterConfigs_AspNetUsers_UserID",
-                        column: x => x.UserID,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_UserCharacterConfigs_CharacterConfigs_CharacterConfigID",
-                        column: x => x.CharacterConfigID,
-                        principalTable: "CharacterConfigs",
-                        principalColumn: "CharacterConfigID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ZhouVariants",
                 columns: table => new
                 {
-                    ZhouVariantID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ZhouID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsDraft = table.Column<bool>(type: "bit", nullable: false),
-                    Damage = table.Column<int>(type: "int", nullable: false)
+                    ZhouVariantID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ZhouID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    Content = table.Column<string>(type: "TEXT", nullable: true),
+                    IsDraft = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Damage = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -438,41 +348,15 @@ namespace PcrBattleChannel.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserZhouVariants",
-                columns: table => new
-                {
-                    UserZhouVariantID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserID = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    ZhouVariantID = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserZhouVariants", x => x.UserZhouVariantID);
-                    table.ForeignKey(
-                        name: "FK_UserZhouVariants_AspNetUsers_UserID",
-                        column: x => x.UserID,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_UserZhouVariants_ZhouVariants_ZhouVariantID",
-                        column: x => x.ZhouVariantID,
-                        principalTable: "ZhouVariants",
-                        principalColumn: "ZhouVariantID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ZhouVariantCharacterConfigs",
                 columns: table => new
                 {
-                    ZhouVariantCharacterConfigID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ZhouVariantID = table.Column<int>(type: "int", nullable: false),
-                    CharacterConfigID = table.Column<int>(type: "int", nullable: true),
-                    CharacterIndex = table.Column<int>(type: "int", nullable: false),
-                    OrGroupIndex = table.Column<int>(type: "int", nullable: false)
+                    ZhouVariantCharacterConfigID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ZhouVariantID = table.Column<int>(type: "INTEGER", nullable: false),
+                    CharacterConfigID = table.Column<int>(type: "INTEGER", nullable: true),
+                    CharacterIndex = table.Column<int>(type: "INTEGER", nullable: false),
+                    OrGroupIndex = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -492,53 +376,150 @@ namespace PcrBattleChannel.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserCharacterConfigs",
+                columns: table => new
+                {
+                    UserCharacterConfigID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    UserID = table.Column<string>(type: "TEXT", nullable: false),
+                    CharacterConfigID = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserCharacterConfigs", x => x.UserCharacterConfigID);
+                    table.ForeignKey(
+                        name: "FK_UserCharacterConfigs_CharacterConfigs_CharacterConfigID",
+                        column: x => x.CharacterConfigID,
+                        principalTable: "CharacterConfigs",
+                        principalColumn: "CharacterConfigID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserCharacterStatuses",
+                columns: table => new
+                {
+                    UserCharacterStatusID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    UserID = table.Column<string>(type: "TEXT", nullable: true),
+                    CharacterID = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsUsed = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserCharacterStatuses", x => x.UserCharacterStatusID);
+                    table.ForeignKey(
+                        name: "FK_UserCharacterStatuses_Characters_CharacterID",
+                        column: x => x.CharacterID,
+                        principalTable: "Characters",
+                        principalColumn: "CharacterID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserCombos",
                 columns: table => new
                 {
-                    UserComboID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    IsSelected = table.Column<bool>(type: "bit", nullable: false),
-                    NetValue = table.Column<float>(type: "real", nullable: false),
-                    Value = table.Column<float>(type: "real", nullable: false),
-                    UserID = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    GuildID = table.Column<int>(type: "int", nullable: false),
-                    Zhou1ID = table.Column<int>(type: "int", nullable: true),
-                    Zhou1Borrow = table.Column<int>(type: "int", nullable: true),
-                    Zhou2ID = table.Column<int>(type: "int", nullable: true),
-                    Zhou2Borrow = table.Column<int>(type: "int", nullable: true),
-                    Zhou3ID = table.Column<int>(type: "int", nullable: true),
-                    Zhou3Borrow = table.Column<int>(type: "int", nullable: true)
+                    UserComboID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    SelectedZhou = table.Column<int>(type: "INTEGER", nullable: true),
+                    NetValue = table.Column<float>(type: "REAL", nullable: false),
+                    Value = table.Column<float>(type: "REAL", nullable: false),
+                    UserID = table.Column<string>(type: "TEXT", nullable: true),
+                    GuildID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Zhou1ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    Zhou2ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    Zhou3ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    BorrowInfo = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserCombos", x => x.UserComboID);
-                    table.ForeignKey(
-                        name: "FK_UserCombos_AspNetUsers_UserID",
-                        column: x => x.UserID,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_UserCombos_Guilds_GuildID",
                         column: x => x.GuildID,
                         principalTable: "Guilds",
                         principalColumn: "GuildID",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserZhouVariants",
+                columns: table => new
+                {
+                    UserZhouVariantID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    UserID = table.Column<string>(type: "TEXT", nullable: true),
+                    ZhouVariantID = table.Column<int>(type: "INTEGER", nullable: false),
+                    Borrow = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserZhouVariants", x => x.UserZhouVariantID);
                     table.ForeignKey(
-                        name: "FK_UserCombos_UserZhouVariants_Zhou1ID",
-                        column: x => x.Zhou1ID,
+                        name: "FK_UserZhouVariants_ZhouVariants_ZhouVariantID",
+                        column: x => x.ZhouVariantID,
+                        principalTable: "ZhouVariants",
+                        principalColumn: "ZhouVariantID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUsers",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "TEXT", nullable: false),
+                    GameID = table.Column<string>(type: "TEXT", nullable: true),
+                    QQID = table.Column<ulong>(type: "INTEGER", nullable: false),
+                    GuildID = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsGuildAdmin = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Attempts = table.Column<int>(type: "INTEGER", nullable: false),
+                    GuessedAttempts = table.Column<int>(type: "INTEGER", nullable: false),
+                    Attempt1ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    Attempt1Borrow = table.Column<int>(type: "INTEGER", nullable: true),
+                    Attempt2ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    Attempt2Borrow = table.Column<int>(type: "INTEGER", nullable: true),
+                    Attempt3ID = table.Column<int>(type: "INTEGER", nullable: true),
+                    Attempt3Borrow = table.Column<int>(type: "INTEGER", nullable: true),
+                    UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "INTEGER", nullable: false),
+                    PasswordHash = table.Column<string>(type: "TEXT", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "TEXT", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "TEXT", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "INTEGER", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_Guilds_GuildID",
+                        column: x => x.GuildID,
+                        principalTable: "Guilds",
+                        principalColumn: "GuildID",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_UserZhouVariants_Attempt1ID",
+                        column: x => x.Attempt1ID,
                         principalTable: "UserZhouVariants",
                         principalColumn: "UserZhouVariantID",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_UserCombos_UserZhouVariants_Zhou2ID",
-                        column: x => x.Zhou2ID,
+                        name: "FK_AspNetUsers_UserZhouVariants_Attempt2ID",
+                        column: x => x.Attempt2ID,
                         principalTable: "UserZhouVariants",
                         principalColumn: "UserZhouVariantID",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_UserCombos_UserZhouVariants_Zhou3ID",
-                        column: x => x.Zhou3ID,
+                        name: "FK_AspNetUsers_UserZhouVariants_Attempt3ID",
+                        column: x => x.Attempt3ID,
                         principalTable: "UserZhouVariants",
                         principalColumn: "UserZhouVariantID",
                         onDelete: ReferentialAction.Restrict);
@@ -553,8 +534,7 @@ namespace PcrBattleChannel.Migrations
                 name: "RoleNameIndex",
                 table: "AspNetRoles",
                 column: "NormalizedName",
-                unique: true,
-                filter: "[NormalizedName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
@@ -577,6 +557,21 @@ namespace PcrBattleChannel.Migrations
                 column: "NormalizedEmail");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_Attempt1ID",
+                table: "AspNetUsers",
+                column: "Attempt1ID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_Attempt2ID",
+                table: "AspNetUsers",
+                column: "Attempt2ID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_Attempt3ID",
+                table: "AspNetUsers",
+                column: "Attempt3ID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_GuildID",
                 table: "AspNetUsers",
                 column: "GuildID");
@@ -585,8 +580,7 @@ namespace PcrBattleChannel.Migrations
                 name: "UserNameIndex",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
-                unique: true,
-                filter: "[NormalizedUserName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_BattleStages_GlobalDataID",
@@ -767,6 +761,62 @@ namespace PcrBattleChannel.Migrations
                 principalTable: "AspNetUsers",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserCharacterConfigs_AspNetUsers_UserID",
+                table: "UserCharacterConfigs",
+                column: "UserID",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserCharacterStatuses_AspNetUsers_UserID",
+                table: "UserCharacterStatuses",
+                column: "UserID",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserCombos_AspNetUsers_UserID",
+                table: "UserCombos",
+                column: "UserID",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserCombos_UserZhouVariants_Zhou1ID",
+                table: "UserCombos",
+                column: "Zhou1ID",
+                principalTable: "UserZhouVariants",
+                principalColumn: "UserZhouVariantID",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserCombos_UserZhouVariants_Zhou2ID",
+                table: "UserCombos",
+                column: "Zhou2ID",
+                principalTable: "UserZhouVariants",
+                principalColumn: "UserZhouVariantID",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserCombos_UserZhouVariants_Zhou3ID",
+                table: "UserCombos",
+                column: "Zhou3ID",
+                principalTable: "UserZhouVariants",
+                principalColumn: "UserZhouVariantID",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_UserZhouVariants_AspNetUsers_UserID",
+                table: "UserZhouVariants",
+                column: "UserID",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -774,6 +824,10 @@ namespace PcrBattleChannel.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_Guilds_AspNetUsers_OwnerID",
                 table: "Guilds");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_UserZhouVariants_AspNetUsers_UserID",
+                table: "UserZhouVariants");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
@@ -809,10 +863,13 @@ namespace PcrBattleChannel.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "UserZhouVariants");
+                name: "CharacterConfigs");
 
             migrationBuilder.DropTable(
-                name: "CharacterConfigs");
+                name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "UserZhouVariants");
 
             migrationBuilder.DropTable(
                 name: "ZhouVariants");
@@ -827,16 +884,13 @@ namespace PcrBattleChannel.Migrations
                 name: "Characters");
 
             migrationBuilder.DropTable(
+                name: "Guilds");
+
+            migrationBuilder.DropTable(
                 name: "BattleStages");
 
             migrationBuilder.DropTable(
                 name: "GlobalData");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
-                name: "Guilds");
         }
     }
 }
