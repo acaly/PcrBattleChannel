@@ -169,7 +169,6 @@ namespace PcrBattleChannel.Algorithm
 
             private readonly List<(BossIndexInfo boss, int count)> _bosses = new();
             private readonly List<float> _bossTotalHp = new();
-            private readonly List<float> _bossAdjustWeight = new();
             private readonly List<List<int>> _splitBossTable = new();
             private readonly Dictionary<int, int> _splitBossTableIndex = new();
 
@@ -180,6 +179,8 @@ namespace PcrBattleChannel.Algorithm
             private readonly List<float> _bossBuffer = new(); //for both damage ratio and correction factor.
 
             private readonly Dictionary<int, float> _mergeBossHp = new();
+
+            private readonly List<float> _userAdjustmentBuffer = new();
 
             private void ListAndSplitBosses(bool firstIsSpecial, bool lastIsSpecial)
             {
@@ -231,16 +232,6 @@ namespace PcrBattleChannel.Algorithm
 
                     maxCount = Math.Max(count, maxCount);
                 }
-
-                _bossAdjustWeight.Clear();
-                foreach (var (_, count) in _bosses)
-                {
-                    _bossAdjustWeight.Add(count / (float)maxCount * AdjustmentCoefficient);
-                }
-                if (lastIsSpecial && _bosses[^1].count == 1)
-                {
-                    _bossAdjustWeight[^1] *= 0.01f; //Lossen constraint for the last boss.
-                }
             }
 
             private void SplitCombos()
@@ -263,6 +254,7 @@ namespace PcrBattleChannel.Algorithm
                             buffer.Damage[i] = 0;
                         }
                         _splitCombos.Add(buffer);
+                        _userAdjustmentBuffer.Add(0);
                         return;
                     }
                     var zv = StaticInfo.Zhous[zvid.Value];
@@ -286,6 +278,7 @@ namespace PcrBattleChannel.Algorithm
                 }
                 _splitCombos.Clear();
                 _userFirstSplitComboIndex.Clear();
+                _userAdjustmentBuffer.Clear();
                 foreach (var user in StaticInfo.Users)
                 {
                     _userFirstSplitComboIndex.Add(_splitCombos.Count);
@@ -346,40 +339,34 @@ namespace PcrBattleChannel.Algorithm
                 bool allPositive = true, allNegative = true;
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
-                    if (allPositive && _bossBuffer[i] < 1 && i < _bosses.Count - 1) allPositive = false;
-                    if (allNegative && _bossBuffer[i] > 1) allNegative = false;
+                    if (allPositive && _bossBuffer[i] < 0.99f && i < _bosses.Count - 1) allPositive = false;
+                    if (allNegative && _bossBuffer[i] > 1.01f && i < _bosses.Count - 1) allNegative = false;
                 }
                 return allPositive ? 1 : allNegative ? -1 : 0;
             }
 
-            private void Adjust()
+            private void AdjustAverage()
             {
                 //_bossBuffer used for adjustment
                 var averageRatio = 1f;
-                for (int i = 0; i < _bosses.Count - 1; ++i) //skip last
+                for (int i = 0; i < _bosses.Count; ++i)
                 {
                     averageRatio += _bossBuffer[i];
                 }
                 averageRatio /= _bosses.Count;
 
-                var adjustmentTarget = (1 * 1 + averageRatio * 2) / 3; //between 1 and average
-
                 var totalAdjustment = 0f;
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
-                    var adjustment = (_bossBuffer[i] - adjustmentTarget) * _bossAdjustWeight[i];
+                    var adjustment = (_bossBuffer[i] - averageRatio) * 0.01f; //Adjust everything to average.
                     _bossBuffer[i] = adjustment;
-                    totalAdjustment += adjustment;
+                    totalAdjustment = MathF.Max(totalAdjustment, _bossBuffer[i]);
                 }
 
-                totalAdjustment /= _bosses.Count;
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
                     _bossBuffer[i] -= totalAdjustment;
                 }
-
-                //TODO in old algorithm there is a normalization step here
-                //is that necessary?
 
                 for (int i = 0; i < _userFirstSplitComboIndex.Count - 1; ++i) //User
                 {
@@ -401,6 +388,75 @@ namespace PcrBattleChannel.Algorithm
                         }
                         userTotalValue += _values[j];
                     }
+                    if (userTotalValue < 1)
+                    {
+                        //Normalize by addition.
+                        var normalize = (userTotalValue - 1) / (end - begin);
+                        for (int j = begin; j < end; ++j)
+                        {
+                            _values[j] -= normalize;
+                        }
+                    }
+                    else
+                    {
+                        //Normalize by multiplication.
+                        var normalize = 1f / userTotalValue;
+                        for (int j = begin; j < end; ++j)
+                        {
+                            _values[j] *= normalize;
+                        }
+                    }
+                }
+            }
+
+            private void AdjustGradient(float learningRate)
+            {
+                const float GradientLastBoss = 0.02f;
+                const float GradientOverKilledBoss1 = 0.01f;
+                const float GradientOverKilledBoss2 = 0.5f;
+                float deltaRatio = learningRate / (1 + learningRate);
+
+                //_bossBuffer used for adjustment
+                for (int i = 0; i < _bosses.Count; ++i)
+                {
+                    _bossBuffer[i] = i == _bosses.Count - 1 ? GradientLastBoss :
+                        _bossBuffer[i] switch
+                        {
+                            > 1.005f => GradientOverKilledBoss1,
+                            > 1.0f => GradientOverKilledBoss2,
+                            > 0.5f => 1f,
+                            _ => 2f,
+                        };
+                }
+
+                for (int i = 0; i < _userFirstSplitComboIndex.Count - 1; ++i) //User
+                {
+                    var userTotalDec = 0f;
+
+                    var begin = _userFirstSplitComboIndex[i];
+                    var end = _userFirstSplitComboIndex[i + 1];
+                    for (int j = begin; j < end; ++j)
+                    {
+                        var comboAdjustment = 0f;
+                        var combo = _splitCombos[j];
+                        for (int k = 0; k < 3; ++k)
+                        {
+                            comboAdjustment += combo.Damage[k] * _bossBuffer[combo.Boss[k]];
+                        }
+                        comboAdjustment *= deltaRatio;
+                        userTotalDec += comboAdjustment * _values[j];
+
+                        _userAdjustmentBuffer[j] = comboAdjustment;
+                    }
+
+                    var userTotalValue = 0f;
+                    for (int j = begin; j < end; ++j)
+                    {
+                        _values[j] += _userAdjustmentBuffer[j] - userTotalDec;
+                        if (_values[j] < 0) _values[j] = 0;
+                        userTotalValue += _values[j];
+                    }
+
                     if (userTotalValue < 1)
                     {
                         //Normalize by addition.
@@ -455,38 +511,29 @@ namespace PcrBattleChannel.Algorithm
 
             public void Run(ResultStorage result, bool forceMergeResults)
             {
+                result.BossValues.Clear();
+                result.ComboValues.Clear();
+                result.EndBossDamage = 0f;
+
                 ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: true);
                 SplitCombos();
                 InitValues();
                 int damage;
 
-                for (int i = 0; i < 10; ++i)
+                float learningRate = 0.01f;
+                for (int i = 0; i < 2; ++i)
                 {
-                    for (int j = 0; j < 50; ++j)
+                    for (int j = 0; j < 1000; ++j)
                     {
                         CalculateDamage();
-                        Adjust();
+                        AdjustGradient(learningRate);
                     }
-                    CalculateDamage();
-                    int minIndex = 0, maxIndex = 0;
-                    for (int j = 1; j < _bosses.Count - 1; ++j)
+                    if ((damage = CalculateDamage()) > 0)
                     {
-                        if (_bossBuffer[j] < _bossBuffer[minIndex]) minIndex = j;
-                        if (_bossBuffer[j] > _bossBuffer[maxIndex]) maxIndex = j;
+                        result.Balance = damage;
+                        return;
                     }
-                    var minValue = _bossBuffer[minIndex];
-                    var maxValue = _bossBuffer[maxIndex];
-                    Adjust();
-                    CalculateDamage();
-                    var minChange = MathF.Abs(_bossBuffer[minIndex] - minValue);
-                    var maxChange = MathF.Abs(_bossBuffer[maxIndex] - maxValue);
-                    if (minChange < 0.01f && maxChange < 0.01f)
-                    {
-                        for (int j = 0; j < _bosses.Count; ++j)
-                        {
-                            _bossAdjustWeight[j] *= 1.3f;
-                        }
-                    }
+                    learningRate = 0.005f;
                 }
 
                 damage = CalculateDamage();
@@ -496,12 +543,6 @@ namespace PcrBattleChannel.Algorithm
                 {
                     Merge(result);
                 }
-                else
-                {
-                    result.BossValues.Clear();
-                    result.ComboValues.Clear();
-                    result.EndBossDamage = 0f;
-                }
             }
 
             public float RunEstimate()
@@ -509,10 +550,10 @@ namespace PcrBattleChannel.Algorithm
                 ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: false);
                 SplitCombos();
                 InitValues();
-                for (int i = 0; i < 2; ++i)
+                for (int i = 0; i < 10; ++i)
                 {
                     CalculateDamage();
-                    Adjust();
+                    AdjustAverage();
                 }
                 CalculateDamage();
 
@@ -524,8 +565,6 @@ namespace PcrBattleChannel.Algorithm
                 return total / _bosses.Count;
             }
         }
-
-        private static float coefficient = 0.01f;
 
         public static async Task RunAllAsync(ApplicationDbContext context, Guild guild)
         {
@@ -648,7 +687,6 @@ namespace PcrBattleChannel.Algorithm
                 StaticInfo = staticInfo,
                 FixSelectedCombo = fixSelected,
             };
-            solver.AdjustmentCoefficient = coefficient;
 
             var result = new ResultStorage();
             solver.DamageScale = 1f;
@@ -700,7 +738,6 @@ namespace PcrBattleChannel.Algorithm
                     //Can't finish current stage.
                     var actualLaps = (int)MathF.Floor(estimatedLaps);
                     firstBoss = new(stage, firstBoss.Lap + actualLaps, 0);
-                    totalPower -= actualLaps / estimatedLaps * totalPower;
                     break;
                 }
                 else
@@ -711,11 +748,10 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Now we have a basic estimation. Run with binary search.
+            const int InitStep = 8;
             var firstBossIndex = staticInfo.Guild.BossIndex;
-            var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss); //estimated position.
-            var searchStep = 2;
-            //var lastBossIndex = firstBossIndex;
-            //var searchStep = 1;
+            var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss) + 2; //estimated lap (middle).
+            var searchStep = InitStep;
             int? lastBalance = null;
             int count = 0;
 
@@ -731,7 +767,7 @@ namespace PcrBattleChannel.Algorithm
                 }
                 else
                 {
-                    if (lastBalance.HasValue && lastBalance != result.Balance)
+                    if (searchStep != InitStep || lastBalance.HasValue && lastBalance != result.Balance)
                     {
                         searchStep /= 2;
                     }
