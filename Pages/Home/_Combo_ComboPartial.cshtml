@@ -1,5 +1,4 @@
 ﻿@model PcrBattleChannel.Pages.Home.CombosModel.SingleComboModel
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     var allBorrowLists = Model.Item.BorrowInfo.Split(';');
     var borrowList = allBorrowLists[0].Split(',').Select(x => int.Parse(x)).ToArray();

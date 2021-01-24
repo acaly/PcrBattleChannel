@@ -5,12 +5,17 @@
     ViewData["Title"] = "登录";
 }
 
-<h1>@ViewData["Title"]</h1>
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6 offset-md-3">
+        <h4>@ViewData["Title"]</h4>
+        <hr />
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
         <section>
             <form id="account" method="post">
-                <hr />
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="form-group">
                     <label asp-for="Input.Email"></label>
@@ -20,6 +25,7 @@
                 <div class="form-group">
                     <label asp-for="Input.Password"></label>
                     <input asp-for="Input.Password" class="form-control" />
+                    <span class="text-muted">忘记密码？请联系公会会长或网站管理员进行重置。</span>
                     <span asp-validation-for="Input.Password" class="text-danger"></span>
                 </div>
                 <div class="form-group">
@@ -34,28 +40,9 @@
                     <button type="submit" class="btn btn-primary">登录</button>
                 </div>
                 <div class="form-group">
-                    <p>
-                        <a id="forgot-password" asp-page="./ForgotPassword">忘记密码？</a>
-                    </p>
-                    <p>
-                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">注册账号</a>
-                    </p>
-                    <p>
-                        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation">重新发送确认邮件</a>
-                    </p>
+                    <p><a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">注册账号</a></p>
                 </div>
             </form>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h4>来点萌图？</h4>
-            <hr />
-            <div>
-                <p>
-                    我是萌图。
-                </p>
-            </div>
         </section>
     </div>
 </div>

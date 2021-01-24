@@ -1,9 +1,7 @@
 ﻿@page
 @model PcrBattleChannel.Pages.Guilds.StatusModel
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "公会设置";
-    Layout = "/Views/Shared/_Layout.cshtml";
 }
 
 <div class="row">
@@ -13,12 +11,12 @@
             <input type="hidden" asp-for="Guild.GuildID" />
             <div class="form-group">
                 <label asp-for="CurrentLap" class="control-label"></label>
-                <input asp-for="CurrentLap" class="form-control" id="lap-index" onchange="update_boss_name()"/>
+                <input asp-for="CurrentLap" class="form-control" id="lap-index" onchange="update_boss_name()" />
                 <span asp-validation-for="CurrentLap" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="CurrentBoss" class="control-label"></label>
-                <input asp-for="CurrentBoss" class="form-control" id="boss-index" onchange="update_boss_name()"/>
+                <input asp-for="CurrentBoss" class="form-control" id="boss-index" onchange="update_boss_name()" />
                 <span asp-validation-for="CurrentBoss" class="text-danger"></span>
             </div>
             <div class="form-group">
@@ -44,21 +42,22 @@
 
 @section scripts
 {
-<script>
-    stages = @Html.Raw(Model.FirstLapForStagesString);
-    bossNames = @Html.Raw(Model.BossNamesString);
-    function update_boss_name() {
-        var lap = $('#lap-index').val() - 1;
-        var boss = $('#boss-index').val() - 1;
-        for (var i = 1; i < stages.length; ++i) {
-            if (stages[i] > lap) {
-                $('#boss-name').html(bossNames[stages[i - 1]][boss]);
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        stages = @Html.Raw(Model.FirstLapForStagesString);
+        bossNames = @Html.Raw(Model.BossNamesString);
+        function update_boss_name() {
+            var lap = $('#lap-index').val() - 1;
+            var boss = $('#boss-index').val() - 1;
+            for (var i = 1; i < stages.length; ++i) {
+                if (stages[i] > lap) {
+                    $('#boss-name').html(bossNames[stages[i - 1]][boss]);
+                }
             }
+            $('#boss-name').html(bossNames[bossNames.length - 1][boss]);
         }
-        $('#boss-name').html(bossNames[bossNames.length - 1][boss]);
-    }
-    $(document).ready(function () {
-        update_boss_name();
-    });
-</script>
+        $(document).ready(function () {
+            update_boss_name();
+        });
+    </script>
 }

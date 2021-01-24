@@ -27,6 +27,9 @@ namespace PcrBattleChannel.Pages.Guilds
             _userManager = userManager;
         }
 
+        [TempData]
+        public string StatusMessage { get; set; }
+
         [BindProperty]
         [Required]
         [Display(Name = "模板用户Email")]
@@ -35,19 +38,13 @@ namespace PcrBattleChannel.Pages.Guilds
         [BindProperty]
         [Required]
         [Display(Name = "克隆数量")]
+        [Range(0, 30)]
         public int CloneCount { get; set; }
 
         [BindProperty]
         [Required]
         [Display(Name = "邮箱格式")]
         public string EmailFormat { get; set; }
-
-        [BindProperty]
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "密码")]
-        public string Password { get; set; }
 
         private async Task<Guild> CheckUserPrivilege()
         {
@@ -76,7 +73,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             return Page();
@@ -87,25 +84,46 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             var currentCount = await _context.Users
                 .Where(u => u.GuildID == guild.GuildID)
                 .CountAsync();
 
-            if (CloneCount == 0 || CloneCount + currentCount > 30)
+            if (CloneCount <= 0)
             {
-                return RedirectToPage("/Guild/Index");
+                StatusMessage = "错误：克隆数量无效。";
+                return RedirectToPage();
+            }
+            if (CloneCount + currentCount > 30)
+            {
+                StatusMessage = "错误：公会人数不得超过30人。";
+                return RedirectToPage();
             }
 
             var templateUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == TemplateUserEmail);
+            if (templateUser is null)
+            {
+                StatusMessage = "错误：模板用户不存在。";
+                return RedirectToPage();
+            }
 
             var templateUserConfigs = await _context.UserCharacterConfigs
                 .Where(cc => cc.UserID == templateUser.Id).ToListAsync();
             var templateUserVariants = await _context.UserZhouVariants
                 .Where(v => v.UserID == templateUser.Id).ToListAsync();
+
+            for (int i = 0; i < CloneCount; ++i)
+            {
+                var email = string.Format(EmailFormat, i + 1).ToUpperInvariant();
+                if (await _context.Users.AnyAsync(u => u.NormalizedEmail == email))
+                {
+                    StatusMessage = $"错误：用户{string.Format(EmailFormat, i + 1)}已存在。";
+                    return RedirectToPage();
+                }
+            }
 
             for (int i = 0; i < CloneCount; ++i)
             {
@@ -118,7 +136,7 @@ namespace PcrBattleChannel.Pages.Guilds
                     EmailConfirmed = true,
                     GuildID = templateUser.GuildID,
                 };
-                var r = await _userManager.CreateAsync(user, Password);
+                var r = await _userManager.CreateAsync(user);
                 if (r.Succeeded)
                 {
                     //Clone configs.
@@ -149,7 +167,8 @@ namespace PcrBattleChannel.Pages.Guilds
                 }
             }
 
-            return RedirectToPage("/Guild/Index");
+            StatusMessage = "克隆完成。";
+            return RedirectToPage("/Guild/Edit");
         }
     }
 }

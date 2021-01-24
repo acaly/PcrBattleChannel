@@ -1,16 +1,20 @@
 ﻿@page
 @model PcrBattleChannel.Pages.Guilds.CloneUsersModel
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "克隆会员";
-    Layout = "/Views/Shared/_Layout.cshtml";
 }
 
-<h4>克隆会员</h4>
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-6 offset-md-3">
+        <h4>克隆会员</h4>
+        <hr />
+        <partial name="_StatusMessage" model="Model.StatusMessage" />
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
         <form method="post">
-            <hr />
             <div asp-validation-summary="All" class="text-danger"></div>
             <div class="form-group">
                 <label asp-for="TemplateUserEmail"></label>
@@ -25,12 +29,8 @@
             <div class="form-group">
                 <label asp-for="EmailFormat"></label>
                 <input asp-for="EmailFormat" class="form-control" />
+                <span class="form-text text-muted">用于生成的新用户的邮箱，使用“{0}”来添加一个编号，例如user{0}@@abc.com。</span>
                 <span asp-validation-for="EmailFormat" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Password"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
             </div>
             <button type="submit" class="btn btn-primary">确认</button>
         </form>

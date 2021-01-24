@@ -27,6 +27,9 @@ namespace PcrBattleChannel.Pages.Guilds
             _userManager = userManager;
         }
 
+        [TempData]
+        public string StatusMessage { get; set; }
+
         [BindProperty]
         public Guild Guild { get; set; }
 

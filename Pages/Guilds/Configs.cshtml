@@ -1,9 +1,7 @@
 ﻿@page
 @model PcrBattleChannel.Pages.Guilds.ConfigsModel
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
-    ViewData["Title"] = "编辑角色配置";
-    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "角色配置";
 }
 
 <style>
@@ -11,6 +9,10 @@
         vertical-align: middle
     }
 </style>
+
+<h4>编辑角色配置</h4>
+<hr />
+<partial name="_StatusMessage" model="Model.StatusMessage" />
 
 <table class="table line-centered-table">
     <thead>

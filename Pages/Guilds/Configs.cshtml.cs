@@ -28,6 +28,9 @@ namespace PcrBattleChannel.Pages.Guilds
 
         public (Character Character, CharacterConfig[] Configs)[] Characters { get; set; }
 
+        [TempData]
+        public string StatusMessage { get; set; }
+
         [BindProperty]
         public NewConfigModel NewConfig { get; set; }
 

@@ -1,9 +1,7 @@
 ﻿@page
 @model PcrBattleChannel.Pages.Admin.AddGuildModel
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "创建公会";
-    Layout = "/Views/Shared/_Layout.cshtml";
 }
 
 <h4>Guild @Model.Input.GuildName.</h4>
@@ -32,5 +30,5 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }
