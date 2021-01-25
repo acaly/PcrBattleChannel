@@ -89,7 +89,8 @@ namespace PcrBattleChannel.Algorithm
 
         public Zhou Parse(string str)
         {
-            var words = str.Split(new[] { ' ', '\t', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var words = str.Split(new[] { ' ', '\t', ',', '(', ')', '（', '）', '[', ']', '/' },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var retv = new ZhouVariant()
             {

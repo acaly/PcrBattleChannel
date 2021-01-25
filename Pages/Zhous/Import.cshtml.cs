@@ -104,23 +104,25 @@ namespace PcrBattleChannel.Pages.Zhous
                 {
                     var existing = await _context.Zhous
                         .FirstOrDefaultAsync(zz =>
-                            z.GuildID == guildID &&
-                            z.C1ID == zz.C1ID &&
-                            z.C2ID == zz.C2ID &&
-                            z.C3ID == zz.C3ID &&
-                            z.C4ID == zz.C4ID &&
-                            z.C5ID == zz.C5ID); //Assuming same order (by range).
+                            zz.GuildID == guildID.Value &&
+                            zz.C1ID == z.C1ID &&
+                            zz.C2ID == z.C2ID &&
+                            zz.C3ID == z.C3ID &&
+                            zz.C4ID == z.C4ID &&
+                            zz.C5ID == z.C5ID); //Assuming same order (by range).
                     var v = ((List<ZhouVariant>)z.Variants)[0];
                     if (existing is not null)
                     {
                         v.ZhouID = existing.ZhouID;
+                        v.Zhou = existing;
                         _context.ZhouVariants.Add(v);
+                        await EditModel.CheckAndAddUserVariants(_context, guildID.Value, existing, v, v.CharacterConfigs);
                     }
                     else
                     {
                         _context.Zhous.Add(z);
+                        await EditModel.CheckAndAddUserVariants(_context, guildID.Value, z, v, v.CharacterConfigs);
                     }
-                    await EditModel.CheckAndAddUserVariants(_context, guildID.Value, z, v, v.CharacterConfigs);
                 }
             }
             else

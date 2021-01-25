@@ -78,5 +78,66 @@ namespace PcrBattleChannel.Pages.Zhous
 
             return Page();
         }
+
+        public async Task<IActionResult> OnPostRefreshAsync()
+        {
+            var user = await CheckUserPrivilege();
+            if (user is null)
+            {
+                return RedirectToPage("/Index");
+            }
+
+            await _context.UserZhouVariants
+                .Where(v => v.UserID == user.Id)
+                .DeleteFromQueryAsync();
+            var allZhous = _context.ZhouVariants
+                .Include(z => z.Zhou)
+                .Include(z => z.CharacterConfigs)
+                .Where(z => z.Zhou.GuildID == user.GuildID);
+            var userAllConfigs = await _context.UserCharacterConfigs
+                .Include(c => c.CharacterConfig)
+                .Where(c => c.UserID == user.Id)
+                .ToListAsync();
+            var userCharacters = userAllConfigs
+                .Where(c => c.CharacterConfig.Kind == default)
+                .Select(c => c.CharacterConfig.CharacterID)
+                .ToHashSet();
+            var userAllConfigIds = userAllConfigs
+                .Select(c => c.CharacterConfigID)
+                .ToHashSet();
+
+            await allZhous.ForEachAsync(z =>
+            {
+                int? borrowId = null;
+                void SetBorrow(int index)
+                {
+                    borrowId = borrowId.HasValue ? -1 : index;
+                }
+                if (!userCharacters.Contains(z.Zhou.C1ID.Value)) SetBorrow(0);
+                if (!userCharacters.Contains(z.Zhou.C2ID.Value)) SetBorrow(1);
+                if (!userCharacters.Contains(z.Zhou.C3ID.Value)) SetBorrow(2);
+                if (!userCharacters.Contains(z.Zhou.C4ID.Value)) SetBorrow(3);
+                if (!userCharacters.Contains(z.Zhou.C5ID.Value)) SetBorrow(4);
+                foreach (var c in z.CharacterConfigs)
+                {
+                    if (c.CharacterConfigID.HasValue && !userAllConfigIds.Contains(c.CharacterConfigID.Value))
+                    {
+                        SetBorrow(c.CharacterIndex);
+                    }
+                }
+                if (borrowId != -1)
+                {
+                    _context.UserZhouVariants.Add(new UserZhouVariant
+                    {
+                        Borrow = borrowId,
+                        UserID = user.Id,
+                        ZhouVariantID = z.ZhouVariantID,
+                    });
+                }
+            });
+            await _context.SaveChangesAsync();
+
+            return RedirectToPage();
+        }
     }
 }

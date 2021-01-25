@@ -4,13 +4,16 @@
     ViewData["Title"] = "公会轴表";
 }
 
-<div>
+<div class="pb-4">
     <h4>公会轴表 - @Model.Guild.Name</h4>
     <hr />
     @if (Model.IsAdmin)
     {
         <p><a asp-page="Create">写新轴</a> | <a asp-page="Import">批量导入</a></p>
     }
+    <form method="post" asp-page-handler="refresh">
+        <button class="btn btn-primary">重新匹配</button>
+    </form>
 </div>
 
 <table class="table border-bottom">

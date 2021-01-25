@@ -369,7 +369,7 @@ namespace PcrBattleChannel.Pages.Zhous
             foreach (var c in configs)
             {
                 var users = await context.UserCharacterConfigs
-                    .Where(c => c.CharacterConfigID == c.CharacterConfigID)
+                    .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
                     .Select(u => u.UserID)
                     .ToListAsync();
                 Merge(users, c.CharacterIndex);

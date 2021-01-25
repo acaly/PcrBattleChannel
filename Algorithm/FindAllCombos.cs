@@ -70,7 +70,7 @@ namespace PcrBattleChannel.Algorithm
             //Collect all variants.
             var allVariants = await context.UserZhouVariants
                 .Include(v => v.ZhouVariant)
-                .Where(v => v.UserID == user.Id)
+                .Where(v => v.UserID == user.Id && !v.ZhouVariant.IsDraft)
                 .ToListAsync();
 
             //Get all used characters.
