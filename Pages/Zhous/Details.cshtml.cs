@@ -25,6 +25,7 @@ namespace PcrBattleChannel.Pages.Zhous
             _userManager = userManager;
         }
 
+        public bool IsAdmin { get; set; }
         public string UserID { get; set; }
         public Zhou Zhou { get; set; }
 
@@ -92,6 +93,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
             UserID = user.Id;
+            IsAdmin = user.IsGuildAdmin;
 
             Zhou = await _context.Zhous
                 .Include(z => z.Boss)

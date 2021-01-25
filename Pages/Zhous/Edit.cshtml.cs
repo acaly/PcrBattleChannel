@@ -268,7 +268,7 @@ namespace PcrBattleChannel.Pages.Zhous
             _context.Update(zhou);
 
             await _context.SaveChangesAsync();
-            return RedirectToPage("./Index");
+            return RedirectToPage("./Details", new { id = Zhou.ZhouID });
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(int? id)

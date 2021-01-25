@@ -4,82 +4,101 @@
     ViewData["Title"] = "轴表";
 }
 
-<h4>公会轴表 - @Html.DisplayFor(m => m.Zhou.Name)</h4>
-<hr />
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h4>公会轴表 - @Html.DisplayFor(m => m.Zhou.Name)</h4>
+        <hr />
+    </div>
+</div>
 
 <dl class="row">
-    <dt class="col-sm-2">
+    <dt class="col-md-2 offset-md-2">
         @Html.DisplayNameFor(model => model.Zhou.Name)
     </dt>
-    <dd class="col-sm-10">
+    <dd class="col-md-6">
         @Html.DisplayFor(model => model.Zhou.Name)
     </dd>
-    <dt class="col-sm-2">
+    <dt class="col-md-2 offset-md-2">
         @Html.DisplayNameFor(model => model.Zhou.Description)
     </dt>
-    <dd class="col-sm-10">
+    <dd class="col-md-6">
         @Html.DisplayFor(model => model.Zhou.Description)
     </dd>
-    <dt class="col-sm-2">
+    <dt class="col-md-2 offset-md-2">
         @Html.DisplayNameFor(model => model.Zhou.Boss)
     </dt>
-    <dd class="col-sm-10">
+    <dd class="col-md-6">
         @Html.DisplayFor(model => model.Zhou.Boss.Name) (@Html.DisplayFor(model => model.Zhou.Boss.ShortName))
     </dd>
 </dl>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="form-group pt-4">
+            <table>
+                <tbody>
+                    <tr>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C1?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:100px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C2?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:100px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C3?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:100px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C4?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:100px;max-width:100%;height:auto" />
+                        </td>
+                        <td width="20%">
+                            <img src="~/images/icons/@(Model.Zhou.C5?.InternalID.ToString() ?? "0000")31.jpg"
+                                 style="width:100px;max-width:100%;height:auto" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>@(Model.Zhou.C1.Name)</td>
+                        <td>@(Model.Zhou.C2.Name)</td>
+                        <td>@(Model.Zhou.C3.Name)</td>
+                        <td>@(Model.Zhou.C4.Name)</td>
+                        <td>@(Model.Zhou.C5.Name)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div class="row pb-4">
-    <div class="col-md-10">
-        <table>
-            <tbody>
-                <tr>
-                    <td width="20%">
-                        <img src="~/images/icons/@(Model.Zhou.C1?.InternalID.ToString() ?? "0000")31.jpg"
-                             style="width:50px;max-width:100%;height:auto" />
-                    </td>
-                    <td width="20%">
-                        <img src="~/images/icons/@(Model.Zhou.C2?.InternalID.ToString() ?? "0000")31.jpg"
-                             style="width:50px;max-width:100%;height:auto" />
-                    </td>
-                    <td width="20%">
-                        <img src="~/images/icons/@(Model.Zhou.C3?.InternalID.ToString() ?? "0000")31.jpg"
-                             style="width:50px;max-width:100%;height:auto" />
-                    </td>
-                    <td width="20%">
-                        <img src="~/images/icons/@(Model.Zhou.C4?.InternalID.ToString() ?? "0000")31.jpg"
-                             style="width:50px;max-width:100%;height:auto" />
-                    </td>
-                    <td width="20%">
-                        <img src="~/images/icons/@(Model.Zhou.C5?.InternalID.ToString() ?? "0000")31.jpg"
-                             style="width:50px;max-width:100%;height:auto" />
-                    </td>
-                </tr>
-                <tr>
-                    <td>@(Model.Zhou.C1.Name)</td>
-                    <td>@(Model.Zhou.C2.Name)</td>
-                    <td>@(Model.Zhou.C3.Name)</td>
-                    <td>@(Model.Zhou.C4.Name)</td>
-                    <td>@(Model.Zhou.C5.Name)</td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="col-md-8 offset-md-2">
+        @if (Model.IsAdmin)
+        {
+            <a class="btn btn-primary" asp-page="./Edit" asp-route-id="@Model.Zhou.ZhouID">编辑</a>
+        }
     </div>
 </div>
 
 @foreach (var variant in Model.Zhou.Variants)
 {
     var (enabled, borrow) = await Model.GetBorrowSetting(variant);
-    if (string.IsNullOrWhiteSpace(variant.Name))
-    {
-        <h4>详细配置</h4>
-    }
-    else
-    {
-        <h4>详细配置：@Html.DisplayFor(m => variant.Name)</h4>
-    }
-    <hr />
-    <div class="row form-group">
-        <div class="col-md-4">预计伤害</div>
-        <div class="col-md-8">@Html.DisplayFor(m => variant.Damage)</div>
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            @if (string.IsNullOrWhiteSpace(variant.Name))
+            {
+                <h4>详细配置</h4>
+            }
+            else
+            {
+                <h4>详细配置：@Html.DisplayFor(m => variant.Name)</h4>
+            }
+            <hr />
+        </div>
+    </div>
+    <div class="row pb-4">
+        <div class="col-md-2 offset-md-2">预计伤害</div>
+        <div class="col-md-6">@Html.DisplayFor(m => variant.Damage)</div>
     </div>
     var configs = await Model.GetConfigs(variant);
     var checkedYes = enabled && !borrow.HasValue ? "checked" : "";
@@ -89,12 +108,12 @@
           data-ajax="true" data-ajax-method="post"
           data-ajax-failure="set_borrow_failure">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 offset-md-2">
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input type="radio" class="form-check-input"
-                                name="@nameof(Model.BorrowIndex)" value="" @Html.Raw(checkedYes)
-                                onchange="$(this.form).submit()" /> 不借人可出
+                               name="@nameof(Model.BorrowIndex)" value="" @Html.Raw(checkedYes)
+                               onchange="$(this.form).submit()" /> 不借人可出
                     </label>
                 </div>
             </div>
@@ -106,63 +125,71 @@
             if (g is null)
             {
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-4 offset-md-2">
                         <div class="form-group form-check">
                             <label class="form-check-label">
                                 <input type="radio" class="form-check-input"
-                                        name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
-                                        onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            }
-            else for (int i = 0; i < g.Length; ++i)
-            {
-                <div class="row">
-                    <div class="col-md-4">
-                        @if (i == 0)
-                        {
-                            <div class="form-group form-check">
-                                <label class="form-check-label">
-                                    <input type="radio" class="form-check-input"
-                                            name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
-                                            onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
+                                       name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
+                                       onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
                                 </label>
                             </div>
-                        }
-                    </div>
-                    <div class="col-md-8">
-                        <div class="form-group">
-                            @for (int j = 0; j < g[i].Length; ++j)
-                            {
-                                @(j != 0 ? "/" : "")@Html.DisplayFor(m => g[i][j].CharacterConfig.Name)
-                            }
                         </div>
                     </div>
-                </div>
+                }
+                else for (int i = 0; i < g.Length; ++i)
+                    {
+                        <div class="row">
+                            <div class="col-md-4 offset-md-2">
+                                @if (i == 0)
+                                {
+                                    <div class="form-group form-check">
+                                        <label class="form-check-label">
+                                            <input type="radio" class="form-check-input"
+                                                   name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
+                                                   onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
+                                            </label>
+                                        </div>
+                                    }
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    @for (int j = 0; j < g[i].Length; ++j)
+                                    {
+                                        @(j != 0 ? "/" : "")@Html.DisplayFor(m => g[i][j].CharacterConfig.Name)
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
             }
-        }
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 offset-md-2">
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input type="radio" class="form-check-input"
-                                name="@nameof(Model.BorrowIndex)" value="-1" @Html.Raw(checkedNo)
-                                onchange="$(this.form).submit()" /> 不可出
+                               name="@nameof(Model.BorrowIndex)" value="-1" @Html.Raw(checkedNo)
+                               onchange="$(this.form).submit()" /> 不可出
                     </label>
                 </div>
             </div>
         </div>
     </form>
-    <hr />
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <hr />
+        </div>
+    </div>
     <div class="row pb-4">
-        <div class="col-md-4">@Html.DisplayNameFor(m => variant.Content)</div>
-        <div class="col-md-8">
+        <div class="col-md-2 offset-md-2">@Html.DisplayNameFor(m => variant.Content)</div>
+        <div class="col-md-6">
             <div style="white-space: pre-wrap">@Html.DisplayFor(m => variant.Content)</div>
         </div>
     </div>
-    <hr />
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <hr />
+        </div>
+    </div>
 }
 
 @section Scripts {
