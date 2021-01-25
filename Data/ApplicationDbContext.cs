@@ -41,6 +41,22 @@ namespace PcrBattleChannel.Data
                 .WithMany()
                 .HasForeignKey(c => c.ZhouVariantID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<UserCombo>()
+                .HasOne(c => c.Zhou1)
+                .WithMany()
+                .HasForeignKey(c => c.Zhou1ID)
+                .OnDelete(DeleteBehavior.SetNull);
+            builder.Entity<UserCombo>()
+                .HasOne(c => c.Zhou2)
+                .WithMany()
+                .HasForeignKey(c => c.Zhou2ID)
+                .OnDelete(DeleteBehavior.SetNull);
+            builder.Entity<UserCombo>()
+                .HasOne(c => c.Zhou3)
+                .WithMany()
+                .HasForeignKey(c => c.Zhou3ID)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
