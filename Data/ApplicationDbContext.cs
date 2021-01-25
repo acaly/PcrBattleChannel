@@ -38,7 +38,7 @@ namespace PcrBattleChannel.Data
 
             builder.Entity<ZhouVariantCharacterConfig>()
                 .HasOne(c => c.ZhouVariant)
-                .WithMany()
+                .WithMany(v => v.CharacterConfigs)
                 .HasForeignKey(c => c.ZhouVariantID)
                 .OnDelete(DeleteBehavior.Cascade);
 

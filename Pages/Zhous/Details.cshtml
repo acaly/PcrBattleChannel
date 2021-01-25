@@ -82,89 +82,78 @@
         <div class="col-md-8">@Html.DisplayFor(m => variant.Damage)</div>
     </div>
     var configs = await Model.GetConfigs(variant);
+    var checkedYes = enabled && !borrow.HasValue ? "checked" : "";
+    var checkedNo = !enabled ? "checked" : "";
     <form method="post" asp-page-handler="borrow"
           asp-route-vid="@variant.ZhouVariantID"
           data-ajax="true" data-ajax-method="post"
           data-ajax-failure="set_borrow_failure">
-        @if (configs.Length == 0)
-        {
-            var checkedYes = enabled ? "checked" : "";
-            var checkedNo = !enabled ? "checked" : "";
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group form-check">
-                        <label class="form-check-label">
-                            <input type="radio" class="form-check-input"
-                                   name="@nameof(Model.BorrowIndex)" value="" @Html.Raw(checkedYes)
-                                   onchange="$(this.form).submit()" /> 可出
-                        </label>
-                    </div>
-                    <div class="form-group form-check">
-                        <label class="form-check-label">
-                            <input type="radio" class="form-check-input"
-                                   name="@nameof(Model.BorrowIndex)" value="-1" @Html.Raw(checkedNo)
-                                   onchange="$(this.form).submit()" /> 不可出
-                        </label>
-                    </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group form-check">
+                    <label class="form-check-label">
+                        <input type="radio" class="form-check-input"
+                                name="@nameof(Model.BorrowIndex)" value="" @Html.Raw(checkedYes)
+                                onchange="$(this.form).submit()" /> 不借人可出
+                    </label>
                 </div>
             </div>
-        }
-        else
+        </div>
+        @for (int index = 0; index < 5; ++index)
         {
-            var checkedYes = enabled && !borrow.HasValue ? "checked" : "";
-            var checkedNo = !enabled ? "checked" : "";
-            foreach (var (index, c, g) in configs)
+            var (c, g) = configs[index];
+            var checkedCharacter = enabled && borrow == index ? "checked" : "";
+            if (g is null)
             {
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group form-check">
                             <label class="form-check-label">
                                 <input type="radio" class="form-check-input"
-                                       name="@nameof(Model.BorrowIndex)" value="" @Html.Raw(checkedYes)
-                                       onchange="$(this.form).submit()" /> 不借人可出
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                for (int i = 0; i < g.Length; ++i)
-                {
-                    var checkedCharacter = enabled && borrow == index ? "checked" : "";
-                    <div class="row">
-                        <div class="col-md-4">
-                            @if (i == 0)
-                            {
-                                <div class="form-group form-check">
-                                    <label class="form-check-label">
-                                        <input type="radio" class="form-check-input"
-                                               name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
-                                               onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
-                                        </label>
-                                    </div>
-                                }
-                        </div>
-                        <div class="col-md-8">
-                            <div class="form-group">
-                                @for (int j = 0; j < g[i].Length; ++j)
-                                {
-                                    @(j != 0 ? "/" : "")@Html.DisplayFor(m => g[i][j].CharacterConfig.Name)
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="form-group form-check">
-                            <label class="form-check-label">
-                                <input type="radio" class="form-check-input"
-                                       name="@nameof(Model.BorrowIndex)" value="-1" @Html.Raw(checkedNo)
-                                       onchange="$(this.form).submit()" /> 不可出
+                                        name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
+                                        onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
                             </label>
                         </div>
                     </div>
                 </div>
             }
+            else for (int i = 0; i < g.Length; ++i)
+            {
+                <div class="row">
+                    <div class="col-md-4">
+                        @if (i == 0)
+                        {
+                            <div class="form-group form-check">
+                                <label class="form-check-label">
+                                    <input type="radio" class="form-check-input"
+                                            name="@nameof(Model.BorrowIndex)" value="@index" @Html.Raw(checkedCharacter)
+                                            onchange="$(this.form).submit()" /> 借 @Html.DisplayFor(m => c.Name) 可出
+                                </label>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            @for (int j = 0; j < g[i].Length; ++j)
+                            {
+                                @(j != 0 ? "/" : "")@Html.DisplayFor(m => g[i][j].CharacterConfig.Name)
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
         }
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group form-check">
+                    <label class="form-check-label">
+                        <input type="radio" class="form-check-input"
+                                name="@nameof(Model.BorrowIndex)" value="-1" @Html.Raw(checkedNo)
+                                onchange="$(this.form).submit()" /> 不可出
+                    </label>
+                </div>
+            </div>
+        </div>
     </form>
     <hr />
     <div class="row pb-4">

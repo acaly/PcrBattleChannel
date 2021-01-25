@@ -32,6 +32,11 @@
             </dl>
             <div>
                 <button class="btn btn-primary" type="button" onclick="$('.zhou-edit-toggle').toggle()">编辑</button>
+                <form method="post" style="display:inline-block"
+                      asp-page-handler="delete" asp-route-id="@Model.Zhou.ZhouID"
+                      onclick="return confirm('确认删除这个轴和它的所有配置吗？')">
+                    <button class="btn btn-danger">删除</button>
+                </form>
             </div>
         </div>
         <div class="zhou-edit-toggle pt-4" style="display:none">
@@ -57,10 +62,6 @@
             <div class="form-group">
                 <button type="submit" class="btn btn-primary" form="zhou-form">保存</button>
                 <button type="reset" class="btn btn-light" form="zhou-form" onclick="$('.zhou-edit-toggle').toggle()">取消</button>
-                <form method="post" style="display:inline-block"
-                      asp-page-handler="delete" asp-route-id="@Model.Zhou.ZhouID">
-                    <button class="btn btn-danger">删除</button>
-                </form>
             </div>
         </div>
 

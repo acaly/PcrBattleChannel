@@ -94,12 +94,12 @@ namespace PcrBattleChannel.Pages.Guilds
             if (CloneCount <= 0)
             {
                 StatusMessage = "错误：克隆数量无效。";
-                return RedirectToPage();
+                return Page();
             }
             if (CloneCount + currentCount > 30)
             {
                 StatusMessage = "错误：公会人数不得超过30人。";
-                return RedirectToPage();
+                return Page();
             }
 
             var templateUser = await _context.Users
@@ -107,7 +107,7 @@ namespace PcrBattleChannel.Pages.Guilds
             if (templateUser is null)
             {
                 StatusMessage = "错误：模板用户不存在。";
-                return RedirectToPage();
+                return Page();
             }
 
             var templateUserConfigs = await _context.UserCharacterConfigs
@@ -136,15 +136,17 @@ namespace PcrBattleChannel.Pages.Guilds
                     EmailConfirmed = true,
                     GuildID = templateUser.GuildID,
                 };
-                var r = await _userManager.CreateAsync(user);
-                if (r.Succeeded)
+                //var r = await _userManager.CreateAsync(user);
+                //if (r.Succeeded)
+                _context.Users.Add(user);
                 {
                     //Clone configs.
                     foreach (var cc in templateUserConfigs)
                     {
                         _context.UserCharacterConfigs.Add(new()
                         {
-                            UserID = user.Id,
+                            //UserID = user.Id,
+                            User = user,
                             CharacterConfigID = cc.CharacterConfigID,
                         });
                     }
@@ -154,18 +156,16 @@ namespace PcrBattleChannel.Pages.Guilds
                     {
                         _context.UserZhouVariants.Add(new()
                         {
-                            UserID = user.Id,
+                            //UserID = user.Id,
+                            User = user,
                             ZhouVariantID = v.ZhouVariantID,
                             Borrow = v.Borrow,
                         });
                     }
-
-                    //Create combos.
-                    await FindAllCombos.Run(_context, user);
-
-                    await _context.SaveChangesAsync();
                 }
             }
+
+            await _context.SaveChangesAsync();
 
             StatusMessage = "克隆完成。";
             return RedirectToPage("/Guilds/Edit");

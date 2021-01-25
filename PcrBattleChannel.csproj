@@ -14,15 +14,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Models\CharacterAliasTable.csv" />
     <None Remove="Models\InitCharacterData.csv" />
     <None Remove="Models\InitCharacterData.txt" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Models\CharacterAliasTable.csv" />
     <EmbeddedResource Include="Models\InitCharacterData.csv" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="21.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="5.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="5.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="5.0.2" />

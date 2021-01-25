@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PcrBattleChannel.Algorithm;
 using PcrBattleChannel.Data;
 using PcrBattleChannel.Models;
 using System;
@@ -46,6 +47,10 @@ namespace PcrBattleChannel
             services.AddControllersWithViews()
                 .AddViewLocalization()
                 .AddDataAnnotationsLocalization();
+
+            //Helper class to provide translation from nickname to character id.
+            services.AddSingleton<ICharacterAliasProvider>(new CharacterAliasProvider());
+            services.AddSingleton<ZhouParserFactory>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

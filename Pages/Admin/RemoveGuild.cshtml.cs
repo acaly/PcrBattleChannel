@@ -47,6 +47,14 @@ namespace PcrBattleChannel.Pages.Admin
             {
                 if (member.Email is null)
                 {
+                    //TODO
+                    //Something here is preventing user from being deleted.
+                    //Need to figure this out and use cascade deletion.
+                    //Also remember to fix the remove user page in Guilds/Edit.
+                    await _context.UserCombos.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
+                    await _context.UserZhouVariants.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
+                    await _context.UserCharacterConfigs.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
+                    await _context.UserCharacterStatuses.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
                     _context.Users.Remove(member);
                 }
             }

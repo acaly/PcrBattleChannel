@@ -339,6 +339,7 @@ namespace PcrBattleChannel.Algorithm
                 bool allPositive = true, allNegative = true;
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
+                    if (_bossBuffer[i] < 0.5f) return -1; //If any boss has damage lower than 50%, it's considered not possible.
                     if (allPositive && _bossBuffer[i] < 0.99f && i < _bosses.Count - 1) allPositive = false;
                     if (allNegative && _bossBuffer[i] > 1.01f && i < _bosses.Count - 1) allNegative = false;
                 }

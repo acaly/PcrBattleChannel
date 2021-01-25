@@ -276,7 +276,8 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage("./Index");
             }
 
-            var zhou = await _context.Zhous.FirstOrDefaultAsync(z => z.ZhouID == id);
+            var zhou = await _context.Zhous
+                .FirstOrDefaultAsync(z => z.ZhouID == id);
             if (zhou is null || zhou.GuildID != user.GuildID)
             {
                 return NotFound();
@@ -285,6 +286,107 @@ namespace PcrBattleChannel.Pages.Zhous
             await _context.SaveChangesAsync();
 
             return RedirectToPage("./Index");
+        }
+
+        //This method is also used by ImportModel.
+        public static async Task CheckAndAddUserVariants(ApplicationDbContext context, int guildID,
+            Zhou zhou, ZhouVariant variant, IEnumerable<ZhouVariantCharacterConfig> configs)
+        {
+            var availableUsers = new HashSet<string>();
+            var tempSet = new HashSet<string>();
+            var userBorrow = new Dictionary<string, int>();
+            var deleteList = new List<string>();
+
+            void Merge(List<string> list, int borrow)
+            {
+                tempSet.Clear();
+                tempSet.UnionWith(list);
+
+                deleteList.Clear();
+                foreach (var (u, b) in userBorrow)
+                {
+                    if (!tempSet.Contains(u))
+                    {
+                        deleteList.Add(u);
+                    }
+                }
+                foreach (var u in deleteList)
+                {
+                    userBorrow.Remove(u);
+                }
+
+                deleteList.Clear();
+                foreach (var u in availableUsers)
+                {
+                    if (!tempSet.Contains(u))
+                    {
+                        userBorrow.Add(u, borrow);
+                        deleteList.Add(u);
+                    }
+                }
+                foreach (var u in deleteList)
+                {
+                    availableUsers.Remove(u);
+                }
+            }
+
+            //Mark all users as available.
+            availableUsers.UnionWith(await context.Users
+                .Where(u => u.GuildID == guildID)
+                .Select(u => u.Id)
+                .ToListAsync());
+
+            //Check characters (default config).
+            async Task<List<string>> FilterCharacter(int? characterID)
+            {
+                if (!characterID.HasValue) return new();
+                var defaultConfig = await context.CharacterConfigs
+                    .FirstOrDefaultAsync(c => c.GuildID == guildID && c.CharacterID == characterID && c.Kind == default);
+                if (defaultConfig is null)
+                {
+                    availableUsers.Clear();
+                    return new();
+                }
+                return await context.UserCharacterConfigs
+                    .Where(c => c.CharacterConfigID == defaultConfig.CharacterConfigID)
+                    .Select(c => c.UserID)
+                    .ToListAsync();
+            }
+            Merge(await FilterCharacter(zhou.C1ID), 0);
+            Merge(await FilterCharacter(zhou.C2ID), 1);
+            Merge(await FilterCharacter(zhou.C3ID), 2);
+            Merge(await FilterCharacter(zhou.C4ID), 3);
+            Merge(await FilterCharacter(zhou.C5ID), 4);
+
+            //Check additional configs.
+            foreach (var c in configs)
+            {
+                var users = await context.UserCharacterConfigs
+                    .Where(c => c.CharacterConfigID == c.CharacterConfigID)
+                    .Select(u => u.UserID)
+                    .ToListAsync();
+                Merge(users, c.CharacterIndex);
+            }
+
+            //Add the variant to available users.
+            foreach (var uid in availableUsers)
+            {
+                context.UserZhouVariants.Add(new UserZhouVariant
+                {
+                    UserID = uid,
+                    ZhouVariant = variant,
+                    Borrow = null,
+                });
+            }
+            foreach (var (uid, borrow) in userBorrow)
+            {
+                context.UserZhouVariants.Add(new UserZhouVariant
+                {
+                    UserID = uid,
+                    ZhouVariant = variant,
+                    Borrow = borrow,
+                });
+            }
         }
 
         //Ajax
@@ -324,37 +426,7 @@ namespace PcrBattleChannel.Pages.Zhous
             var configs = await ApplyConfigString(Zhou, variant, EditVariantConfigs);
 
             //Setup user variants.
-            foreach (var u in _context.Users.Where(u => u.GuildID == user.GuildID))
-            {
-                ZhouVariantCharacterConfig unavailable = null;
-                bool result = true;
-                foreach (var c in configs)
-                {
-                    var s = await _context.UserCharacterConfigs
-                        .FirstOrDefaultAsync(cc => cc.UserID == u.Id && cc.CharacterConfigID == c.CharacterConfigID);
-                    if (s is null)
-                    {
-                        if (unavailable is null)
-                        {
-                            unavailable = c;
-                        }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
-                }
-                if (result)
-                {
-                    _context.UserZhouVariants.Add(new UserZhouVariant
-                    {
-                        UserID = u.Id,
-                        ZhouVariant = variant,
-                        Borrow = unavailable?.CharacterIndex,
-                    });
-                }
-            }
+            await CheckAndAddUserVariants(_context, user.GuildID.Value, Zhou, variant, configs);
 
             await _context.SaveChangesAsync();
 

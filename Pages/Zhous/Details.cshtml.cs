@@ -42,7 +42,7 @@ namespace PcrBattleChannel.Pages.Zhous
             return (true, setting.Borrow);
         }
 
-        public async Task<(int, Character, ZhouVariantCharacterConfig[][])[]> GetConfigs(ZhouVariant v)
+        public async Task<(Character, ZhouVariantCharacterConfig[][])[]> GetConfigs(ZhouVariant v)
         {
             //Load necessary entries.
             await _context.Entry(v).Collection(v => v.CharacterConfigs).LoadAsync();
@@ -53,13 +53,27 @@ namespace PcrBattleChannel.Pages.Zhous
             }
 
             //Group.
-            return v.CharacterConfigs
+            var configs = v.CharacterConfigs
                 .GroupBy(cc => cc.CharacterIndex)
                 .OrderBy(g => g.Key)
-                .Where(g => g.Any())
-                .Select(g => (g.First().CharacterIndex, g.First().CharacterConfig.Character,
-                    g.GroupBy(cc => cc.OrGroupIndex).Select(gg => gg.ToArray()).ToArray()))
-                .ToArray();
+                .ToDictionary(g => g.First().CharacterIndex,
+                    g => g.GroupBy(cc => cc.OrGroupIndex).Select(gg => gg.ToArray()).ToArray());
+
+            //Add default config if not existing.
+            var ret = new (Character character, ZhouVariantCharacterConfig[][] configs)[5];
+            ret[0].character = v.Zhou.C1;
+            ret[1].character = v.Zhou.C2;
+            ret[2].character = v.Zhou.C3;
+            ret[3].character = v.Zhou.C4;
+            ret[4].character = v.Zhou.C5;
+            for (int i = 0; i < 5; ++i)
+            {
+                if (configs.TryGetValue(i, out var t))
+                {
+                    ret[i].configs = t;
+                }
+            }
+            return ret;
         }
 
         public async Task<IActionResult> OnGetAsync(int? id)
