@@ -109,7 +109,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
             Guild = guild;
 
@@ -157,7 +157,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             if (PlanRatio.HasValue)

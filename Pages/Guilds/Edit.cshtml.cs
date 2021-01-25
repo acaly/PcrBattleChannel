@@ -65,7 +65,7 @@ namespace PcrBattleChannel.Pages.Guilds
             Guild = await CheckUserPrivilege();
             if (Guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             return Page();
@@ -76,7 +76,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage();
             }
             if (!ModelState.IsValid || Guild.GuildID != guild.GuildID)
             {
@@ -88,7 +88,8 @@ namespace PcrBattleChannel.Pages.Guilds
             _context.Guilds.Update(guild);
             await _context.SaveChangesAsync();
 
-            return RedirectToPage("/Guild/Index");
+            StatusMessage = "公会信息已更新。";
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostInviteAsync()
@@ -96,13 +97,19 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == InviteMemberEmail);
-            if (user is null || user.GuildID.HasValue)
+            if (user is null)
             {
-                return RedirectToPage("/Guild/Index");
+                StatusMessage = "错误：用户不存在。";
+                return RedirectToPage();
+            }
+            if (user.GuildID.HasValue)
+            {
+                StatusMessage = "错误：用户已经所属其他公会。";
+                return RedirectToPage();
             }
 
             user.GuildID = guild.GuildID;
@@ -110,7 +117,7 @@ namespace PcrBattleChannel.Pages.Guilds
             _context.Update(user);
             await _context.SaveChangesAsync();
 
-            return RedirectToPage("/Guild/Index");
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostAdminAsync(string id)
@@ -118,20 +125,21 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             var user = await _context.Users.FindAsync(id);
             if (user is null || user.GuildID != guild.GuildID)
             {
-                return RedirectToPage("/Guild/Index");
+                StatusMessage = "错误：用户不存在。";
+                return RedirectToPage();
             }
 
             user.IsGuildAdmin = !user.IsGuildAdmin;
             _context.Update(user);
             await _context.SaveChangesAsync();
 
-            return RedirectToPage("/Guild/Index");
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(string id)
@@ -139,13 +147,14 @@ namespace PcrBattleChannel.Pages.Guilds
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Home/Index");
             }
 
             var user = await _context.Users.FindAsync(id);
             if (user is null || user.GuildID != guild.GuildID)
             {
-                return RedirectToPage("/Guild/Index");
+                StatusMessage = "错误：用户不存在。";
+                return RedirectToPage();
             }
 
             user.GuildID = null;
@@ -166,7 +175,8 @@ namespace PcrBattleChannel.Pages.Guilds
 
             await _context.SaveChangesAsync();
 
-            return RedirectToPage("/Guild/Index");
+            StatusMessage = "用户已移出公会。";
+            return RedirectToPage();
         }
     }
 }

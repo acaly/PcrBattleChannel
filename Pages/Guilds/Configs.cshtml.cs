@@ -67,7 +67,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var guildID = await CheckUserPrivilege();
             if (!guildID.HasValue)
             {
-                return RedirectToPage("/Guild/Index");
+                return RedirectToPage("/Guilds/Index");
             }
 
             var characters = await _context.Characters
@@ -91,7 +91,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var guildID = await CheckUserPrivilege();
             if (!guildID.HasValue)
             {
-                return Forbid();
+                return StatusCode(400);
             }
 
             if (NewConfig.Kind <= CharacterConfigKind.Default ||
@@ -124,18 +124,18 @@ namespace PcrBattleChannel.Pages.Guilds
             var guildID = await CheckUserPrivilege();
             if (!guildID.HasValue)
             {
-                return Forbid();
+                return StatusCode(400);
             }
 
             if (!id.HasValue)
             {
-                return NotFound();
+                return StatusCode(400);
             }
 
             var config = await _context.CharacterConfigs.FindAsync(id);
             if (config is null)
             {
-                return NotFound();
+                return StatusCode(400);
             }
 
             _context.CharacterConfigs.Remove(config);

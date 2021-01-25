@@ -4,12 +4,12 @@
     ViewData["Title"] = "编辑公会信息";
 }
 
-<h4>公会 - @Model.Guild.Name</h4>
-<hr />
-<partial name="_StatusMessage" model="Model.StatusMessage" />
-
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-8 offset-md-2">
+        <h4>公会 - @Model.Guild.Name</h4>
+        <hr />
+        <partial name="_StatusMessage" model="Model.StatusMessage" />
+
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Guild.GuildID" />
@@ -28,10 +28,12 @@
             </div>
         </form>
     </div>
-    <div class="col-md-6 col-md-offset-2">
-        <h4>成员列表</h4><a asp-page="/Guilds/CloneUsers">克隆会员</a>
+</div>
+<div class="row pt-4">
+    <div class="col-md-8 offset-md-2">
+        <h4>成员列表</h4>
         <form method="post">
-            <table class="table">
+            <table class="table border-bottom table-align-middle">
                 <thead>
                     <tr>
                         <th>成员</th>
@@ -58,41 +60,49 @@
                                 {
                                     @if (item.IsGuildAdmin)
                                     {
-                                        <button type="submit" asp-page-handler="admin" asp-route-id="@item.Id">取消管理员</button>
+                                        <button type="submit" class="btn btn-warning"
+                                                asp-page-handler="admin" asp-route-id="@item.Id">
+                                            取消管理员
+                                        </button>
                                     }
                                     else
                                     {
-                                        <button type="submit" asp-page-handler="admin" asp-route-id="@item.Id">设为管理员</button>
+                                        <button type="submit" class="btn btn-warning"
+                                                asp-page-handler="admin" asp-route-id="@item.Id">
+                                            设为管理员
+                                        </button>
                                     }
-                                    <button type="submit" asp-page-handler="delete" asp-route-id="@item.Id">移出公会</button>
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('确认从公会中删除此人？')"
+                                            asp-page-handler="delete" asp-route-id="@item.Id">
+                                        移出公会
+                                    </button>
                                 }
                             </td>
                         </tr>
                     }
                 </tbody>
-                <tfoot>
-                    <tr><td colspan="4" /></tr>
-                </tfoot>
             </table>
+
+            <div class="form-group">
+                <a asp-page="/Guilds/CloneUsers">克隆会员</a>
+            </div>
         </form>
+    </div>
+</div>
+<div class="row pt-4">
+    <div class="col-md-8 offset-md-2">
         <h4>邀请成员</h4>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>
-                        <form method="post">
-                            <input type="hidden" asp-for="Guild.GuildID" />
-                            <div class="form-group">
-                                <label asp-for="InviteMemberEmail" class="control-label"></label>
-                                <input asp-for="InviteMemberEmail" class="form-control" />
-                                <span asp-validation-for="InviteMemberEmail" class="text-danger"></span>
-                            </div>
-                            <button type="submit" asp-page-handler="invite">邀请</button>
-                        </form>
-                    </th>
-                </tr>
-            </thead>
-        </table>
+        <hr />
+
+        <form method="post">
+            <input type="hidden" asp-for="Guild.GuildID" />
+            <div class="form-group">
+                <label asp-for="InviteMemberEmail" class="control-label"></label>
+                <input asp-for="InviteMemberEmail" class="form-control" />
+                <span asp-validation-for="InviteMemberEmail" class="text-danger"></span>
+            </div>
+            <button class="btn btn-primary" type="submit" asp-page-handler="invite">邀请</button>
+        </form>
     </div>
 </div>
 

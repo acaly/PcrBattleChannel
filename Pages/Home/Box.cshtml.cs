@@ -25,7 +25,7 @@ namespace PcrBattleChannel.Pages.Home
             _userManager = userManager;
         }
 
-        public List<(Character character, CharacterConfig[] configs)> CharacterConfigs { get; set; }
+        public List<(Character character, CharacterConfig[] configs)>[] CharacterConfigs { get; set; }
         public Dictionary<int, int> IncludedConfigs { get; set; } //CC id -> UserCC id.
 
         public async Task<IActionResult> OnGetAsync()
@@ -60,15 +60,28 @@ namespace PcrBattleChannel.Pages.Home
                 groupedConv.Add((c, value));
             }
             groupedConv.Sort((g1, g2) => Math.Sign(g1.character.Range - g2.character.Range));
-            CharacterConfigs = groupedConv;
+            CharacterConfigs = new[]
+            {
+                groupedConv.Where(c => c.character.Rarity == 1).ToList(),
+                groupedConv.Where(c => c.character.Rarity == 2).ToList(),
+                groupedConv.Where(c => c.character.Rarity == 3).ToList(),
+            };
 
             //Existing configs (for the user).
 
-            var existingConfigs = await _context.UserCharacterConfigs
-                .Where(cc => cc.UserID == user.Id)
-                .ToListAsync();
+            try
+            {
+                var existingConfigs = await _context.UserCharacterConfigs
+                    .Where(cc => cc.UserID == user.Id)
+                    .ToListAsync();
 
-            IncludedConfigs = existingConfigs.ToDictionary(cc => cc.CharacterConfigID, cc => cc.UserCharacterConfigID);
+                IncludedConfigs = existingConfigs.ToDictionary(cc => cc.CharacterConfigID, cc => cc.UserCharacterConfigID);
+            }
+            catch
+            {
+                await _context.UserCharacterConfigs.Where(cc => cc.UserID == user.Id).DeleteFromQueryAsync();
+                IncludedConfigs = new();
+            }
 
             return Page();
         }

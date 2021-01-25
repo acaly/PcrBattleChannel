@@ -12,10 +12,10 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row pt-4">
     <div class="col-md-8 offset-md-2">
         <form method="post">
-            <table class="table">
+            <table class="table border-bottom table-align-middle">
                 <thead>
                     <tr>
                         <th>公会名</th>
@@ -40,7 +40,8 @@
                                 <td></td>
                             }
                             <td>
-                                <button type="submit" data-guild-name="@item.Name" onclick="return confirm_delete(this)"
+                                <button type="submit" class="btn btn-danger"
+                                        data-guild-name="@item.Name" onclick="return confirm_delete(this)"
                                         asp-page-handler="delete" asp-route-id="@item.GuildID">
                                     删除
                                 </button>

@@ -14,7 +14,7 @@
 <hr />
 <partial name="_StatusMessage" model="Model.StatusMessage" />
 
-<table class="table line-centered-table">
+<table class="table line-centered-table border-bottom">
     <thead>
         <tr>
             <th></th>
@@ -66,7 +66,7 @@
             <tr style="display:none" id="config-list-toggle-@(item.Character.CharacterID)">
                 <td colspan="7">
                     <p>@item.Character.Name 的配置:</p>
-                    <table class="table">
+                    <table class="table border-bottom">
                         <thead>
                             <tr>
                                 <td>@Html.DisplayNameFor(m => item.Configs[0].Kind)</td>
@@ -115,17 +115,11 @@
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot>
-                            <tr><td colspan="4" /></tr>
-                        </tfoot>
                     </table>
                 </td>
             </tr>
         }
     </tbody>
-    <tfoot>
-        <tr><td colspan="7" /></tr>
-    </tfoot>
 </table>
 @section scripts
 {

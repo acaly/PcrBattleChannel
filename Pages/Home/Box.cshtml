@@ -5,50 +5,83 @@
     const int Columns = 3;
 }
 
-<h4>个人Box设置</h4>
-<div class="row">
-    <div class="col-md-10">
+<div class="row pt-4">
+    <div class="col-md-12">
+        <h4>个人Box设置</h4>
+
         <table class="table">
-            <tbody>
-                @for (int i = 0; i < Model.CharacterConfigs.Count; i += Columns)
-                {
+            @foreach (var list in Model.CharacterConfigs)
+            {
+                <tbody id="config-container-rarity-@list[0].character.Rarity">
                     <tr>
-                        @for (int j = i; j < i + Columns && j < Model.CharacterConfigs.Count; ++j)
-                        {
-                            <td colspan="2">
-                                @Model.CharacterConfigs[j].character.Name
-                            </td>
-                        }
+                        <td class="align-middle" colspan="@(Columns * 2)">
+                            <div style="display:flex">
+                                <span style="display:inline-block;align-self:center;width:30%">@list[0].character.Rarity 星角色</span>
+                                <span style="display:inline-block;align-self:center;text-align:right;width:100%">
+                                    <button type="button" class="btn btn-primary"
+                                            onclick="$('#config-container-rarity-@list[0].character.Rarity .character-checkbox-0:not(:checked)').trigger('change').prop('checked', true)">
+                                        全部选择
+                                    </button>
+                                    <button type="button" class="btn btn-light"
+                                            onclick="$('#config-container-rarity-@list[0].character.Rarity .character-checkbox-0:checked').trigger('change').prop('checked', false)">
+                                        全部取消
+                                    </button>
+                                </span>
+                            </div>
+                        </td>
                     </tr>
-                    <tr>
-                        @for (int j = i; j < i + Columns && j < Model.CharacterConfigs.Count; ++j)
-                        {
-                            var item = Model.CharacterConfigs[j];
-                            <td style="width:@(30/Columns)%">
-                                <img src="~/images/icons/@(item.character.InternalID)31.jpg" style="max-width:100%;height:auto" />
-                            </td>
-                            <td>
-                                @foreach (var cc in item.configs)
+                    @for (int i = 0; i < list.Count; i += Columns)
+                    {
+                        <tr>
+                            @for (int j = i; j < i + Columns; ++j)
+                            {
+                                if (j >= list.Count)
                                 {
-                                    var isChecked = Model.IncludedConfigs
-                                        .TryGetValue(cc.CharacterConfigID, out _) ? "checked" : "";
-                                    <div class="form-group form-check">
-                                        <form method="post" asp-page-handler="update"
-                                              asp-route-ccid="@cc.CharacterConfigID"
-                                              data-ajax="true" data-ajax-method="post"
-                                              data-ajax-failure="config_update_failure">
-                                            <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input"
-                                                       @Html.Raw(isChecked) onchange="$(this.form).submit()" /> @Html.DisplayFor(m => cc.Name)
-                                            </label>
-                                        </form>
-                                    </div>
+                                    <td colspan="2"></td>
+                                    continue;
                                 }
-                            </td>
-                        }
-                    </tr>
-                }
-            </tbody>
+                                <td colspan="2">
+                                    @list[j].character.Name
+                                </td>
+                            }
+                        </tr>
+                        <tr>
+                            @for (int j = i; j < i + Columns; ++j)
+                            {
+                                if (j >= list.Count)
+                                {
+                                    <td colspan="2"></td>
+                                    continue;
+                                }
+                                var item = list[j];
+                                <td style="width:@(30/Columns)%">
+                                    <img src="~/images/icons/@(item.character.InternalID)31.jpg" style="max-width:100%;height:auto"
+                                         onclick="$('#character-checkbox-@item.character.CharacterID-0').click()" />
+                                </td>
+                                <td>
+                                    @foreach (var cc in item.configs)
+                                    {
+                                        var isChecked = Model.IncludedConfigs
+                                            .TryGetValue(cc.CharacterConfigID, out _) ? "checked" : "";
+                                        <div class="form-group form-check">
+                                            <form method="post" asp-page-handler="update"
+                                                  asp-route-ccid="@cc.CharacterConfigID"
+                                                  data-ajax="true" data-ajax-method="post"
+                                                  data-ajax-failure="config_update_failure">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input character-checkbox-@((int)cc.Kind)"
+                                                           id="character-checkbox-@cc.CharacterID-@((int)cc.Kind)"
+                                                           @Html.Raw(isChecked) onchange="$(this.form).submit()" /> @Html.DisplayFor(m => cc.Name)
+                                                    </label>
+                                                </form>
+                                            </div>
+                                        }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            }
         </table>
     </div>
 </div>

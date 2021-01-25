@@ -51,7 +51,7 @@
             var boss = $('#boss-index').val() - 1;
             for (var i = 1; i < stages.length; ++i) {
                 if (stages[i] > lap) {
-                    $('#boss-name').html(bossNames[stages[i - 1]][boss]);
+                    $('#boss-name').html(bossNames[i - 1][boss]);
                 }
             }
             $('#boss-name').html(bossNames[bossNames.length - 1][boss]);

@@ -168,7 +168,7 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             StatusMessage = "¿ËÂ¡Íê³É¡£";
-            return RedirectToPage("/Guild/Edit");
+            return RedirectToPage("/Guilds/Edit");
         }
     }
 }
