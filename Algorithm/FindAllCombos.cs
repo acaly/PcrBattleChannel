@@ -180,9 +180,9 @@ namespace PcrBattleChannel.Algorithm
                 {
                     UserID = user.Id,
                     GuildID = user.GuildID.Value,
-                    Zhou1ID = uv1.UV.ZhouVariantID,
-                    Zhou2ID = uv2?.UV.ZhouVariantID,
-                    Zhou3ID = uv3?.UV.ZhouVariantID,
+                    Zhou1ID = uv1.UV.UserZhouVariantID,
+                    Zhou2ID = uv2?.UV.UserZhouVariantID,
+                    Zhou3ID = uv3?.UV.UserZhouVariantID,
                     BorrowInfo = borrowCalculator.Run(uv1.Characters, uv2?.Characters, uv3?.Characters,
                         uv1.ActualBorrowIndex, uv2?.ActualBorrowIndex, uv3?.ActualBorrowIndex),
                 };
