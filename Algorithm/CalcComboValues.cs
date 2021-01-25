@@ -714,6 +714,7 @@ namespace PcrBattleChannel.Algorithm
                         {
                             break;
                         }
+                        solver.LastBoss = lastBoss;
                         avgDamageRatio = solver.RunEstimate();
                     } while (avgDamageRatio < 1);
                     solver.Merge(result);
