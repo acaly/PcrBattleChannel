@@ -36,5 +36,8 @@ namespace PcrBattleChannel.Models
 
         [DataType(DataType.DateTime)]
         public DateTime LastCalculation { get; set; }
+
+        [DataType(DataType.DateTime)]
+        public DateTime LastZhouUpdate { get; set; }
     }
 }

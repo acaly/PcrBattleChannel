@@ -41,5 +41,7 @@ namespace PcrBattleChannel.Models
         public int? Attempt3ID { get; set; }
         public UserZhouVariant Attempt3 { get; set; }
         public int? Attempt3Borrow { get; set; }
+
+        public DateTime? LastComboUpdate { get; set; }
     }
 }

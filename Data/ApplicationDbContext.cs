@@ -29,6 +29,18 @@ namespace PcrBattleChannel.Data
                 .HasOne(v => v.User)
                 .WithMany(u => u.ZhouVariants)
                 .HasForeignKey(v => v.UserID);
+
+            builder.Entity<UserZhouVariant>()
+                .HasOne(v => v.ZhouVariant)
+                .WithMany()
+                .HasForeignKey(v => v.ZhouVariantID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ZhouVariantCharacterConfig>()
+                .HasOne(c => c.ZhouVariant)
+                .WithMany()
+                .HasForeignKey(c => c.ZhouVariantID)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
