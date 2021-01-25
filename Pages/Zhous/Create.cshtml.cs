@@ -127,7 +127,7 @@ namespace PcrBattleChannel.Pages.Zhous
             _context.Zhous.Add(zhou);
             await _context.SaveChangesAsync();
 
-            return RedirectToPage("./Index");
+            return RedirectToPage("./Edit", new { id = zhou.ZhouID });
         }
     }
 }

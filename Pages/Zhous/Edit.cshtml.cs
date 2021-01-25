@@ -269,14 +269,14 @@ namespace PcrBattleChannel.Pages.Zhous
             var user = await CheckUserPrivilege();
             if (user is null)
             {
-                return RedirectToPage("/Index");
+                return RedirectToPage("./Index");
             }
             if (!id.HasValue)
             {
-                return RedirectToPage("/Index");
+                return RedirectToPage("./Index");
             }
 
-            var zhou = await _context.Zhous.FirstOrDefaultAsync(z => z.ZhouID == Zhou.ZhouID);
+            var zhou = await _context.Zhous.FirstOrDefaultAsync(z => z.ZhouID == id);
             if (zhou is null || zhou.GuildID != user.GuildID)
             {
                 return NotFound();

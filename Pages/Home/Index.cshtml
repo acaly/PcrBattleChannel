@@ -30,15 +30,15 @@ else
                 <dd>
                     @(startConv.lap + 1) 周目 @(startConv.boss + 1) 号Boss
                     @(Model.GetBossName(startConv.stage, startConv.boss))
-                    (@(Model.GetBossShortName(startConv.stage, startConv.boss)) -
-                    @(Model.Guild.BossDamageRatio.ToString("P0")))
+                    (@(Model.GetBossShortName(startConv.stage, startConv.boss))) -
+                    @(Model.Guild.BossDamageRatio.ToString("P0"))
                 </dd>
                 <dt>预计进度</dt>
                 <dd>
                     @(predConv.lap + 1) 周目 @(predConv.boss + 1) 号Boss
                     @(Model.GetBossName(predConv.stage, predConv.boss))
-                    (@(Model.GetBossShortName(predConv.stage, predConv.boss)) -
-                    @(Model.Guild.PredictBossDamageRatio.ToString("P0")))
+                    (@(Model.GetBossShortName(predConv.stage, predConv.boss))) -
+                    @(Model.Guild.PredictBossDamageRatio.ToString("P0"))
                 </dd>
                 <dt>今日已出</dt>
                 <dd>

@@ -8,26 +8,26 @@
         <div id="variant-info-@Model.EditVariant.ZhouVariantID">
             <h5>@(string.IsNullOrWhiteSpace(Model.EditVariant.Name) ? "配置" : Model.EditVariant.Name)</h5>
             <div class="row">
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <p>伤害：</p>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-9">
                     <p>@Html.DisplayFor(m => m.EditVariant.Damage)</p>
                 </div>
             </div>
             @if (!string.IsNullOrWhiteSpace(Model.EditVariant.Content))
             {
                 <div class="row">
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <p>文字轴：</p>
                     </div>
-                    <div class="col-md-10">
+                    <div class="col-md-9">
                         <div style="white-space: pre-wrap">@Html.DisplayFor(m => m.EditVariant.Content)</div>
                     </div>
                 </div>
             }
             <div class="row">
-                <div class="col-md-8">
+                <div class="col-md-12">
                     <form method="post" asp-page-handler="deletev" asp-route-id="@Model.EditVariant.ZhouVariantID"
                           data-ajax="true" data-ajax-method="post"
                           data-ajax-success="variant_delete_success"
@@ -48,7 +48,7 @@
     }
     <div class="row" id="variant-edit-@Model.EditVariant.ZhouVariantID"
          style="@(Model.IsNew ? "" : "display:none")">
-        <div class="col-md-8">
+        <div class="col-md-12">
             @{ 
                 //Prepare for attributes used in the form.
                 (string mode, string update, string suc, string fail) data_ajax_attributes = Model.IsNew switch
@@ -135,14 +135,15 @@
                                                         <input type="checkbox" class="form-check-input" @Html.Raw(setChecked)
                                                                onchange="variant_config_checked_changed(this)"
                                                                data-variant-id="@Model.EditVariant.ZhouVariantID"
-                                                               data-variant-config-id="@cc.CharacterConfigID"/> @Html.DisplayFor(m => cc.Name)
-                                                        </label>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        }
+                                                               data-variant-config-id="@cc.CharacterConfigID"/>
+                                                        @Html.DisplayFor(m => cc.Name)
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     }
                                 }
+                            }
                         }
                     </tbody>
                 </table>

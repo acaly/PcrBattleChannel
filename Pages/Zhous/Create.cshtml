@@ -73,9 +73,9 @@
         display: none;
     }
 
-    .character-list-table .tick-mark img {
-        width: 100%;
-    }
+        .character-list-table .tick-mark img {
+            width: 100%;
+        }
 
     .character-list-table .selected .tick-mark {
         display: block;
@@ -105,5 +105,5 @@
             $('.character-list-table td img').on('dragstart', function (event) { event.preventDefault(); });
         });
     </script>
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }
