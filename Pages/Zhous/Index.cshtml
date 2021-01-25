@@ -23,7 +23,6 @@
                 @Html.DisplayNameFor(model => model.Zhou[0].Name)
             </th>
             <th colspan="5">阵容</th>
-            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -40,6 +39,10 @@
                         <a asp-page="./Details" asp-route-id="@item.ZhouID">
                             @Html.DisplayFor(modelItem => item.Name)
                         </a>
+                        @if (Model.IsAdmin)
+                        {
+                            <a asp-page="./Edit" asp-route-id="@item.ZhouID">编辑</a>
+                        }
                     </p>
                     <p>个人设置：@(Model.UserZhouSettings.Contains(item.ZhouID) ? "可出此轴" : "不可出此轴")</p>
                 </td>
@@ -57,14 +60,6 @@
                 </td>
                 <td @Html.Raw(style)>
                     <img src="~/images/icons/@(item.C5?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
-                </td>
-                <td rowspan="2">
-                    @if (Model.IsAdmin)
-                    {
-                        <p>
-                            <a asp-page="./Edit" asp-route-id="@item.ZhouID">编辑</a>
-                        </p>
-                    }
                 </td>
             </tr>
             <tr>

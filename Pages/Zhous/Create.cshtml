@@ -4,10 +4,10 @@
     ViewData["Title"] = "写轴";
 }
 
-<h4>写轴</h4>
-<hr />
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-8 offset-md-2">
+        <h4>写轴</h4>
+        <hr />
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input id="characterliststring" type="hidden" asp-for="Input.CharacterListString" />
@@ -55,9 +55,6 @@
     </div>
 </div>
 
-<div>
-    <a asp-page="Index">Back to List</a>
-</div>
 <style>
     .character-list-table td {
         position: relative

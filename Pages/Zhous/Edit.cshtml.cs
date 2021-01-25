@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
@@ -29,6 +30,11 @@ namespace PcrBattleChannel.Pages.Zhous
 
         [BindProperty]
         public Zhou Zhou { get; set; }
+
+        [BindProperty]
+        [Required]
+        [Display(Name = "轴名")]
+        public string Zhou_Name { get; set; }
 
         [BindProperty]
         public ZhouVariant EditVariant { get; set; }
@@ -223,6 +229,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 .Include(z => z.C5)
                 .Include(z => z.Variants)
                 .FirstOrDefaultAsync(m => m.ZhouID == id);
+            Zhou_Name = Zhou.Name;
 
             if (Zhou == null)
             {
@@ -254,7 +261,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
 
-            zhou.Name = Zhou.Name;
+            zhou.Name = Zhou_Name;
             zhou.Description = Zhou.Description;
             zhou.BossID = Zhou.BossID;
 
