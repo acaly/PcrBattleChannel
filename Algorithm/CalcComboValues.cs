@@ -618,6 +618,10 @@ namespace PcrBattleChannel.Algorithm
                 bossList[stage].Add(boss);
                 planRatios.Add(boss.BossID, boss.DamageRatio);
             }
+            foreach (var bossListStage in bossList)
+            {
+                bossListStage.Sort((b1, b2) => b1.Boss.BossID - b2.Boss.BossID);
+            }
 
             var zhous = await context.Zhous
                 .Include(z => z.Variants)

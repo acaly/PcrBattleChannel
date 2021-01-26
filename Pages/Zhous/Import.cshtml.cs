@@ -98,7 +98,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
 
             var unsavedMergeCheck = new List<Zhou>();
-            //TODO merge
+
             if (Merge)
             {
                 foreach (var z in list)

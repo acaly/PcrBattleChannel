@@ -1,0 +1,23 @@
+﻿@page
+@model PcrBattleChannel.Pages.Admin.Bosses.ImportModel
+@{
+}
+
+<form method="post">
+    <div class="form-group">
+        <p>粘贴文本格式内容来批量导入Boss数据。格式：</p>
+        <p>1,A1,双足飞龙,6000000,1.0</p>
+    </div>
+    <div class="form-group">
+        <textarea asp-for="Input" class="form-control" rows="20"></textarea>
+        <span asp-validation-for="Input" class="text-danger"></span>
+    </div>
+    <div class="form-group form-check">
+        <label class="form-check-label">
+            <input class="form-check-input" asp-for="Reset" /> @Html.DisplayNameFor(model => model.Reset)
+        </label>
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">提交</button>
+    </div>
+</form>
