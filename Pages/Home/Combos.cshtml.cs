@@ -188,7 +188,7 @@ namespace PcrBattleChannel.Pages.Home
             }
 
             await _context.UserCombos.Where(u => u.UserID == user.Id).DeleteFromQueryAsync();
-            await FindAllCombos.Run(_context, user);
+            await FindAllCombos.Run(_context, user, null);
             _context.SaveChanges();
 
             return RedirectToPage();
@@ -341,6 +341,11 @@ namespace PcrBattleChannel.Pages.Home
             }
 
             return Partial("_Combo_ComboPartial", model);
+        }
+
+        public async Task<IActionResult> OnPostSelectAsync(int? combo, int? zhou)
+        {
+            throw new NotImplementedException();
         }
     }
 }

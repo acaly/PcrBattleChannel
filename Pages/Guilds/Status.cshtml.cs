@@ -213,6 +213,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var allUserIDs = await _context.Users
                 .Where(u => u.GuildID == guild.GuildID)
                 .ToListAsync();
+            var allCombos = new List<UserCombo>();
             foreach (var user in allUserIDs)
             {
                 var uid = user.Id;
@@ -223,12 +224,16 @@ namespace PcrBattleChannel.Pages.Guilds
                 if (count != 1)
                 {
                     _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == uid));
-                    await FindAllCombos.Run(_context, user);
+                    await FindAllCombos.Run(_context, user, allCombos);
+                }
+                else
+                {
+                    allCombos.AddRange(_context.UserCombos.Where(c => c.UserID == uid));
                 }
             }
 
             //3. Calculate values.
-            await CalcComboValues.RunAllAsync(_context, guild);
+            await CalcComboValues.RunAllAsync(_context, guild, allCombos);
 
             await _context.SaveChangesAsync();
 

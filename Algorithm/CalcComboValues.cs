@@ -19,7 +19,7 @@ namespace PcrBattleChannel.Algorithm
 
             public int EndBossIndex { get; set; }
             public float EndBossDamage { get; set; }
-            public Dictionary<int, float> ComboValues { get; } = new();
+            public Dictionary<(int user, int combo), float> ComboValues { get; } = new();
             public Dictionary<int, float> BossValues { get; } = new();
         }
 
@@ -124,6 +124,13 @@ namespace PcrBattleChannel.Algorithm
                         }
                     }
 
+                    //Still need to update stage first.
+                    if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
+                    {
+                        stage += 1;
+                        Purge(stage, lap);
+                    }
+
                     //Purge last range. This starts from first boss, but may ends in the middle.
                     var bossCount = Bosses[currentRangeStart.Stage].Count;
                     var bossCountLast = lastBoss.Step + 1;
@@ -146,7 +153,9 @@ namespace PcrBattleChannel.Algorithm
         {
             private unsafe struct SplitComboInfo
             {
-                public int ComboID;
+                //We process on non-saved combo entities, so we can't rely on
+                //primary key.
+                public (int user, int combo) ComboID;
                 private fixed int _boss[3];
                 private fixed float _damage[3];
 
@@ -279,24 +288,25 @@ namespace PcrBattleChannel.Algorithm
                 _splitCombos.Clear();
                 _userFirstSplitComboIndex.Clear();
                 _userAdjustmentBuffer.Clear();
-                foreach (var user in StaticInfo.Users)
+                for (int userIndex = 0; userIndex < StaticInfo.Users.Length; ++userIndex)
                 {
+                    var user = StaticInfo.Users[userIndex];
                     _userFirstSplitComboIndex.Add(_splitCombos.Count);
                     if (FixSelectedCombo)
                     {
-                        var selected = user.FirstOrDefault(c => c.SelectedZhou.HasValue);
-                        if (selected is not null)
+                        var selected = Array.FindIndex(user, c => c.SelectedZhou.HasValue);
+                        if (selected != -1)
                         {
                             //Only add one combo.
-                            buffer.ComboID = selected.UserComboID;
-                            SplitCombo(ref buffer, selected, 0);
+                            buffer.ComboID = (userIndex, selected);
+                            SplitCombo(ref buffer, user[selected], 0);
                             continue;
                         }
                     }
-                    foreach (var combo in user)
+                    for (int comboIndex = 0; comboIndex < user.Length; ++ comboIndex)
                     {
-                        buffer.ComboID = combo.UserComboID;
-                        SplitCombo(ref buffer, combo, 0);
+                        buffer.ComboID = (userIndex, comboIndex);
+                        SplitCombo(ref buffer, user[comboIndex], 0);
                     }
                 }
                 _userFirstSplitComboIndex.Add(_splitCombos.Count);
@@ -339,7 +349,7 @@ namespace PcrBattleChannel.Algorithm
                 bool allPositive = true, allNegative = true;
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
-                    if (_bossBuffer[i] < 0.5f) return -1; //If any boss has damage lower than 50%, it's considered not possible.
+                    if (_bossBuffer[i] < 0.5f && i < _bosses.Count - 1) return -1; //If any boss has damage lower than 50%, it's considered not possible.
                     if (allPositive && _bossBuffer[i] < 0.99f && i < _bosses.Count - 1) allPositive = false;
                     if (allNegative && _bossBuffer[i] > 1.01f && i < _bosses.Count - 1) allNegative = false;
                 }
@@ -567,14 +577,14 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task RunAllAsync(ApplicationDbContext context, Guild guild)
+        public static async Task RunAllAsync(ApplicationDbContext context, Guild guild, IEnumerable<UserCombo> allCombos)
         {
             await context.GuildBossStatuses
                 .Include(s => s.Boss)
                 .Where(s => s.GuildID == guild.GuildID && s.IsPlan == false)
                 .DeleteFromQueryAsync();
 
-            var allCombos = await context.UserCombos
+            allCombos ??= await context.UserCombos
                 .Include(c => c.Zhou1)
                 .Include(c => c.Zhou2)
                 .Include(c => c.Zhou3)
@@ -628,11 +638,14 @@ namespace PcrBattleChannel.Algorithm
             var totalResult = Run(staticInfo, false);
             var nonselectedResult = Run(staticInfo, true);
 
-            foreach (var user in allUsers)
+            for (int userIndex = 0; userIndex < allUsers.Length; ++userIndex)
             {
-                foreach (var c in user)
+                var user = allUsers[userIndex];
+                for (int comboIndex = 0; comboIndex < user.Length; ++ comboIndex)
                 {
-                    if (totalResult.ComboValues.TryGetValue(c.UserComboID, out var netValue))
+                    var comboID = (userIndex, comboIndex);
+                    var c = user[comboIndex];
+                    if (totalResult.ComboValues.TryGetValue(comboID, out var netValue))
                     {
                         c.NetValue = netValue;
                     }
@@ -640,7 +653,7 @@ namespace PcrBattleChannel.Algorithm
                     {
                         c.NetValue = 0;
                     }
-                    if (nonselectedResult.ComboValues.TryGetValue(c.UserComboID, out var value))
+                    if (nonselectedResult.ComboValues.TryGetValue(comboID, out var value))
                     {
                         c.Value = value;
                     }
@@ -740,7 +753,6 @@ namespace PcrBattleChannel.Algorithm
             var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss) + 2; //estimated lap (middle).
             var searchStep = InitStep;
             int? lastBalance = null;
-            int count = 0;
 
             do
             {
@@ -773,7 +785,14 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
                 lastBalance = result.Balance;
-            } while (searchStep > 0 && ++count < 20);
+            } while (searchStep > 0);
+
+            if (lastBalance < 0)
+            {
+                //We stopped at a (-1) state. Better move back 1 step.
+                solver.LastBoss = staticInfo.ConvertBossIndex(lastBossIndex - 1);
+                solver.Run(result, false);
+            }
 
             solver.Merge(result);
             return result;

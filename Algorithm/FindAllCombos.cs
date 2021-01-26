@@ -12,14 +12,21 @@ namespace PcrBattleChannel.Algorithm
     {
         private class ZVWrapper
         {
+            public static readonly ZVWrapper Null = new();
+
             public UserZhouVariant UV { get; }
+            public int? UVID { get; }
             public Dictionary<int, int> CharactersNoBorrow { get; } // CharacterID -> character index in Zhou
             public Dictionary<int, int> Characters { get; }
             public int? ActualBorrowIndex { get; set; }
+            public int BossID => UV?.ZhouVariant.Zhou.BossID ?? int.MaxValue;
+
+            private ZVWrapper() { }
 
             public ZVWrapper(ApplicationDbContext context, UserZhouVariant uv)
             {
                 UV = uv;
+                UVID = uv.UserZhouVariantID;
 
                 //Load Zhou (to access characters).
                 context.Entry(uv.ZhouVariant).Reference(vv => vv.Zhou).Load();
@@ -62,7 +69,7 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task Run(ApplicationDbContext context, PcrIdentityUser user)
+        public static async Task Run(ApplicationDbContext context, PcrIdentityUser user, List<UserCombo> results)
         {
             HashSet<int> test = new();
             var borrowCalculator = new FindBorrowCases();
@@ -176,17 +183,31 @@ namespace PcrBattleChannel.Algorithm
             }
             void Output(ZVWrapper uv1, ZVWrapper uv2, ZVWrapper uv3)
             {
+                //Order by BossID.
+                if (uv2.BossID < uv1.BossID)
+                {
+                    (uv1, uv2) = (uv2, uv1);
+                }
+                if (uv3.BossID < uv2.BossID)
+                {
+                    (uv2, uv3) = (uv3, uv2);
+                }
+                if (uv2.BossID < uv1.BossID)
+                {
+                    (uv1, uv2) = (uv2, uv1);
+                }
                 var combo = new UserCombo
                 {
                     UserID = user.Id,
                     GuildID = user.GuildID.Value,
-                    Zhou1ID = uv1.UV.UserZhouVariantID,
-                    Zhou2ID = uv2?.UV.UserZhouVariantID,
-                    Zhou3ID = uv3?.UV.UserZhouVariantID,
-                    BorrowInfo = borrowCalculator.Run(uv1.Characters, uv2?.Characters, uv3?.Characters,
-                        uv1.ActualBorrowIndex, uv2?.ActualBorrowIndex, uv3?.ActualBorrowIndex),
+                    Zhou1ID = uv1.UVID,
+                    Zhou2ID = uv2.UVID,
+                    Zhou3ID = uv3.UVID,
+                    BorrowInfo = borrowCalculator.Run(uv1.Characters, uv2.Characters, uv3.Characters,
+                        uv1.ActualBorrowIndex, uv2.ActualBorrowIndex, uv3.ActualBorrowIndex),
                 };
                 context.UserCombos.Add(combo);
+                results?.Add(combo);
             }
 
             //Iterate and generate results (3 cases).
@@ -269,7 +290,7 @@ namespace PcrBattleChannel.Algorithm
                     foreach (var y in groupB)
                     {
                         if (!IsCompatible2(x, y)) continue;
-                        Output(x, y, null);
+                        Output(x, y, ZVWrapper.Null);
                     }
                 }
 
@@ -279,7 +300,7 @@ namespace PcrBattleChannel.Algorithm
                     foreach (var y in groupC)
                     {
                         if (!IsCompatible2(x, y)) continue;
-                        Output(x, y, null);
+                        Output(x, y, ZVWrapper.Null);
                     }
                 }
 
@@ -289,7 +310,7 @@ namespace PcrBattleChannel.Algorithm
                     foreach (var y in groupC)
                     {
                         if (!IsCompatible2(x, y)) continue;
-                        Output(x, y, null);
+                        Output(x, y, ZVWrapper.Null);
                     }
                 }
 
@@ -301,7 +322,7 @@ namespace PcrBattleChannel.Algorithm
                     {
                         var y = groupC[j];
                         if (!IsCompatible2(x, y)) continue;
-                        Output(x, y, null);
+                        Output(x, y, ZVWrapper.Null);
                     }
                 }
             }
@@ -309,7 +330,7 @@ namespace PcrBattleChannel.Algorithm
             {
                 foreach (var x in highestVariants)
                 {
-                    Output(x, null, null);
+                    Output(x, ZVWrapper.Null, ZVWrapper.Null);
                 }
             }
         }
