@@ -24,6 +24,7 @@ namespace PcrBattleChannel.Models
         public ICollection<UserCharacterStatus> CharacterStatuses { get; set; }
         public int Attempts { get; set; }
         public int GuessedAttempts { get; set; } //Number of attempts that are from guessing.
+        public bool IsIgnored { get; set; }
 
         //Attempts
 

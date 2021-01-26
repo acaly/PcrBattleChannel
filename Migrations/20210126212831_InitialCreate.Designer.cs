@@ -9,7 +9,7 @@ using PcrBattleChannel.Data;
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210126160556_InitialCreate")]
+    [Migration("20210126212831_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -300,6 +300,9 @@ namespace PcrBattleChannel.Migrations
                     b.Property<DateTime>("LastCalculation")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("LastYobotSync")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("LastZhouUpdate")
                         .HasColumnType("TEXT");
 
@@ -314,6 +317,9 @@ namespace PcrBattleChannel.Migrations
 
                     b.Property<int>("PredictBossIndex")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("YobotAPI")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("GuildID");
 
@@ -408,6 +414,9 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsGuildAdmin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsIgnored")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("LastComboUpdate")

@@ -207,6 +207,11 @@ namespace PcrBattleChannel.Pages.Home
                 return StatusCode(400);
             }
 
+            if (user.GuessedAttempts == 0 || user.IsIgnored)
+            {
+                return StatusCode(400);
+            }
+
             user = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
             user.GuessedAttempts = 0;
             _context.Users.Update(user);
@@ -261,6 +266,7 @@ namespace PcrBattleChannel.Pages.Home
                 user.Attempt2ID = null;
                 user.Attempt3ID = null;
                 user.GuessedAttempts = 0;
+                user.IsIgnored = false;
             }
             catch
             {

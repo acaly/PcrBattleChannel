@@ -33,6 +33,7 @@ namespace PcrBattleChannel.Pages.Home
         public int Attempts { get; private set; }
         public int GuessedAttempts { get; private set; }
         public int RemainingAttempts { get; private set; }
+        public int UnknownAttempts { get; private set; }
         public List<GuildBossStatus> BossStatus { get; private set; }
 
         public string GetBossName(int stage, int boss)
@@ -120,9 +121,17 @@ namespace PcrBattleChannel.Pages.Home
             var totalAttempts = 3 * await _context.Users
                 .Where(u => u.GuildID == Guild.GuildID)
                 .CountAsync();
+            var unknownUsers = await _context.Users
+                .Where(u => u.GuildID == Guild.GuildID && u.IsIgnored)
+                .CountAsync();
+            var unknownUsedAttempts = await _context.Users
+                .Where(u => u.GuildID == Guild.GuildID && u.IsIgnored)
+                .SumAsync(u => u.Attempts);
+
             Attempts = usedAttempts;
             GuessedAttempts = guessedAttempts;
             RemainingAttempts = totalAttempts - usedAttempts;
+            UnknownAttempts = 3 * unknownUsers - unknownUsedAttempts;
 
             BossStatus = await _context.GuildBossStatuses
                 .Include(s => s.Boss)

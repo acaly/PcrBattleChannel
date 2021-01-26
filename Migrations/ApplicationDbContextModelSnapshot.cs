@@ -298,6 +298,9 @@ namespace PcrBattleChannel.Migrations
                     b.Property<DateTime>("LastCalculation")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("LastYobotSync")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("LastZhouUpdate")
                         .HasColumnType("TEXT");
 
@@ -312,6 +315,9 @@ namespace PcrBattleChannel.Migrations
 
                     b.Property<int>("PredictBossIndex")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("YobotAPI")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("GuildID");
 
@@ -406,6 +412,9 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsGuildAdmin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsIgnored")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("LastComboUpdate")

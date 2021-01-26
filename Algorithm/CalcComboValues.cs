@@ -677,6 +677,7 @@ namespace PcrBattleChannel.Algorithm
             }
             guild.PredictBossIndex = nonselectedResult.EndBossIndex;
             guild.PredictBossDamageRatio = nonselectedResult.EndBossDamage;
+            guild.LastCalculation = TimeZoneHelper.BeijingNow;
         }
 
         public static ResultStorage Run(StaticInfo staticInfo, bool fixSelected)

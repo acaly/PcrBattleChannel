@@ -195,7 +195,9 @@ namespace PcrBattleChannel.Migrations
                     PredictBossIndex = table.Column<int>(type: "INTEGER", nullable: false),
                     PredictBossDamageRatio = table.Column<float>(type: "REAL", nullable: false),
                     LastCalculation = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    LastZhouUpdate = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    LastZhouUpdate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    YobotAPI = table.Column<string>(type: "TEXT", nullable: true),
+                    LastYobotSync = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -476,6 +478,7 @@ namespace PcrBattleChannel.Migrations
                     IsGuildAdmin = table.Column<bool>(type: "INTEGER", nullable: false),
                     Attempts = table.Column<int>(type: "INTEGER", nullable: false),
                     GuessedAttempts = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsIgnored = table.Column<bool>(type: "INTEGER", nullable: false),
                     Attempt1ID = table.Column<int>(type: "INTEGER", nullable: true),
                     Attempt1Borrow = table.Column<int>(type: "INTEGER", nullable: true),
                     Attempt2ID = table.Column<int>(type: "INTEGER", nullable: true),

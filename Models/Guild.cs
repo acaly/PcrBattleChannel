@@ -39,5 +39,8 @@ namespace PcrBattleChannel.Models
 
         [DataType(DataType.DateTime)]
         public DateTime LastZhouUpdate { get; set; }
+
+        public string YobotAPI { get; set; }
+        public DateTime LastYobotSync { get; set; }
     }
 }

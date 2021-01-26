@@ -42,11 +42,19 @@ else
                 </dd>
                 <dt>今日已出</dt>
                 <dd>
-                    @(Model.Attempts) 刀 （待确认 @(Model.GuessedAttempts) 刀）
+                    @(Model.Attempts) 刀
                 </dd>
                 <dt>今日剩余</dt>
                 <dd>
                     @(Model.RemainingAttempts) 刀
+                </dd>
+                <dt>待确认</dt>
+                <dd>
+                    @(Model.GuessedAttempts) 刀
+                </dd>
+                <dt>已忽略</dt>
+                <dd>
+                    @(Model.UnknownAttempts) 刀
                 </dd>
             </dl>
         </div>

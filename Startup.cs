@@ -51,6 +51,9 @@ namespace PcrBattleChannel
             //Helper class to provide translation from nickname to character id.
             services.AddSingleton<ICharacterAliasProvider>(new CharacterAliasProvider());
             services.AddSingleton<ZhouParserFactory>();
+
+            //Yobot sync scheduler.
+            services.AddHostedService<YobotSyncScheduler>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
