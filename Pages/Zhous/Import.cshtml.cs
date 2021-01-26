@@ -97,6 +97,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return Page();
             }
 
+            var unsavedMergeCheck = new List<Zhou>();
             //TODO merge
             if (Merge)
             {
@@ -110,6 +111,15 @@ namespace PcrBattleChannel.Pages.Zhous
                             zz.C3ID == z.C3ID &&
                             zz.C4ID == z.C4ID &&
                             zz.C5ID == z.C5ID); //Assuming same order (by range).
+                    if (existing is null)
+                    {
+                        existing = unsavedMergeCheck.FirstOrDefault(zz =>
+                            zz.C1ID == z.C1ID &&
+                            zz.C2ID == z.C2ID &&
+                            zz.C3ID == z.C3ID &&
+                            zz.C4ID == z.C4ID &&
+                            zz.C5ID == z.C5ID);
+                    }
                     var v = ((List<ZhouVariant>)z.Variants)[0];
                     if (existing is not null)
                     {
@@ -122,6 +132,7 @@ namespace PcrBattleChannel.Pages.Zhous
                     {
                         _context.Zhous.Add(z);
                         await EditModel.CheckAndAddUserVariants(_context, guildID.Value, z, v, v.CharacterConfigs);
+                        unsavedMergeCheck.Add(z);
                     }
                 }
             }

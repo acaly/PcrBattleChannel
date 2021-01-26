@@ -46,17 +46,17 @@ namespace PcrBattleChannel.Data
                 .HasOne(c => c.Zhou1)
                 .WithMany()
                 .HasForeignKey(c => c.Zhou1ID)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
             builder.Entity<UserCombo>()
                 .HasOne(c => c.Zhou2)
                 .WithMany()
                 .HasForeignKey(c => c.Zhou2ID)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
             builder.Entity<UserCombo>()
                 .HasOne(c => c.Zhou3)
                 .WithMany()
                 .HasForeignKey(c => c.Zhou3ID)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

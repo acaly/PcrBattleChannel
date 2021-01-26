@@ -284,11 +284,17 @@ namespace PcrBattleChannel.Pages.Zhous
             }
 
             var zhou = await _context.Zhous
+                .Include(z => z.Variants)
                 .FirstOrDefaultAsync(z => z.ZhouID == id);
             if (zhou is null || zhou.GuildID != user.GuildID)
             {
                 return NotFound();
             }
+            foreach (var v in zhou.Variants)
+            {
+                await CheckAndRemoveUserVariants(_context, id.Value);
+            }
+            zhou.Variants.Clear();
             _context.Zhous.Remove(zhou);
             await _context.SaveChangesAsync();
 
@@ -396,6 +402,23 @@ namespace PcrBattleChannel.Pages.Zhous
             }
         }
 
+        public static async Task CheckAndRemoveUserVariants(ApplicationDbContext context, int zhouVariantID)
+        {
+            var uzvs = await context.UserZhouVariants
+                .Where(uzv => uzv.ZhouVariantID == zhouVariantID)
+                .ToListAsync();
+            foreach (var uzv in uzvs)
+            {
+                await context.UserCombos
+                    .Where(c =>
+                        c.Zhou1ID == uzv.UserZhouVariantID ||
+                        c.Zhou2ID == uzv.UserZhouVariantID ||
+                        c.Zhou3ID == uzv.UserZhouVariantID)
+                    .DeleteFromQueryAsync();
+                context.UserZhouVariants.Remove(uzv);
+            }
+        }
+
         //Ajax
         public async Task<IActionResult> OnPostAddvAsync()
         {
@@ -445,14 +468,14 @@ namespace PcrBattleChannel.Pages.Zhous
         public async Task<IActionResult> OnPostDeletevAsync(int? id)
         {
             var user = await CheckUserPrivilege();
-            if (user is null)
+            if (user is null || !id.HasValue)
             {
                 return StatusCode(400);
             }
 
             var v = await _context.ZhouVariants
                 .Include(v => v.Zhou)
-                .FirstOrDefaultAsync(v => v.ZhouVariantID == id);
+                .FirstOrDefaultAsync(v => v.ZhouVariantID == id.Value);
             if (v is null)
             {
                 return NotFound();
@@ -462,6 +485,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return StatusCode(400);
             }
 
+            await CheckAndRemoveUserVariants(_context, id.Value);
             _context.ZhouVariants.Remove(v);
             await _context.SaveChangesAsync();
 
