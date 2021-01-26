@@ -44,7 +44,7 @@ namespace PcrBattleChannel.Algorithm
             public List<List<GuildBossStatus>> Bosses { get; init; }
             public Dictionary<int, ZhouVariant> Zhous { get; set; } //with .Zhou loaded
             public Dictionary<int, float> BossPlanRatios { get; init; } //BossID -> plan ratio
-            public List<PcrIdentityUser> Users { get; set; } //with .Combos.ZhouX loaded
+            public UserCombo[][] Users { get; set; } //with .ZhouX loaded
 
             public BossIndexInfo ConvertBossIndex(int bossIndex)
             {
@@ -284,7 +284,7 @@ namespace PcrBattleChannel.Algorithm
                     _userFirstSplitComboIndex.Add(_splitCombos.Count);
                     if (FixSelectedCombo)
                     {
-                        var selected = user.Combos.FirstOrDefault(c => c.SelectedZhou.HasValue);
+                        var selected = user.FirstOrDefault(c => c.SelectedZhou.HasValue);
                         if (selected is not null)
                         {
                             //Only add one combo.
@@ -293,7 +293,7 @@ namespace PcrBattleChannel.Algorithm
                             continue;
                         }
                     }
-                    foreach (var combo in user.Combos)
+                    foreach (var combo in user)
                     {
                         buffer.ComboID = combo.UserComboID;
                         SplitCombo(ref buffer, combo, 0);
@@ -569,24 +569,68 @@ namespace PcrBattleChannel.Algorithm
 
         public static async Task RunAllAsync(ApplicationDbContext context, Guild guild)
         {
-            //TODO avoid recalculating static data in second calculation
-
             await context.GuildBossStatuses
                 .Include(s => s.Boss)
                 .Where(s => s.GuildID == guild.GuildID && s.IsPlan == false)
                 .DeleteFromQueryAsync();
 
-            var allUsers = await context.Users
-                .Include(u => u.Combos)
-                .Where(u => u.GuildID == guild.GuildID)
+            var allCombos = await context.UserCombos
+                .Include(c => c.Zhou1)
+                .Include(c => c.Zhou2)
+                .Include(c => c.Zhou3)
+                .Where(c => c.GuildID == guild.GuildID)
                 .ToListAsync();
+            var allUsers = allCombos
+                .GroupBy(c => c.UserID)
+                .Select(g => g.ToArray())
+                .ToArray();
 
-            var totalResult = await RunAsync(context, guild, allUsers, false);
-            var nonselectedResult = await RunAsync(context, guild, allUsers, true);
+            var stages = await context.BattleStages
+                .OrderBy(s => s.StartLap)
+                .ToListAsync();
+            var stageLapList = new List<int>();
+            var bossList = new List<List<GuildBossStatus>>();
+            for (int i = 0; i < stages.Count; ++i)
+            {
+                stageLapList.Add(stages[i].StartLap);
+                bossList.Add(new());
+            }
+
+            var bossPlans = await context.GuildBossStatuses
+                .Include(s => s.Boss)
+                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
+                .ToListAsync();
+            var planRatios = new Dictionary<int, float>();
+            foreach (var boss in bossPlans)
+            {
+                var stageID = boss.Boss.BattleStageID;
+                var stage = stages.FindIndex(s => s.BattleStageID == stageID);
+                bossList[stage].Add(boss);
+                planRatios.Add(boss.BossID, boss.DamageRatio);
+            }
+
+            var zhous = await context.Zhous
+                .Include(z => z.Variants)
+                .Where(z => z.GuildID == guild.GuildID)
+                .ToListAsync();
+            var variants = zhous.SelectMany(z => z.Variants).ToDictionary(v => v.ZhouVariantID);
+
+            var staticInfo = new StaticInfo()
+            {
+                FirstLapForStages = stageLapList,
+                Bosses = bossList,
+                Zhous = variants,
+                BossPlanRatios = planRatios,
+                Users = allUsers,
+                Guild = guild,
+            };
+
+            var totalResult = Run(staticInfo, false);
+            var nonselectedResult = Run(staticInfo, true);
 
             foreach (var user in allUsers)
             {
-                foreach (var c in user.Combos)
+                foreach (var c in user)
                 {
                     if (totalResult.ComboValues.TryGetValue(c.UserComboID, out var netValue))
                     {
@@ -620,65 +664,6 @@ namespace PcrBattleChannel.Algorithm
             }
             guild.PredictBossIndex = nonselectedResult.EndBossIndex;
             guild.PredictBossDamageRatio = nonselectedResult.EndBossDamage;
-        }
-
-        public static async Task<ResultStorage> RunAsync(ApplicationDbContext context, Guild guild,
-            List<PcrIdentityUser> allUsers, bool fixSelected)
-        {
-            var stages = await context.BattleStages
-                .OrderBy(s => s.StartLap)
-                .ToListAsync();
-            var stageLapList = new List<int>();
-            var bossList = new List<List<GuildBossStatus>>();
-            for (int i = 0; i < stages.Count; ++i)
-            {
-                stageLapList.Add(stages[i].StartLap);
-                bossList.Add(new());
-            }
-
-            var bossPlans = await context.GuildBossStatuses
-                .Include(s => s.Boss)
-                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
-                .ToListAsync();
-            var planRatios = new Dictionary<int, float>();
-            foreach (var boss in bossPlans)
-            {
-                var stageID = boss.Boss.BattleStageID;
-                var stage = stages.FindIndex(s => s.BattleStageID == stageID);
-                bossList[stage].Add(boss);
-                planRatios.Add(boss.BossID, boss.DamageRatio);
-            }
-
-            var zhous = await context.Zhous
-                .Include(z => z.Variants)
-                .Where(z => z.GuildID == guild.GuildID)
-                .ToListAsync();
-            var variants = zhous.SelectMany(z => z.Variants).ToDictionary(v => v.ZhouVariantID);
-
-            ComboVariantExpr selectZhou1 = c => c.Zhou1;
-            ComboVariantExpr selectZhou2 = c => c.Zhou2;
-            ComboVariantExpr selectZhou3 = c => c.Zhou3;
-            foreach (var u in allUsers)
-            {
-                foreach (var combo in u.Combos)
-                {
-                    await context.Entry(combo).Reference(selectZhou1).LoadAsync();
-                    await context.Entry(combo).Reference(selectZhou2).LoadAsync();
-                    await context.Entry(combo).Reference(selectZhou3).LoadAsync();
-                }
-            }
-
-            var staticInfo = new StaticInfo()
-            {
-                FirstLapForStages = stageLapList,
-                Bosses = bossList,
-                Zhous = variants,
-                BossPlanRatios = planRatios,
-                Users = allUsers,
-                Guild = guild,
-            };
-
-            return Run(staticInfo, fixSelected);
         }
 
         public static ResultStorage Run(StaticInfo staticInfo, bool fixSelected)

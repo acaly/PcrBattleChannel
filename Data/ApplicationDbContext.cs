@@ -59,10 +59,10 @@ namespace PcrBattleChannel.Data
                 .OnDelete(DeleteBehavior.SetNull);
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.LogTo(Console.WriteLine);
-        }
+        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        //{
+        //    optionsBuilder.LogTo(Console.WriteLine);
+        //}
 
         //Game characters. Imported from Admin/EditGlobalData.
         public DbSet<Character> Characters { get; set; }

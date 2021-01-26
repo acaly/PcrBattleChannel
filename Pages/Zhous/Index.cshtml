@@ -9,7 +9,22 @@
     <hr />
     @if (Model.IsAdmin)
     {
-        <p><a asp-page="Create">写新轴</a> | <a asp-page="Import">批量导入</a></p>
+        <p>
+            <a asp-page="Create">写新轴</a> |
+            <a asp-page="Import">批量导入</a>
+            @if (Model.IsOwner)
+            {
+                <span> |
+                    <a href="#" onclick="if (confirm('确定删除公会里的所有轴吗？')) $('#delete-all-form').submit()">
+                        删除全部
+                    </a>
+                </span>
+            }
+        </p>
+    }
+    @if (Model.IsOwner)
+    {
+        <form id="delete-all-form" method="post" asp-page-handler="deleteall"></form>
     }
     <form method="post" asp-page-handler="refresh">
         <button class="btn btn-primary">重新匹配</button>

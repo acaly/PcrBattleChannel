@@ -26,6 +26,7 @@ namespace PcrBattleChannel.Pages.Zhous
         }
 
         public bool IsAdmin { get; set; }
+        public bool IsOwner { get; set; }
         public Guild Guild { get; set; }
         public List<Zhou> Zhou { get; set; }
         public HashSet<int> UserZhouSettings { get; set; }
@@ -46,6 +47,7 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return null;
             }
+            IsOwner = Guild.OwnerID == user.Id;
             return user;
         }
 
@@ -137,6 +139,19 @@ namespace PcrBattleChannel.Pages.Zhous
             });
             await _context.SaveChangesAsync();
 
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostDeleteAllAsync()
+        {
+            var user = await CheckUserPrivilege();
+            if (user is null || !IsOwner)
+            {
+                return RedirectToPage("/Index");
+            }
+            await _context.Zhous
+                .Where(z => z.GuildID == Guild.GuildID)
+                .DeleteFromQueryAsync();
             return RedirectToPage();
         }
     }
