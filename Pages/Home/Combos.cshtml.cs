@@ -301,6 +301,10 @@ namespace PcrBattleChannel.Pages.Home
                     .Include(u => u.Zhou2)
                     .Include(u => u.Zhou3)
                     .FirstOrDefaultAsync(u => u.UserComboID == id.Value);
+                if (c is null || c.UserID != user.Id)
+                {
+                    return StatusCode(400);
+                }
                 if (c.Zhou1ID.HasValue)
                 {
                     await _context.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
@@ -345,7 +349,52 @@ namespace PcrBattleChannel.Pages.Home
 
         public async Task<IActionResult> OnPostSelectAsync(int? combo, int? zhou)
         {
-            throw new NotImplementedException();
+            if (!combo.HasValue || !zhou.HasValue || zhou.Value < 0 || zhou.Value > 2)
+            {
+                return StatusCode(400);
+            }
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return StatusCode(400);
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null || !user.GuildID.HasValue)
+            {
+                return StatusCode(400);
+            }
+
+            var c = await _context.UserCombos
+                .FirstOrDefaultAsync(u => u.UserComboID == combo.Value);
+            if (c is null || c.UserID != user.Id)
+            {
+                return StatusCode(400);
+            }
+
+            var zhouid = zhou.Value switch
+            {
+                0 => c.Zhou1ID,
+                1 => c.Zhou2ID,
+                2 => c.Zhou3ID,
+                _ => null,
+            };
+            if (!zhouid.HasValue)
+            {
+                return StatusCode(400);
+            }
+
+            var lastSelected = await _context.UserCombos
+                .Where(c => c.UserID == user.Id && c.SelectedZhou != null)
+                .ToListAsync();
+            foreach (var last in lastSelected)
+            {
+                last.SelectedZhou = null;
+                _context.UserCombos.Update(last);
+            }
+            c.SelectedZhou = zhou.Value;
+            _context.UserCombos.Update(c);
+
+            await _context.SaveChangesAsync();
+            return StatusCode(200);
         }
     }
 }

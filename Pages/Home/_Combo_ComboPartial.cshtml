@@ -2,9 +2,13 @@
 @{
     var allBorrowLists = Model.Item.BorrowInfo.Split(';');
     var borrowList = allBorrowLists[0].Split(',').Select(x => int.Parse(x)).ToArray();
-    string borrowTagStyle(int z, int c)
+    string BorrowTagStyle(int z, int c)
     {
         return borrowList[z] == c ? "position:absolute;top:0px;width:100%;height:100%;border:4px solid #000" : "display:none";
+    }
+    string SelectNextDivStyle(int z, bool state)
+    {
+        return (Model.Item.SelectedZhou == z) == state ? "" : "display:none";
     }
 }
 
@@ -28,23 +32,23 @@
                 <div class="col-md-8">
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C1.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(0, 0)"></div>
+                        <div style="@BorrowTagStyle(0, 0)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C2.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(0, 1)"></div>
+                        <div style="@BorrowTagStyle(0, 1)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C3.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(0, 2)"></div>
+                        <div style="@BorrowTagStyle(0, 2)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C4.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(0, 3)"></div>
+                        <div style="@BorrowTagStyle(0, 3)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C5.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(0, 4)"></div>
+                        <div style="@BorrowTagStyle(0, 4)"></div>
                     </div>
                 </div>
             }
@@ -54,7 +58,21 @@
             }
         </div>
     </td>
-    <td class="align-middle">选为下一刀</td>
+    <td class="align-middle">
+        <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-0" style="@SelectNextDivStyle(0, true)">
+            下一刀
+        </div>
+        <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-0" style="@SelectNextDivStyle(0, false)">
+            <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-0').submit()">选为下一刀</a>
+            <form id="select-next-form-@Model.Item.UserComboID-0" method="post"
+                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="0"
+                  data-ajax="true" data-ajax-method="post"
+                  data-ajax-success="combo_select_success"
+                  data-ajax-failure="combo_select_failure"
+                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-0">
+            </form>
+        </div>
+    </td>
 </tr>
 <tr>
     <td class="align-middle">第二刀</td>
@@ -73,23 +91,23 @@
                 <div class="col-md-8">
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C1.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(1, 0)"></div>
+                        <div style="@BorrowTagStyle(1, 0)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C2.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(1, 1)"></div>
+                        <div style="@BorrowTagStyle(1, 1)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C3.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(1, 2)"></div>
+                        <div style="@BorrowTagStyle(1, 2)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C4.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(1, 3)"></div>
+                        <div style="@BorrowTagStyle(1, 3)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C5.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(1, 4)"></div>
+                        <div style="@BorrowTagStyle(1, 4)"></div>
                     </div>
                 </div>
             }
@@ -99,7 +117,21 @@
             }
         </div>
     </td>
-    <td class="align-middle">选为下一刀</td>
+    <td class="align-middle">
+        <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-1" style="@SelectNextDivStyle(1, true)">
+            下一刀
+        </div>
+        <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-1" style="@SelectNextDivStyle(1, false)">
+            <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-1').submit()">选为下一刀</a>
+            <form id="select-next-form-@Model.Item.UserComboID-1" method="post"
+                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="1"
+                  data-ajax="true" data-ajax-method="post"
+                  data-ajax-success="combo_select_success"
+                  data-ajax-failure="combo_select_failure"
+                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-1">
+            </form>
+        </div>
+    </td>
 </tr>
 <tr>
     <td class="align-middle">第三刀</td>
@@ -118,23 +150,23 @@
                 <div class="col-md-8">
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C1.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(2, 0)"></div>
+                        <div style="@BorrowTagStyle(2, 0)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C2.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(2, 1)"></div>
+                        <div style="@BorrowTagStyle(2, 1)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C3.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(2, 2)"></div>
+                        <div style="@BorrowTagStyle(2, 2)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C4.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(2, 3)"></div>
+                        <div style="@BorrowTagStyle(2, 3)"></div>
                     </div>
                     <div style="position:relative;max-width:100%;display:inline-block">
                         <img src="~/images/icons/@(z.C5.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@borrowTagStyle(2, 4)"></div>
+                        <div style="@BorrowTagStyle(2, 4)"></div>
                     </div>
                 </div>
             }
@@ -144,7 +176,21 @@
             }
         </div>
     </td>
-    <td class="align-middle">选为下一刀</td>
+    <td class="align-middle">
+        <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-2" style="@SelectNextDivStyle(2, true)">
+            下一刀
+        </div>
+        <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-2" style="@SelectNextDivStyle(2, false)">
+            <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-2').submit()">选为下一刀</a>
+            <form id="select-next-form-@Model.Item.UserComboID-2" method="post"
+                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="2"
+                  data-ajax="true" data-ajax-method="post"
+                  data-ajax-success="combo_select_success"
+                  data-ajax-failure="combo_select_failure"
+                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-2">
+            </form>
+        </div>
+    </td>
 </tr>
 @if (allBorrowLists.Length > 1)
 {

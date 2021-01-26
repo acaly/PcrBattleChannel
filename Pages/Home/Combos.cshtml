@@ -86,5 +86,14 @@
             });
             $('#characterliststring').val(str);
         }
+        function combo_select_success() {
+            var id = this.getAttribute('data-select-combo-toggle');
+            $('.select-next-div-selected').hide();
+            $('.select-next-div-unselected').show();
+            $(id).toggle();
+        }
+        function combo_select_failure() {
+            alert('设置失败');
+        }
     </script>
 }
