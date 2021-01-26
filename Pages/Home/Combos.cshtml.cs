@@ -294,13 +294,30 @@ namespace PcrBattleChannel.Pages.Home
             }
             await GetUserInfo(user);
 
+            var c = await _context.UserCombos
+                .Include(u => u.Zhou1)
+                .Include(u => u.Zhou2)
+                .Include(u => u.Zhou3)
+                .FirstOrDefaultAsync(u => u.UserComboID == id.Value);
+
+            try
+            {
+                var borrowLists = c.BorrowInfo;
+                var index = borrowLists.IndexOf(';');
+                if (index != -1)
+                {
+                    c.BorrowInfo = borrowLists.Substring(index + 1) + ";" + borrowLists.Substring(0, index);
+                    _context.Update(c);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch
+            {
+                return StatusCode(400);
+            }
+
             SingleComboModel model;
             {
-                var c = await _context.UserCombos
-                    .Include(u => u.Zhou1)
-                    .Include(u => u.Zhou2)
-                    .Include(u => u.Zhou3)
-                    .FirstOrDefaultAsync(u => u.UserComboID == id.Value);
                 if (c is null || c.UserID != user.Id)
                 {
                     return StatusCode(400);
@@ -326,22 +343,6 @@ namespace PcrBattleChannel.Pages.Home
                     await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
                 }
                 model = CreateSingleModel(c);
-            }
-
-            try
-            {
-                var borrowLists = model.Item.BorrowInfo;
-                var index = borrowLists.IndexOf(';');
-                if (index != -1)
-                {
-                    model.Item.BorrowInfo = borrowLists.Substring(index + 1) + ";" + borrowLists.Substring(0, index);
-                    _context.Update(model.Item);
-                    await _context.SaveChangesAsync();
-                }
-            }
-            catch
-            {
-                return StatusCode(400);
             }
 
             return Partial("_Combo_ComboPartial", model);
