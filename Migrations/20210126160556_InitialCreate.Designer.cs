@@ -9,8 +9,8 @@ using PcrBattleChannel.Data;
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210126155919_FixZhouDeletionAgain")]
-    partial class FixZhouDeletionAgain
+    [Migration("20210126160556_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

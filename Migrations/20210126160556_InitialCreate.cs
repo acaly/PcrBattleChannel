@@ -194,7 +194,8 @@ namespace PcrBattleChannel.Migrations
                     BossDamageRatio = table.Column<float>(type: "REAL", nullable: false),
                     PredictBossIndex = table.Column<int>(type: "INTEGER", nullable: false),
                     PredictBossDamageRatio = table.Column<float>(type: "REAL", nullable: false),
-                    LastCalculation = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    LastCalculation = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastZhouUpdate = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -481,6 +482,7 @@ namespace PcrBattleChannel.Migrations
                     Attempt2Borrow = table.Column<int>(type: "INTEGER", nullable: true),
                     Attempt3ID = table.Column<int>(type: "INTEGER", nullable: true),
                     Attempt3Borrow = table.Column<int>(type: "INTEGER", nullable: true),
+                    LastComboUpdate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),

@@ -154,6 +154,8 @@ namespace PcrBattleChannel.Pages.Guilds
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
@@ -191,48 +193,43 @@ namespace PcrBattleChannel.Pages.Guilds
                 BossNames.Add(bosses);
             }
 
+            //Have to save here to allow calculator to read boss plans.
+            await _context.SaveChangesAsync();
+
             //1. Update guild status.
             var newBossIndex = ConvLap(CurrentLap - 1, CurrentBoss - 1);
             if (!newBossIndex.HasValue)
             {
                 return RedirectToPage();
             }
-            guild.BossIndex = newBossIndex.Value;
             if (CurrentBossRatio < 0 || CurrentBossRatio >= 1)
             {
                 return RedirectToPage();
             }
+            guild.BossIndex = newBossIndex.Value;
             guild.BossDamageRatio = CurrentBossRatio;
-
-            await _context.SaveChangesAsync();
 
             //2. Refresh users' combo lists.
             var allUserIDs = await _context.Users
                 .Where(u => u.GuildID == guild.GuildID)
-                .Select(u => u.Id)
                 .ToListAsync();
-            bool combosRequiresSaving = false;
-            foreach (var uid in allUserIDs)
+            foreach (var user in allUserIDs)
             {
+                var uid = user.Id;
                 var count = await _context.UserCombos
                     .Where(c => c.UserID == uid && c.SelectedZhou != null)
                     .CountAsync();
                 //Refresh only when user has not selected a combo.
                 if (count != 1)
                 {
-                    await _context.UserCombos.Where(c => c.UserID == uid).DeleteFromQueryAsync();
-                    await FindAllCombos.Run(_context,
-                        await _context.Users.FirstOrDefaultAsync(u => u.Id == uid));
-                    combosRequiresSaving = true;
+                    _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == uid));
+                    await FindAllCombos.Run(_context, user);
                 }
-            }
-            if (combosRequiresSaving)
-            {
-                await _context.SaveChangesAsync();
             }
 
             //3. Calculate values.
             await CalcComboValues.RunAllAsync(_context, guild);
+
             await _context.SaveChangesAsync();
 
             return RedirectToPage();
