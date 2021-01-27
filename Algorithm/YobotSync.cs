@@ -137,7 +137,7 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task Run(ApplicationDbContext context)
+        public static async Task RunAllAsync(ApplicationDbContext context)
         {
             var bosses = await BossIDConverter.Create(context);
             var allGuilds = await context.Guilds.Include(g => g.Members).ToListAsync();
@@ -164,6 +164,31 @@ namespace PcrBattleChannel.Algorithm
                 {
                     Console.WriteLine(e);
                 }
+            }
+        }
+
+        public static async Task RunSingleAsync(ApplicationDbContext context, Guild g)
+        {
+            var bosses = await BossIDConverter.Create(context);
+            var allGuilds = await context.Guilds.Include(g => g.Members).ToListAsync();
+            var comboList = new List<UserCombo>();
+            try
+            {
+                if (await RunGuild(context, g, bosses, comboList))
+                {
+                    g.LastYobotSync = TimeZoneHelper.BeijingNow;
+
+                    //Update values for all combos (in the list).
+                    await CalcComboValues.RunAllAsync(context, g, comboList);
+
+                    //Ensure each guild is saved separately.
+                    await context.SaveChangesAsync();
+                }
+                comboList.Clear();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
@@ -500,7 +525,7 @@ namespace PcrBattleChannel.Algorithm
                 var timer = Stopwatch.StartNew();
                 using var scope = _serviceScopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetService<ApplicationDbContext>();
-                YobotSync.Run(context).Wait();
+                YobotSync.RunAllAsync(context).Wait();
                 LastUpdateLength = timer.Elapsed;
                 UtcLastUpdateFinishTime = DateTime.UtcNow;
             }

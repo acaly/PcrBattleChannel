@@ -122,10 +122,10 @@ namespace PcrBattleChannel.Pages.Home
                 .Where(u => u.GuildID == Guild.GuildID)
                 .CountAsync();
             var unknownUsers = await _context.Users
-                .Where(u => u.GuildID == Guild.GuildID && u.IsIgnored)
+                .Where(u => u.GuildID == Guild.GuildID && (u.IsIgnored || u.DisableYobotSync))
                 .CountAsync();
             var unknownUsedAttempts = await _context.Users
-                .Where(u => u.GuildID == Guild.GuildID && u.IsIgnored)
+                .Where(u => u.GuildID == Guild.GuildID && (u.IsIgnored || u.DisableYobotSync))
                 .SumAsync(u => u.Attempts);
 
             Attempts = usedAttempts;

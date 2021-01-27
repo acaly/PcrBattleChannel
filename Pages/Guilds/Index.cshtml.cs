@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using PcrBattleChannel.Algorithm;
 using PcrBattleChannel.Data;
 using PcrBattleChannel.Models;
 
@@ -31,12 +32,12 @@ namespace PcrBattleChannel.Pages.Guilds
         {
             if (!_signInManager.IsSignedIn(User))
             {
-                return Redirect("/");
+                return RedirectToPage("/Home/Index");
             }
             var user = await _userManager.GetUserAsync(User);
             if (user is null || !user.GuildID.HasValue)
             {
-                return Redirect("/");
+                return RedirectToPage("/Home/Index");
             }
 
             Guild = await _context.Guilds
@@ -50,6 +51,25 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostSyncAsync()
+        {
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return RedirectToPage("/Home/Index");
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null || !user.GuildID.HasValue || !user.IsGuildAdmin)
+            {
+                return RedirectToPage("/Home/Index");
+            }
+
+            var g = await _context.Guilds
+                .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
+
+            await YobotSync.RunSingleAsync(_context, g);
+            return RedirectToPage("/Home/Index");
         }
     }
 }

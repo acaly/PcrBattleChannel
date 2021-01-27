@@ -27,7 +27,9 @@
     <ul>
         <li><a asp-page="Configs">配置角色</a></li>
         <li><a asp-page="Status">编辑状态</a></li>
+        <li><a href="javascript:void(0)" onclick="$('#sync-form').submit()">Yobot同步</a></li>
     </ul>
+    <form method="post" asp-page-handler="sync" id="sync-form"></form>
 </div>
 <div>
     <h4>成员列表</h4>

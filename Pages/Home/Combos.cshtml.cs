@@ -168,6 +168,7 @@ namespace PcrBattleChannel.Pages.Home
                 .ToListAsync();
             UsedCharacters.Sort((a, b) => Math.Sign(a.Character.Range - b.Character.Range));
             UsedCharacterIds = UsedCharacters.Select(c => c.CharacterID).ToHashSet();
+            UsedCharacterString = string.Join(',', UsedCharacterIds);
 
             await GetAllCharacters(user);
 
