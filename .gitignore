@@ -342,3 +342,6 @@ healthchecksdb
 # sqlite database
 *.sqlite
 /.config
+
+# Debug launch args
+Properties/launchSettings.json

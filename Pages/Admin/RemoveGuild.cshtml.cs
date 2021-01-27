@@ -57,6 +57,14 @@ namespace PcrBattleChannel.Pages.Admin
                     await _context.UserCharacterStatuses.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
                     _context.Users.Remove(member);
                 }
+                else
+                {
+                    member.Attempts = 0;
+                    member.GuessedAttempts = 0;
+                    member.IsIgnored = false;
+                }
+                member.Attempt1ID = member.Attempt2ID = member.Attempt3ID = null;
+                member.Attempt1Borrow = member.Attempt2Borrow = member.Attempt3Borrow = null;
             }
             guild.Members.Clear();
             _context.Guilds.Remove(guild);

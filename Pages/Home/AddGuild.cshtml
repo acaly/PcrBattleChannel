@@ -1,0 +1,28 @@
+﻿@page
+@model PcrBattleChannel.Pages.Home.AddGuildModel
+@{
+}
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h4>新建公会</h4>
+        <hr />
+
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="Guild.Name" class="control-label"></label>
+                <input asp-for="Guild.Name" class="form-control" />
+                <span asp-validation-for="Guild.Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Guild.Description" class="control-label"></label>
+                <textarea asp-for="Guild.Description" class="form-control"></textarea>
+                <span asp-validation-for="Guild.Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="确定" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>

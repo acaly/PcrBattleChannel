@@ -32,12 +32,12 @@ namespace PcrBattleChannel.Pages.Home
         {
             if (!_signInManager.IsSignedIn(User))
             {
-                return Redirect("/");
+                return RedirectToPage("/Home/Index");
             }
             var user = await _userManager.GetUserAsync(User);
             if (user is null || !user.GuildID.HasValue)
             {
-                return Redirect("/");
+                return RedirectToPage("/Home/Index");
             }
 
             //All configs.
