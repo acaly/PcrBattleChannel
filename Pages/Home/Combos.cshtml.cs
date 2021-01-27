@@ -161,7 +161,6 @@ namespace PcrBattleChannel.Pages.Home
                     await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
                 }
             }
-            UserCombo.Sort((c1, c2) => Math.Sign(c2.NetValue - c1.NetValue));
 
             UsedCharacters = await _context.UserCharacterStatuses
                 .Include(s => s.Character)

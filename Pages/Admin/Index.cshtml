@@ -1,5 +1,6 @@
 ﻿@page
 @model PcrBattleChannel.Pages.Admin.IndexModel
+@using PcrBattleChannel.Algorithm
 @{
     ViewData["Title"] = "管理";
 }
@@ -12,25 +13,40 @@
 </div>
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-8 offset-md-2 pb-2">
         <div>
             <a asp-page="EditGlobalData">编辑赛季数据</a>
         </div>
-
         <div>
             <a asp-page="Bosses/Index">编辑Boss数据</a>
         </div>
-
         <div>
             <a asp-page="AddGuild">创建公会</a>
         </div>
-
         <div>
             <a asp-page="RemoveGuild">删除公会</a>
         </div>
-
         <div>
             <a asp-page="SuLogin">登录用户</a>
         </div>
     </div>
+    <div class="col-md-8 offset-md-2 pb-2">
+        <div>
+            <dl>
+                <dt>上次更新时间</dt>
+                <dd id="last-update"></dd>
+                <dt>上次更新时长</dt>
+                <dd>@YobotSyncScheduler.LastUpdateLength</dd>
+            </dl>
+        </div>
+    </div>
 </div>
+@section scripts
+{
+    <script>
+        $(document).ready(function () {
+            var time = new Date('@YobotSyncScheduler.UtcLastUpdateFinishTime.ToString("yyyy/MM/dd HH:mm:ss") UTC');
+            $('#last-update').html(time.toLocaleString());
+        });
+    </script>
+}

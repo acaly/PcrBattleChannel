@@ -6,6 +6,7 @@ using PcrBattleChannel.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -335,6 +336,7 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
+        //Decide which variant in the old selected combo is the one reported by yobot.
         private static int? DecideNewAttempt(UserCombo selectedCombo, int yobotBossID)
         {
             //Check selected first.
@@ -461,6 +463,8 @@ namespace PcrBattleChannel.Algorithm
     public class YobotSyncScheduler : IHostedService
     {
         public static TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(10);
+        public static DateTime UtcLastUpdateFinishTime { get; private set; }
+        public static TimeSpan LastUpdateLength { get; private set; }
 
         private readonly SemaphoreSlim _lock = new(1, 1);
         private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -493,9 +497,12 @@ namespace PcrBattleChannel.Algorithm
             if (!_lock.Wait(0)) return;
             try
             {
+                var timer = Stopwatch.StartNew();
                 using var scope = _serviceScopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetService<ApplicationDbContext>();
                 YobotSync.Run(context).Wait();
+                LastUpdateLength = timer.Elapsed;
+                UtcLastUpdateFinishTime = DateTime.UtcNow;
             }
             finally
             {

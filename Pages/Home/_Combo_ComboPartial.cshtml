@@ -16,7 +16,7 @@
 
 <tr>
     <td rowspan="@(allBorrowLists.Length == 1 ? 3 : 4)">
-        @Html.DisplayFor(m => m.Item.NetValue) / @Html.DisplayFor(m => m.Item.Value)
+        @Html.DisplayFor(m => m.Item.Value) / @Html.DisplayFor(m => m.Item.NetValue)
     </td>
     <td class="align-middle">第一刀</td>
     <td>
