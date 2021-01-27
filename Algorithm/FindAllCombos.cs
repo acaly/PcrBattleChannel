@@ -69,7 +69,7 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task Run(ApplicationDbContext context, PcrIdentityUser user, List<UserCombo> results)
+        public static async Task Run(ApplicationDbContext context, PcrIdentityUser user, List<UserCombo> results, bool inherit)
         {
             HashSet<int> test = new();
             var borrowCalculator = new FindBorrowCases();
@@ -86,6 +86,17 @@ namespace PcrBattleChannel.Algorithm
                 .Select(s => s.CharacterID)
                 .ToListAsync();
             var allUsedCharacterSet = allUsedCharacterList.ToHashSet();
+
+            InheritCombo.ComboInheritInfo inheritComboInfo = null;
+            if (inherit)
+            {
+                inheritComboInfo = await InheritCombo.GetInheritInfo(context, user, allUsedCharacterSet);
+                if (inheritComboInfo is not null && inheritComboInfo.Count != 3 - user.Attempts)
+                {
+                    //Number of zhous must be the same.
+                    inheritComboInfo = null;
+                }
+            }
 
             var wrappedVariants = new List<ZVWrapper>();
             foreach (var v in allVariants.Select(v => new ZVWrapper(context, v)))
@@ -166,6 +177,7 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Helper functions.
+            UserCombo inheritedNewCombo = null;
             bool IsCompatible2(ZVWrapper uv1, ZVWrapper uv2)
             {
                 test.Clear();
@@ -196,6 +208,8 @@ namespace PcrBattleChannel.Algorithm
                 {
                     (uv1, uv2) = (uv2, uv1);
                 }
+                var borrow = borrowCalculator.Run(uv1.Characters, uv2.Characters, uv3.Characters,
+                        uv1.ActualBorrowIndex, uv2.ActualBorrowIndex, uv3.ActualBorrowIndex);
                 var combo = new UserCombo
                 {
                     UserID = user.Id,
@@ -209,9 +223,21 @@ namespace PcrBattleChannel.Algorithm
                     Damage1 = uv1.UV?.ZhouVariant.Damage ?? 0,
                     Damage2 = uv2.UV?.ZhouVariant.Damage ?? 0,
                     Damage3 = uv3.UV?.ZhouVariant.Damage ?? 0,
-                    BorrowInfo = borrowCalculator.Run(uv1.Characters, uv2.Characters, uv3.Characters,
-                        uv1.ActualBorrowIndex, uv2.ActualBorrowIndex, uv3.ActualBorrowIndex),
+                    BorrowInfo = borrow,
                 };
+                if (inheritComboInfo?.Match(uv1.UV?.ZhouVariantID, uv2.UV?.ZhouVariantID, uv3.UV?.ZhouVariantID, ref borrow) ?? false)
+                {
+                    if (inheritedNewCombo is not null)
+                    {
+                        //More than one combo. Don't check any more.
+                        inheritComboInfo = null;
+                    }
+                    else
+                    {
+                        inheritedNewCombo = combo;
+                        combo.BorrowInfo = borrow;
+                    }
+                }
                 context.UserCombos.Add(combo);
                 results?.Add(combo);
             }
@@ -339,6 +365,8 @@ namespace PcrBattleChannel.Algorithm
                     Output(x, ZVWrapper.Null, ZVWrapper.Null);
                 }
             }
+
+            inheritComboInfo?.Setup(inheritedNewCombo);
         }
     }
 }

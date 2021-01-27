@@ -187,9 +187,10 @@ namespace PcrBattleChannel.Pages.Home
                 return Redirect("/");
             }
 
-            await _context.UserCombos.Where(u => u.UserID == user.Id).DeleteFromQueryAsync();
-            await FindAllCombos.Run(_context, user, null);
-            _context.SaveChanges();
+            //Remove without submitting. This ensures the FindAllCombos.Run can find the combo to inherit.
+            _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == user.Id));
+            await FindAllCombos.Run(_context, user, null, inherit: true);
+            await _context.SaveChangesAsync();
 
             return RedirectToPage();
         }

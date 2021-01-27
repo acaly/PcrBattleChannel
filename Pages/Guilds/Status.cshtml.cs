@@ -224,7 +224,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 if (count != 1)
                 {
                     _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == uid));
-                    await FindAllCombos.Run(_context, user, allCombos);
+                    await FindAllCombos.Run(_context, user, allCombos, inherit: false);
                 }
                 else
                 {
