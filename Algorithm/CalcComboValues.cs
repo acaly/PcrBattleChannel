@@ -580,7 +580,6 @@ namespace PcrBattleChannel.Algorithm
         public static async Task RunAllAsync(ApplicationDbContext context, Guild guild, IEnumerable<UserCombo> allCombos)
         {
             await context.GuildBossStatuses
-                .Include(s => s.Boss)
                 .Where(s => s.GuildID == guild.GuildID && s.IsPlan == false)
                 .DeleteFromQueryAsync();
 

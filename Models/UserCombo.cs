@@ -49,5 +49,14 @@ namespace PcrBattleChannel.Models
         public UserZhouVariant Zhou3 { get; set; }
 
         public string BorrowInfo { get; set; }
+
+        //These are redundant but useful.
+
+        public int Boss1 { get; set; }
+        public int Boss2 { get; set; }
+        public int Boss3 { get; set; }
+        public int Damage1 { get; set; }
+        public int Damage2 { get; set; }
+        public int Damage3 { get; set; }
     }
 }

@@ -17,7 +17,7 @@
     },
     "PcrBattleChannel": {
       "commandName": "Project",
-      "commandLineArgs": "admin=wuzhenwei35@gmail.com",
+      "commandLineArgs": "admin=wuzhenwei35@gmail.com yobot_sync=0.1",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

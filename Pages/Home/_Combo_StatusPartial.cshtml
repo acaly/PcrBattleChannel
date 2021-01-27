@@ -1,6 +1,6 @@
 ﻿@model PcrBattleChannel.Pages.Home.CombosModel
 @{
-    bool canConfirm = Model.AppUser.GuessedAttempts > 0;
+    bool canConfirm = Model.AppUser.GuessedAttempts > 0 && !Model.AppUser.IsIgnored;
 }
 
 <div id="user-status-container">

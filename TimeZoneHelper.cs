@@ -17,5 +17,14 @@ namespace PcrBattleChannel
         }
 
         public static DateTime BeijingNow => ToBeijingTime(DateTime.UtcNow);
+
+        public static DateTime GameTimeToday
+        {
+            get
+            {
+                var now = BeijingNow;
+                return now.Date - (now.TimeOfDay < TimeSpan.FromHours(5) ? TimeSpan.FromDays(1) : default);
+            }
+        }
     }
 }

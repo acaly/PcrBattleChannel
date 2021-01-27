@@ -159,7 +159,13 @@ namespace PcrBattleChannel.Pages.Guilds
 
             user.GuildID = null;
             user.IsGuildAdmin = false;
+
             user.Attempts = 0;
+            user.GuessedAttempts = 0;
+            user.Attempt1ID = user.Attempt2ID = user.Attempt3ID = null;
+            user.Attempt1Borrow = user.Attempt2Borrow = user.Attempt3Borrow = null;
+            user.IsIgnored = false;
+
             _context.Users.Update(user);
 
             await _context.UserCombos.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();

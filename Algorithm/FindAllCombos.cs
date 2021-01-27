@@ -203,6 +203,12 @@ namespace PcrBattleChannel.Algorithm
                     Zhou1ID = uv1.UVID,
                     Zhou2ID = uv2.UVID,
                     Zhou3ID = uv3.UVID,
+                    Boss1 = uv1.UV?.ZhouVariant.Zhou.BossID ?? 0,
+                    Boss2 = uv2.UV?.ZhouVariant.Zhou.BossID ?? 0,
+                    Boss3 = uv3.UV?.ZhouVariant.Zhou.BossID ?? 0,
+                    Damage1 = uv1.UV?.ZhouVariant.Damage ?? 0,
+                    Damage2 = uv2.UV?.ZhouVariant.Damage ?? 0,
+                    Damage3 = uv3.UV?.ZhouVariant.Damage ?? 0,
                     BorrowInfo = borrowCalculator.Run(uv1.Characters, uv2.Characters, uv3.Characters,
                         uv1.ActualBorrowIndex, uv2.ActualBorrowIndex, uv3.ActualBorrowIndex),
                 };

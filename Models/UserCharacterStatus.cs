@@ -18,6 +18,7 @@ namespace PcrBattleChannel.Models
         public int CharacterID { get; set; }
         public Character Character { get; set; }
 
+        //TODO remove this. We only record used characters (many codes assume this).
         public bool IsUsed { get; set; }
     }
 }

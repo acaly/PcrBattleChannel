@@ -262,9 +262,8 @@ namespace PcrBattleChannel.Pages.Home
                     > 0 => 1,
                     _ => 0,
                 };
-                user.Attempt1ID = null;
-                user.Attempt2ID = null;
-                user.Attempt3ID = null;
+                user.Attempt1ID = user.Attempt2ID = user.Attempt3ID = null;
+                user.Attempt1Borrow = user.Attempt2Borrow = user.Attempt3Borrow = null;
                 user.GuessedAttempts = 0;
                 user.IsIgnored = false;
             }
