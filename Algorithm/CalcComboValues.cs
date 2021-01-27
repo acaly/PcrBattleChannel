@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Algorithm
 {
-    using ComboVariantExpr = System.Linq.Expressions.Expression<Func<UserCombo, UserZhouVariant>>;
     public static class CalcComboValues
     {
         public class ResultStorage
@@ -248,14 +247,14 @@ namespace PcrBattleChannel.Algorithm
                 SplitComboInfo buffer = default;
                 void SplitCombo(ref SplitComboInfo buffer, UserCombo combo, int index)
                 {
-                    var zvid = index switch
+                    (int boss, int damage)? zvinfo = index switch
                     {
-                        0 => combo.Zhou1?.ZhouVariantID,
-                        1 => combo.Zhou2?.ZhouVariantID,
-                        2 => combo.Zhou3?.ZhouVariantID,
-                        _ => default,
+                        0 => (combo.Boss1, combo.Damage1),
+                        1 => (combo.Boss2, combo.Damage2),
+                        2 => (combo.Boss3, combo.Damage3),
+                        _ => null,
                     };
-                    if (!zvid.HasValue)
+                    if (!zvinfo.HasValue)
                     {
                         for (int i = index; i < 3; ++i)
                         {
@@ -266,9 +265,7 @@ namespace PcrBattleChannel.Algorithm
                         _userAdjustmentBuffer.Add(0);
                         return;
                     }
-                    var zv = StaticInfo.Zhous[zvid.Value];
-                    var bossID = zv.Zhou.BossID;
-                    if (!_splitBossTableIndex.TryGetValue(bossID, out var splitBossTableIndex))
+                    if (!_splitBossTableIndex.TryGetValue(zvinfo.Value.boss, out var splitBossTableIndex))
                     {
                         //The boss is not included in calculation. Skip.
                         buffer.Boss[index] = 0;
@@ -280,7 +277,7 @@ namespace PcrBattleChannel.Algorithm
                         foreach (var splitBossID in _splitBossTable[splitBossTableIndex])
                         {
                             buffer.Boss[index] = splitBossID;
-                            buffer.Damage[index] = zv.Damage / _bossTotalHp[splitBossID];
+                            buffer.Damage[index] = zvinfo.Value.damage / _bossTotalHp[splitBossID];
                             SplitCombo(ref buffer, combo, index + 1);
                         }
                     }
@@ -584,10 +581,8 @@ namespace PcrBattleChannel.Algorithm
                 .DeleteFromQueryAsync();
 
             allCombos ??= await context.UserCombos
-                .Include(c => c.Zhou1)
-                .Include(c => c.Zhou2)
-                .Include(c => c.Zhou3)
-                .Where(c => c.GuildID == guild.GuildID)
+                .Include(c => c.User)
+                .Where(c => c.GuildID == guild.GuildID && !c.User.IsIgnored)
                 .ToListAsync();
             var allUsers = allCombos
                 .GroupBy(c => c.UserID)
@@ -720,6 +715,14 @@ namespace PcrBattleChannel.Algorithm
                         avgDamageRatio = solver.RunEstimate();
                     } while (avgDamageRatio < 1);
                     solver.Merge(result);
+                    if (solver.LastBoss.Step == solver.FirstBoss.Step)
+                    {
+                        result.EndBossDamage += solver.FirstBossHp;
+                        if (result.EndBossDamage > 1)
+                        {
+                            result.EndBossDamage = 1;
+                        }
+                    }
                     return result;
                 }
                 totalPower -= 1f / avgDamageRatio;

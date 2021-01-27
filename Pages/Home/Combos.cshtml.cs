@@ -189,7 +189,7 @@ namespace PcrBattleChannel.Pages.Home
 
             //Remove without submitting. This ensures the FindAllCombos.Run can find the combo to inherit.
             _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == user.Id));
-            await FindAllCombos.Run(_context, user, null, inherit: true);
+            await FindAllCombos.RunAsync(_context, user, null, null, inherit: true);
             await _context.SaveChangesAsync();
 
             return RedirectToPage();
@@ -215,6 +215,8 @@ namespace PcrBattleChannel.Pages.Home
 
             user = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
             user.GuessedAttempts = 0;
+            user.LastConfirm = TimeZoneHelper.BeijingNow;
+
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
 
@@ -267,6 +269,7 @@ namespace PcrBattleChannel.Pages.Home
                 user.Attempt1Borrow = user.Attempt2Borrow = user.Attempt3Borrow = null;
                 user.GuessedAttempts = 0;
                 user.IsIgnored = false;
+                user.LastConfirm = TimeZoneHelper.BeijingNow;
             }
             catch
             {

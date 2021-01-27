@@ -89,6 +89,16 @@
                 <img src="~/images/icons/@(usedCharacter.Character.InternalID)31.jpg" style="max-width:20%;width:50px" />
             }
         </div>
+        @if (Model.AppUser.IsIgnored)
+        {
+            <div class="col-md-12">
+                <p class="text-danger">
+                    Yobot的数据和当前网站的状态无法匹配，你的出刀未列入公会进度计算。请检查并确认。
+                    <br/>
+                    要暂时忽略来自Yobot的个人数据请在个人设置中禁用同步。
+                </p>
+            </div>
+        }
         <div class="col-md-2 pt-2">
             <form method="post" asp-page-handler="confirm"
                   data-ajax="true" data-ajax-method="post"

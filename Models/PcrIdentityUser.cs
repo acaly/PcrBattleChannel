@@ -11,6 +11,7 @@ namespace PcrBattleChannel.Models
     {
         public string GameID { get; set; }
         public ulong QQID { get; set; }
+        public bool DisableYobotSync { get; set; }
 
         public int? GuildID { get; set; }
         public Guild Guild { get; set; }
@@ -24,6 +25,9 @@ namespace PcrBattleChannel.Models
         public ICollection<UserCharacterStatus> CharacterStatuses { get; set; }
         public int Attempts { get; set; }
         public int GuessedAttempts { get; set; } //Number of attempts that are from guessing.
+
+        //Mark that YobotSync cannot decide user's state. So the user's attempts and combos
+        //are inaccurate and should not be included in value optimization.
         public bool IsIgnored { get; set; }
 
         //Attempts
@@ -43,6 +47,7 @@ namespace PcrBattleChannel.Models
         public UserZhouVariant Attempt3 { get; set; }
         public int? Attempt3Borrow { get; set; }
 
-        public DateTime? LastComboUpdate { get; set; }
+        public DateTime LastComboUpdate { get; set; }
+        public DateTime LastConfirm { get; set; }
     }
 }

@@ -24,6 +24,11 @@
                 <span asp-validation-for="Guild.Description" class="text-danger"></span>
             </div>
             <div class="form-group">
+                <label asp-for="Guild.YobotAPI" class="control-label"></label>
+                <textarea asp-for="Guild.YobotAPI" class="form-control"></textarea>
+                <span asp-validation-for="Guild.YobotAPI" class="text-danger"></span>
+            </div>
+            <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />
             </div>
         </form>

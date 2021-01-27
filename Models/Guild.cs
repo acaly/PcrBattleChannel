@@ -40,6 +40,7 @@ namespace PcrBattleChannel.Models
         [DataType(DataType.DateTime)]
         public DateTime LastZhouUpdate { get; set; }
 
+        [Display(Name = "Yobot API地址")]
         public string YobotAPI { get; set; }
         public DateTime LastYobotSync { get; set; }
     }

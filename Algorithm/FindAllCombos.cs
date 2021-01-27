@@ -69,7 +69,8 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task Run(ApplicationDbContext context, PcrIdentityUser user, List<UserCombo> results, bool inherit)
+        public static async Task RunAsync(ApplicationDbContext context, PcrIdentityUser user, List<UserCharacterStatus> overrideStatus,
+            List<UserCombo> results, bool inherit)
         {
             HashSet<int> test = new();
             var borrowCalculator = new FindBorrowCases();
@@ -81,10 +82,11 @@ namespace PcrBattleChannel.Algorithm
                 .ToListAsync();
 
             //Get all used characters.
-            var allUsedCharacterList = await context.UserCharacterStatuses
-                .Where(s => s.UserID == user.Id && s.IsUsed == true)
-                .Select(s => s.CharacterID)
-                .ToListAsync();
+            var allUsedCharacterList = overrideStatus?.Select(s => s.CharacterID).ToList() ?? 
+                await context.UserCharacterStatuses
+                    .Where(s => s.UserID == user.Id && s.IsUsed == true)
+                    .Select(s => s.CharacterID)
+                    .ToListAsync();
             var allUsedCharacterSet = allUsedCharacterList.ToHashSet();
 
             InheritCombo.ComboInheritInfo inheritComboInfo = null;
@@ -367,6 +369,8 @@ namespace PcrBattleChannel.Algorithm
             }
 
             inheritComboInfo?.Setup(inheritedNewCombo);
+
+            user.LastComboUpdate = TimeZoneHelper.BeijingNow;
         }
     }
 }

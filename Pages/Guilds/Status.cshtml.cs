@@ -216,15 +216,24 @@ namespace PcrBattleChannel.Pages.Guilds
             var allCombos = new List<UserCombo>();
             foreach (var user in allUserIDs)
             {
+                if (user.IsIgnored) continue;
+
                 var uid = user.Id;
-                var count = await _context.UserCombos
-                    .Where(c => c.UserID == uid && c.SelectedZhou != null)
-                    .CountAsync();
-                //Refresh only when user has not selected a combo.
-                if (count != 1)
+                var lastCalcZhou = await _context.UserCombos
+                    .Where(c => c.UserID == uid)
+                    .FirstOrDefaultAsync();
+                var lastCalcAttemptsCount = 0;
+                if (!(lastCalcZhou?.Zhou3ID).HasValue) lastCalcAttemptsCount += 1;
+                if (!(lastCalcZhou?.Zhou2ID).HasValue) lastCalcAttemptsCount += 1;
+                if (!(lastCalcZhou?.Zhou1ID).HasValue) lastCalcAttemptsCount += 1;
+
+                //Refresh only when needed.
+                var attemptCountChanged = lastCalcAttemptsCount != user.Attempts;
+                var zhouChangedSinceLastUpdate = user.LastComboUpdate < guild.LastZhouUpdate;
+                if (attemptCountChanged || zhouChangedSinceLastUpdate)
                 {
                     _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == uid));
-                    await FindAllCombos.Run(_context, user, allCombos, inherit: false);
+                    await FindAllCombos.RunAsync(_context, user, null, allCombos, inherit: true);
                 }
                 else
                 {
@@ -237,7 +246,7 @@ namespace PcrBattleChannel.Pages.Guilds
 
             await _context.SaveChangesAsync();
 
-            return RedirectToPage();
+            return RedirectToPage("/Home/Index");
         }
     }
 }

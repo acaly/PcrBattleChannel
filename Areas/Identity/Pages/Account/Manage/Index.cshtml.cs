@@ -38,6 +38,9 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account.Manage
 
             [Display(Name = "QQ号")]
             public ulong? QQID { get; set; }
+
+            [Display(Name = "禁用Yobot同步")]
+            public bool DisableYobotSync { get; set; }
         }
 
         private async Task LoadAsync(PcrIdentityUser user)
@@ -50,6 +53,7 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account.Manage
             {
                 GameID = user.GameID,
                 QQID = user.QQID == 0 ? null : user.QQID,
+                DisableYobotSync = user.DisableYobotSync,
             };
         }
 
@@ -79,10 +83,14 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account.Manage
                 return Page();
             }
 
-            if (Input.GameID != user.GameID || Input.QQID != user.QQID)
+            if (Input.GameID != user.GameID ||
+                Input.QQID != user.QQID ||
+                Input.DisableYobotSync != user.DisableYobotSync)
             {
                 user.GameID = Input.GameID;
                 user.QQID = Input.QQID ?? 0L;
+                user.DisableYobotSync = Input.DisableYobotSync;
+
                 var setResult = await _userManager.UpdateAsync(user);
                 if (!setResult.Succeeded)
                 {

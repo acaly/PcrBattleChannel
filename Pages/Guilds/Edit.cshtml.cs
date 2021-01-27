@@ -85,6 +85,8 @@ namespace PcrBattleChannel.Pages.Guilds
 
             guild.Name = Guild.Name;
             guild.Description = Guild.Description;
+            guild.YobotAPI = Guild.YobotAPI;
+
             _context.Guilds.Update(guild);
             await _context.SaveChangesAsync();
 

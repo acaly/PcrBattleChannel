@@ -10,6 +10,8 @@
     {
         return (Model.Item.SelectedZhou == z) == state ? "" : "display:none";
     }
+    //TODO hide empty zhous
+    var zhouCount = Model.Item.Zhou3ID.HasValue ? 3 : Model.Item.Zhou2ID.HasValue ? 2 : Model.Item.Zhou1ID.HasValue ? 1 : 0;
 }
 
 <tr>

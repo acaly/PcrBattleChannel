@@ -16,15 +16,17 @@ namespace PcrBattleChannel
             return TimeZoneInfo.ConvertTimeFromUtc(utc, _beijing);
         }
 
+        public static DateTime GetGameDate(DateTime beijingTime)
+        {
+            if (beijingTime.Date == DateTime.MinValue)
+            {
+                return beijingTime.Date;
+            }
+            return beijingTime.Date - (beijingTime.TimeOfDay < TimeSpan.FromHours(5) ? TimeSpan.FromDays(1) : default);
+        }
+
         public static DateTime BeijingNow => ToBeijingTime(DateTime.UtcNow);
 
-        public static DateTime GameTimeToday
-        {
-            get
-            {
-                var now = BeijingNow;
-                return now.Date - (now.TimeOfDay < TimeSpan.FromHours(5) ? TimeSpan.FromDays(1) : default);
-            }
-        }
+        public static DateTime GameTimeToday => GetGameDate(BeijingNow);
     }
 }

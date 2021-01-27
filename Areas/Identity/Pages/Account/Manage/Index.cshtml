@@ -25,6 +25,11 @@
                 <input asp-for="Input.QQID" class="form-control" />
                 <span asp-validation-for="Input.QQID" class="text-danger"></span>
             </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="Input.DisableYobotSync" /> @Html.DisplayNameFor(model => model.Input.DisableYobotSync)
+                </label>
+            </div>
             <button id="update-profile-button" type="submit" class="btn btn-primary">Save</button>
         </form>
     </div>
