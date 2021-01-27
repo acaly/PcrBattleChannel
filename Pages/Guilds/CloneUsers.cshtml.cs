@@ -109,6 +109,11 @@ namespace PcrBattleChannel.Pages.Guilds
                 StatusMessage = "错误：模板用户不存在。";
                 return Page();
             }
+            if (templateUser.GuildID != guild.GuildID)
+            {
+                StatusMessage = "错误：模板用户不在本公会。";
+                return Page();
+            }
 
             var templateUserConfigs = await _context.UserCharacterConfigs
                 .Where(cc => cc.UserID == templateUser.Id).ToListAsync();
@@ -134,10 +139,9 @@ namespace PcrBattleChannel.Pages.Guilds
                     UserName = email,
                     GameID = templateUser.GameID + "_" + (i + 1).ToString(),
                     EmailConfirmed = true,
-                    GuildID = templateUser.GuildID,
+                    GuildID = guild.GuildID,
                 };
-                //var r = await _userManager.CreateAsync(user);
-                //if (r.Succeeded)
+
                 _context.Users.Add(user);
                 {
                     //Clone configs.
@@ -145,7 +149,6 @@ namespace PcrBattleChannel.Pages.Guilds
                     {
                         _context.UserCharacterConfigs.Add(new()
                         {
-                            //UserID = user.Id,
                             User = user,
                             CharacterConfigID = cc.CharacterConfigID,
                         });
@@ -156,7 +159,6 @@ namespace PcrBattleChannel.Pages.Guilds
                     {
                         _context.UserZhouVariants.Add(new()
                         {
-                            //UserID = user.Id,
                             User = user,
                             ZhouVariantID = v.ZhouVariantID,
                             Borrow = v.Borrow,
