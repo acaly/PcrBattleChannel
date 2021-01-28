@@ -15,199 +15,110 @@
 }
 
 <tr>
-    <td rowspan="@(allBorrowLists.Length == 1 ? 3 : 4)">
+    <td>
+        @for (int i = 0; i < 3; ++i)
+        {
+            var uzv = i switch { 0 => Model.Item.Zhou1, 1 => Model.Item.Zhou2, _ => Model.Item.Zhou3 };
+            if (uzv is null) break;
+            var z = Model.Parent.CachedZhouData[uzv.ZhouVariant.ZhouID];
+            <div class="row align-middle">
+                <div class="col-lg-6 col-md-9 col-10">
+                    <div class="row py-2">
+                        <div class="col pr-1 text-center">
+                            <div class="d-inline-block" style="max-width:70px">
+                                <img src="~/images/icons/@(z.C1?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                            </div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C1.Name)</div>
+                        </div>
+                        <div class="col px-1 text-center">
+                            <div class="d-inline-block" style="max-width:70px">
+                                <img src="~/images/icons/@(z.C2?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                            </div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C2.Name)</div>
+                        </div>
+                        <div class="col px-1 text-center">
+                            <div class="d-inline-block" style="max-width:70px">
+                                <img src="~/images/icons/@(z.C3?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                            </div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C3.Name)</div>
+                        </div>
+                        <div class="col px-1 text-center">
+                            <div class="d-inline-block" style="max-width:70px">
+                                <img src="~/images/icons/@(z.C4?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                            </div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C4.Name)</div>
+                        </div>
+                        <div class="col px-1 text-center">
+                            <div class="d-inline-block" style="max-width:70px">
+                                <img src="~/images/icons/@(z.C5?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                            </div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C5.Name)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-3 col-2 align-middle">
+                    <div class="row">
+                        <div class="col-lg-9">
+                            <div class="d-xl-block d-lg-block d-md-none d-none">
+                                <a asp-page="/Zhous/Details"
+                                   asp-route-id="@z.ZhouID">
+                                    @z.Name
+                                </a>
+                                （@z.Boss.ShortName）
+                            </div>
+                            <div class="d-xl-none d-lg-none d-md-block d-block">
+                                <a asp-page="/Zhous/Details"
+                                   asp-route-id="@z.ZhouID">
+                                    查看
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-@i" style="@SelectNextDivStyle(i, true)">
+                                <a href="javascript:void(0);" onclick="$('#cancel-next-form-@Model.Item.UserComboID-@i').submit()">取消</a>
+                                <form id="cancel-next-form-@Model.Item.UserComboID-@i" method="post"
+                                      asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="-1"
+                                      data-ajax="true" data-ajax-method="post"
+                                      data-ajax-success="combo_select_success"
+                                      data-ajax-failure="combo_select_failure"
+                                      data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-@i">
+                                </form>
+                            </div>
+                            <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-@i" style="@SelectNextDivStyle(i, false)">
+                                <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-@i').submit()">预约</a>
+                                <form id="select-next-form-@Model.Item.UserComboID-@i" method="post"
+                                      asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="@i"
+                                      data-ajax="true" data-ajax-method="post"
+                                      data-ajax-success="combo_select_success"
+                                      data-ajax-failure="combo_select_failure"
+                                      data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-@i">
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (allBorrowLists.Length > 1)
+        {
+            <div class="row">
+                <div class="col-12">
+                    <form method="post" asp-page-handler="borrowswap" asp-route-id="@Model.Item.UserComboID"
+                          data-ajax="true" data-ajax-method="post"
+                          data-ajax-mode="replace"
+                          data-ajax-update="#combo-@Model.Item.UserComboID"
+                          data-ajax-failure="combo_borrow_swap_failure"
+                          data-combo-id="@Model.Item.UserComboID"
+                          id="swap-borrow-form-@Model.Item.UserComboID">
+                        <a href="javascript:void(0)" onclick="$('#swap-borrow-form-@Model.Item.UserComboID').submit()">
+                            切换助战 (@allBorrowLists.Length)
+                        </a>
+                    </form>
+                </div>
+            </div>
+        }
+    </td>
+    <td>
         @Html.DisplayFor(m => m.Item.Value) / @Html.DisplayFor(m => m.Item.NetValue)
     </td>
-    <td class="align-middle">第一刀</td>
-    <td>
-        <div class="row align-middle">
-            @if (Model.Item.Zhou1ID.HasValue)
-            {
-                var z = Model.Parent.CachedZhouData[Model.Item.Zhou1.ZhouVariant.ZhouID];
-                <div class="col-md-4">
-                    <div class="align-middle">
-                        @Html.DisplayFor(m => z.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details"
-                            asp-route-id="@Model.Item.Zhou1.ZhouVariant.ZhouID">@Html.DisplayFor(m => z.Name)</a>)
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C1.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(0, 0)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C2.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(0, 1)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C3.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(0, 2)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C4.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(0, 3)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C5.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(0, 4)"></div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div>(无)</div>
-            }
-        </div>
-    </td>
-    <td class="align-middle">
-        <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-0" style="@SelectNextDivStyle(0, true)">
-            下一刀
-        </div>
-        <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-0" style="@SelectNextDivStyle(0, false)">
-            <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-0').submit()">选为下一刀</a>
-            <form id="select-next-form-@Model.Item.UserComboID-0" method="post"
-                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="0"
-                  data-ajax="true" data-ajax-method="post"
-                  data-ajax-success="combo_select_success"
-                  data-ajax-failure="combo_select_failure"
-                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-0">
-            </form>
-        </div>
-    </td>
 </tr>
-<tr>
-    <td class="align-middle">第二刀</td>
-    <td>
-        <div class="row align-middle">
-            @if (Model.Item.Zhou2ID.HasValue)
-            {
-                var z = Model.Parent.CachedZhouData[Model.Item.Zhou2.ZhouVariant.ZhouID];
-                <div class="col-md-4">
-                    <div class="align-middle">
-                        @Html.DisplayFor(m => z.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details"
-                            asp-route-id="@Model.Item.Zhou2.ZhouVariant.ZhouID">@Html.DisplayFor(m => z.Name)</a>)
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C1.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(1, 0)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C2.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(1, 1)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C3.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(1, 2)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C4.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(1, 3)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C5.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(1, 4)"></div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div>(无)</div>
-            }
-        </div>
-    </td>
-    <td class="align-middle">
-        <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-1" style="@SelectNextDivStyle(1, true)">
-            下一刀
-        </div>
-        <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-1" style="@SelectNextDivStyle(1, false)">
-            <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-1').submit()">选为下一刀</a>
-            <form id="select-next-form-@Model.Item.UserComboID-1" method="post"
-                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="1"
-                  data-ajax="true" data-ajax-method="post"
-                  data-ajax-success="combo_select_success"
-                  data-ajax-failure="combo_select_failure"
-                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-1">
-            </form>
-        </div>
-    </td>
-</tr>
-<tr>
-    <td class="align-middle">第三刀</td>
-    <td>
-        <div class="row align-middle">
-            @if (Model.Item.Zhou3ID.HasValue)
-            {
-                var z = Model.Parent.CachedZhouData[Model.Item.Zhou3.ZhouVariant.ZhouID];
-                <div class="col-md-4">
-                    <div class="align-middle">
-                        @Html.DisplayFor(m => z.Boss.ShortName)
-                        (<a asp-page="/Zhous/Details"
-                            asp-route-id="@Model.Item.Zhou3.ZhouVariant.ZhouID">@Html.DisplayFor(m => z.Name)</a>)
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C1.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(2, 0)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C2.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(2, 1)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C3.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(2, 2)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C4.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(2, 3)"></div>
-                    </div>
-                    <div style="position:relative;max-width:100%;display:inline-block">
-                        <img src="~/images/icons/@(z.C5.InternalID)31.jpg" style="max-width:100%;width:50px" />
-                        <div style="@BorrowTagStyle(2, 4)"></div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div>(无)</div>
-            }
-        </div>
-    </td>
-    <td class="align-middle">
-        <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-2" style="@SelectNextDivStyle(2, true)">
-            下一刀
-        </div>
-        <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-2" style="@SelectNextDivStyle(2, false)">
-            <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-2').submit()">选为下一刀</a>
-            <form id="select-next-form-@Model.Item.UserComboID-2" method="post"
-                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="2"
-                  data-ajax="true" data-ajax-method="post"
-                  data-ajax-success="combo_select_success"
-                  data-ajax-failure="combo_select_failure"
-                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-2">
-            </form>
-        </div>
-    </td>
-</tr>
-@if (allBorrowLists.Length > 1)
-{
-    <tr>
-        <td colspan="2">
-            <form method="post" asp-page-handler="borrowswap" asp-route-id="@Model.Item.UserComboID"
-                  data-ajax="true" data-ajax-method="post"
-                  data-ajax-mode="replace"
-                  data-ajax-update="#combo-@Model.Item.UserComboID"
-                  data-ajax-failure="combo_borrow_swap_failure"
-                  data-combo-id="@Model.Item.UserComboID"
-                  id="swap-borrow-form-@Model.Item.UserComboID">
-                <span onclick="$('#swap-borrow-form-@Model.Item.UserComboID').submit()">切换助战 (@allBorrowLists.Length)</span>
-            </form>
-        </td>
-        <td></td>
-    </tr>
-}

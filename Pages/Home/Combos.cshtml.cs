@@ -359,7 +359,7 @@ namespace PcrBattleChannel.Pages.Home
 
         public async Task<IActionResult> OnPostSelectAsync(int? combo, int? zhou)
         {
-            if (!combo.HasValue || !zhou.HasValue || zhou.Value < 0 || zhou.Value > 2)
+            if (!combo.HasValue || !zhou.HasValue || zhou.Value < -1 || zhou.Value > 2)
             {
                 return StatusCode(400);
             }
@@ -380,18 +380,6 @@ namespace PcrBattleChannel.Pages.Home
                 return StatusCode(400);
             }
 
-            var zhouid = zhou.Value switch
-            {
-                0 => c.Zhou1ID,
-                1 => c.Zhou2ID,
-                2 => c.Zhou3ID,
-                _ => null,
-            };
-            if (!zhouid.HasValue)
-            {
-                return StatusCode(400);
-            }
-
             var lastSelected = await _context.UserCombos
                 .Where(c => c.UserID == user.Id && c.SelectedZhou != null)
                 .ToListAsync();
@@ -400,7 +388,7 @@ namespace PcrBattleChannel.Pages.Home
                 last.SelectedZhou = null;
                 _context.UserCombos.Update(last);
             }
-            c.SelectedZhou = zhou.Value;
+            c.SelectedZhou = zhou == -1 ? null : zhou.Value;
             _context.UserCombos.Update(c);
 
             await _context.SaveChangesAsync();
