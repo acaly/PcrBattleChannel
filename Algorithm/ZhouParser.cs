@@ -87,7 +87,7 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public Zhou Parse(string str)
+        public Zhou Parse(string str, bool hasName)
         {
             var words = str.Split(new[] { ' ', '\t', ',', '(', ')', '（', '）', '[', ']', '/' },
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -99,19 +99,19 @@ namespace PcrBattleChannel.Algorithm
             var ret = new Zhou
             {
                 GuildID = _guildID,
-                Name = words[1],
+                Name = hasName ? words[1] : null,
                 Variants = new List<ZhouVariant>() { retv },
                 BossID = _cachedBossNames[words[0]],
             };
             retv.Zhou = ret;
 
-            List<Character> addedCharacters = new();
+            List<(Character character, string word)> addedCharacters = new();
 
             Dictionary<string, CharacterConfig> currentCharacter = null;
             CharacterConfig cc = null;
 
             //Skip boss and zhou names.
-            for (int i = 2; i < words.Length; ++i)
+            for (int i = hasName ? 2 : 1; i < words.Length; ++i)
             {
                 var word = words[i];
 
@@ -132,7 +132,7 @@ namespace PcrBattleChannel.Algorithm
                 //A named config (high priority).
                 else if (_allConfigs.TryGetValue(word, out cc))
                 {
-                    addedCharacters.Add(cc.Character);
+                    addedCharacters.Add((cc.Character, word));
                     currentCharacter = _groupedConfigs[cc.CharacterID];
 
                     if (cc.Kind != CharacterConfigKind.Default)
@@ -150,7 +150,7 @@ namespace PcrBattleChannel.Algorithm
                 else if (_alias.TryGet(word, out var internalID) && _defaultConfigs.TryGetValue(internalID, out cc) ||
                     _characterNames.TryGetValue(word, out cc))
                 {
-                    addedCharacters.Add(cc.Character);
+                    addedCharacters.Add((cc.Character, word));
                     currentCharacter = _groupedConfigs[cc.CharacterID];
 
                     if (cc.Kind != CharacterConfigKind.Default)
@@ -181,15 +181,20 @@ namespace PcrBattleChannel.Algorithm
             {
                 throw new Exception();
             }
-            addedCharacters.Sort((a, b) => MathF.Sign(a.Range - b.Range));
-            ret.C1ID = addedCharacters[0].CharacterID;
-            ret.C2ID = addedCharacters[1].CharacterID;
-            ret.C3ID = addedCharacters[2].CharacterID;
-            ret.C4ID = addedCharacters[3].CharacterID;
-            ret.C5ID = addedCharacters[4].CharacterID;
+            addedCharacters.Sort((a, b) => MathF.Sign(a.character.Range - b.character.Range));
+            ret.C1ID = addedCharacters[0].character.CharacterID;
+            ret.C2ID = addedCharacters[1].character.CharacterID;
+            ret.C3ID = addedCharacters[2].character.CharacterID;
+            ret.C4ID = addedCharacters[3].character.CharacterID;
+            ret.C5ID = addedCharacters[4].character.CharacterID;
             foreach (var ccx in retv.CharacterConfigs)
             {
-                ccx.CharacterIndex = addedCharacters.IndexOf(ccx.CharacterConfig.Character);
+                ccx.CharacterIndex = addedCharacters.FindIndex(ci => ci.character == ccx.CharacterConfig.Character);
+            }
+
+            if (!hasName)
+            {
+                ret.Name = $"{words[0]} - {addedCharacters[0].word}{addedCharacters[1].word}{addedCharacters[2].word}{addedCharacters[3].word}{addedCharacters[4].word}";
             }
 
             return ret;

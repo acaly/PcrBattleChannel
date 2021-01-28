@@ -37,8 +37,12 @@ namespace PcrBattleChannel.Pages.Zhous
         public string Input { get; set; }
 
         [BindProperty]
-        [Display(Name = "合并相同角色的轴作为详细配置")]
+        [Display(Name = "合并角色相同的轴作为详细配置")]
         public bool Merge { get; set; } = true;
+
+        [BindProperty]
+        [Display(Name = "在导入数据中指定轴名")]
+        public bool HasName { get; set; } = false;
 
         private async Task<int?> CheckUserPrivilege()
         {
@@ -84,7 +88,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 while ((line = reader.ReadLine()) is not null)
                 {
                     lineNum += 1;
-                    var z = parser.Parse(line);
+                    var z = parser.Parse(line, HasName);
                     if (z is not null)
                     {
                         list.Add(z);
