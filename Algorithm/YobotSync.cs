@@ -148,7 +148,7 @@ namespace PcrBattleChannel.Algorithm
                 {
                     //TODO should each guild update use a separate db context?
                     //(this depends on how the website is used)
-                    if (await RunGuild(context, g, bosses, comboList))
+                    if (await RunGuildAsync(context, g, bosses, comboList))
                     {
                         g.LastYobotSync = TimeZoneHelper.BeijingNow;
 
@@ -174,7 +174,7 @@ namespace PcrBattleChannel.Algorithm
             var comboList = new List<UserCombo>();
             try
             {
-                if (await RunGuild(context, g, bosses, comboList) || forceRecalc)
+                if (await RunGuildAsync(context, g, bosses, comboList) || forceRecalc)
                 {
                     g.LastYobotSync = TimeZoneHelper.BeijingNow;
 
@@ -192,7 +192,7 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        private static async Task<bool> RunGuild(ApplicationDbContext context, Guild guild, BossIDConverter bosses,
+        private static async Task<bool> RunGuildAsync(ApplicationDbContext context, Guild guild, BossIDConverter bosses,
             List<UserCombo> comboListResult)
         {
             if (string.IsNullOrEmpty(guild.YobotAPI)) return false;
@@ -207,6 +207,8 @@ namespace PcrBattleChannel.Algorithm
             bool guildChanged = false;
             foreach (var u in guild.Members)
             {
+                if (u.IsIgnored) continue;
+
                 //Collect all combos
                 var userCombos = await context.UserCombos
                     .Include(c => c.Zhou1)
@@ -244,6 +246,8 @@ namespace PcrBattleChannel.Algorithm
 
                                 //Still perform a guild update, and more importantly, save the above change.
                                 guildChanged = true;
+
+                                continue;
                             }
                         }
 
@@ -251,14 +255,65 @@ namespace PcrBattleChannel.Algorithm
                         if (u.Attempts < userData.Length)
                         {
                             var selectedCombo = userCombos.FirstOrDefault(c => c.SelectedZhou.HasValue);
+                            if (selectedCombo is null)
+                            {
+                                u.IsIgnored = true;
+                                continue;
+                            }
+
+                            //Prepare for the zhou mask.
+                            int availableZhouCountInCombo = 0, availableZhouMask = 0;
+                            if (selectedCombo.Zhou1ID.HasValue)
+                            {
+                                availableZhouCountInCombo += 1;
+                                availableZhouMask += 1;
+                            }
+                            if (selectedCombo.Zhou2ID.HasValue)
+                            {
+                                availableZhouCountInCombo += 1;
+                                availableZhouMask += 2;
+                            }
+                            if (selectedCombo.Zhou3ID.HasValue)
+                            {
+                                availableZhouCountInCombo += 1;
+                                availableZhouMask += 4;
+                            }
+                            if (availableZhouCountInCombo + u.Attempts != 3)
+                            {
+                                u.IsIgnored = true;
+                                continue;
+                            }
+
                             userUsedCharacterList ??= await context.UserCharacterStatuses
                                 .Where(s => s.UserID == u.Id)
                                 .ToListAsync();
+                            var originalUserUsedCharacterCount = userUsedCharacterList.Count;
+                            var originalUserGuessedAttempts = u.GuessedAttempts;
                             userChanged = true;
 
                             for (int i = u.Attempts; i < userData.Length; ++i)
                             {
-                                await AddUserAttemptAsync(context, u, userData[i], bosses, selectedCombo, userUsedCharacterList);
+                                await AddUserAttemptAsync(context, u, userData[i], bosses, selectedCombo, ref availableZhouMask,
+                                    userUsedCharacterList);
+                            }
+
+                            if (u.IsIgnored)
+                            {
+                                //There are some changes we have made to the user that needs to be reverted. We could
+                                //avoid modifying the db entry (like the mask), but this one is easy to revert so
+                                //we keep it simple.
+                                if (availableZhouCountInCombo >= 3) u.Attempt1ID = null;
+                                if (availableZhouCountInCombo >= 2) u.Attempt2ID = null;
+                                if (availableZhouCountInCombo >= 1) u.Attempt3ID = null;
+                                u.GuessedAttempts = originalUserGuessedAttempts;
+                            }
+                            else
+                            {
+                                //Now it's safe to modify the state of the user.
+                                for (int i = originalUserUsedCharacterCount; i < userUsedCharacterList.Count; ++i)
+                                {
+                                    context.UserCharacterStatuses.Add(userUsedCharacterList[i]);
+                                }
                             }
                         }
                     }
@@ -362,27 +417,44 @@ namespace PcrBattleChannel.Algorithm
         }
 
         //Decide which variant in the old selected combo is the one reported by yobot.
-        private static int? DecideNewAttempt(UserCombo selectedCombo, int yobotBossID)
+        private static int? DecideNewAttempt(UserCombo selectedCombo, int yobotBossID, ref int mask)
         {
+            int? ret = null;
+
             //Check selected first.
             if (selectedCombo.SelectedZhou.HasValue)
             {
                 switch (selectedCombo.SelectedZhou)
                 {
                 case 0:
-                    if (yobotBossID == selectedCombo.Boss1) return 0;
+                    if (yobotBossID == selectedCombo.Boss1 && (mask & 1) != 0)
+                    {
+                        mask -= 1;
+                        ret = 0;
+                    }
                     break;
                 case 1:
-                    if (yobotBossID == selectedCombo.Boss2) return 1;
+                    if (yobotBossID == selectedCombo.Boss2 && (mask & 2) != 0)
+                    {
+                        mask -= 2;
+                        ret = 1;
+                    }
                     break;
                 case 2:
-                    if (yobotBossID == selectedCombo.Boss3) return 2;
+                    if (yobotBossID == selectedCombo.Boss3 && (mask & 4) != 0)
+                    {
+                        mask -= 4;
+                        ret = 2;
+                    }
                     break;
+                }
+                if (ret.HasValue)
+                {
+                    return ret;
                 }
             }
 
             //Then check others (must only have one matching).
-            int? ret = null;
             if (yobotBossID == selectedCombo.Boss1)
             {
                 ret = 0;
@@ -400,38 +472,28 @@ namespace PcrBattleChannel.Algorithm
 
         //TODO here we can be smarter: instead of only matching boss id, we can add a check of
         //used characters to exclude some possibilities.
-        private static async Task AddUserAttemptAsync(ApplicationDbContext context, PcrIdentityUser user, YobotChallenge data,
-            BossIDConverter bosses, UserCombo selectedCombo, List<UserCharacterStatus> userCharactersResult)
+        private static Task AddUserAttemptAsync(ApplicationDbContext context, PcrIdentityUser user, YobotChallenge data,
+            BossIDConverter bosses, UserCombo selectedCombo, ref int mask, List<UserCharacterStatus> userCharactersResult)
         {
             user.Attempts += 1;
             if (user.IsIgnored)
             {
-                return;
+                return Task.CompletedTask;
             }
-            if (selectedCombo is null)
-            {
-                user.IsIgnored = true;
-                return;
-            }
-
-            int? decidedZhouIndex = DecideNewAttempt(selectedCombo, bosses.Convert(data));
 
             var borrowInfo = selectedCombo.BorrowInfo.Split(';')[0].Split(',');
-            switch (decidedZhouIndex)
+            switch (DecideNewAttempt(selectedCombo, bosses.Convert(data), ref mask))
             {
             case 0:
-                await AddUserAttemptDecidedAsync(context, user, selectedCombo.Zhou1, borrowInfo[0], userCharactersResult);
-                return;
+                return AddUserAttemptDecidedAsync(context, user, selectedCombo.Zhou1, borrowInfo[0], userCharactersResult);
             case 1:
-                await AddUserAttemptDecidedAsync(context, user, selectedCombo.Zhou2, borrowInfo[1], userCharactersResult);
-                return;
+                return AddUserAttemptDecidedAsync(context, user, selectedCombo.Zhou2, borrowInfo[1], userCharactersResult);
             case 2:
-                await AddUserAttemptDecidedAsync(context, user, selectedCombo.Zhou3, borrowInfo[2], userCharactersResult);
-                return;
+                return AddUserAttemptDecidedAsync(context, user, selectedCombo.Zhou3, borrowInfo[2], userCharactersResult);
             default:
-                break;
+                user.IsIgnored = true;
+                return Task.CompletedTask;
             }
-            user.IsIgnored = true;
         }
 
         private static async Task AddUserAttemptDecidedAsync(ApplicationDbContext context, PcrIdentityUser user,
@@ -449,7 +511,9 @@ namespace PcrBattleChannel.Algorithm
                     CharacterID = cid.Value,
                     IsUsed = true,
                 };
-                context.UserCharacterStatuses.Add(newStatus);
+                //Only add to the temporary list without modifying database. The user might
+                //become ignored before we finish matching all attempts. If that happen, we
+                //must leave the state of the user unchanged.
                 userCharactersResult.Add(newStatus);
             }
 
@@ -457,6 +521,8 @@ namespace PcrBattleChannel.Algorithm
             user.GuessedAttempts += 1;
 
             //Set attempt item.
+            //Note that if user later become ignored, we need to revert these changes. See
+            //comments in RunGuildAsync.
             switch (user.Attempts)
             {
             case 1:
