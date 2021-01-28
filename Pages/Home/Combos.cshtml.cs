@@ -380,6 +380,21 @@ namespace PcrBattleChannel.Pages.Home
                 return StatusCode(400);
             }
 
+            if (zhou != -1)
+            {
+                var zhouid = zhou.Value switch
+                {
+                    0 => c.Zhou1ID,
+                    1 => c.Zhou2ID,
+                    2 => c.Zhou3ID,
+                    _ => null,
+                };
+                if (!zhouid.HasValue)
+                {
+                    return StatusCode(400);
+                }
+            }
+
             var lastSelected = await _context.UserCombos
                 .Where(c => c.UserID == user.Id && c.SelectedZhou != null)
                 .ToListAsync();
