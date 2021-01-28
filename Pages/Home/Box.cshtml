@@ -13,9 +13,9 @@
 {
     <div id="config-container-rarity-@list[0].character.Rarity" class="row pb-4">
         <div class="col-md-12 pt-2 pb-2 border-top border-bottom">
-            <div style="display:flex">
-                <span style="display:inline-block;align-self:center;width:30%">@list[0].character.Rarity 星角色</span>
-                <span style="display:inline-block;align-self:center;text-align:right;width:100%">
+            <div class="row align-items-center">
+                <div class="col-auto mr-auto">@list[0].character.Rarity 星角色</div>
+                <div class="col-auto">
                     <button type="button" class="btn btn-primary"
                             onclick="$('#config-container-rarity-@list[0].character.Rarity .character-checkbox-0:not(:checked)').trigger('change').prop('checked', true)">
                         全部选择
@@ -24,7 +24,7 @@
                             onclick="$('#config-container-rarity-@list[0].character.Rarity .character-checkbox-0:checked').trigger('change').prop('checked', false)">
                         全部取消
                     </button>
-                </span>
+                </div>
             </div>
         </div>
         @foreach (var item in list)

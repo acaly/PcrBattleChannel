@@ -60,6 +60,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
             IsAdmin = user.IsGuildAdmin;
 
+            //Are we using too many includes?
             Zhou = await _context.Zhous
                 .Include(z => z.Boss)
                 .Include(z => z.C1)
@@ -68,7 +69,10 @@ namespace PcrBattleChannel.Pages.Zhous
                 .Include(z => z.C4)
                 .Include(z => z.C5)
                 .Include(z => z.Guild)
-                .Where(z => z.GuildID == user.GuildID).ToListAsync();
+                .Include(z => z.Variants)
+                .Where(z => z.GuildID == user.GuildID)
+                .OrderBy(z => z.BossID)
+                .ToListAsync();
 
             var allSettings = await _context.UserZhouVariants
                 .Include(uv => uv.ZhouVariant)

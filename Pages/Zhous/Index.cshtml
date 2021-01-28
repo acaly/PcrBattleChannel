@@ -31,72 +31,80 @@
     </form>
 </div>
 
-<table class="table border-bottom">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Zhou[0].Boss)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Zhou[0].Name)
-            </th>
-            <th colspan="5">阵容</th>
-        </tr>
-    </thead>
-    <tbody>
-        @for(int i = 0; i < Model.Zhou.Count; ++i)
-        {
-            var item = Model.Zhou[i];
-            var style = i == 0 ? @"style=""width:12%""" : "";
-            <tr>
-                <td rowspan="2">
-                    @Html.DisplayFor(modelItem => item.Boss.ShortName)
-                </td>
-                <td rowspan="2">
-                    <p>
+<div class="row">
+    <div class="w-100 border-bottom"></div>
+    @for (int i = 0; i < Model.Zhou.Count; ++i)
+    {
+        var item = Model.Zhou[i];
+        var style = i == 0 ? @"style=""width:12%""" : "";
+        <div class="col-lg-6 col-xl-4">
+            <div class="row py-2">
+                <div class="col pr-1 text-center">
+                    <div class="d-inline-block" style="max-width:70px">
+                        <img src="~/images/icons/@(item.C1?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                    </div>
+                    <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(item.C1.Name)</div>
+                </div>
+                <div class="col px-1 text-center">
+                    <div class="d-inline-block" style="max-width:70px">
+                        <img src="~/images/icons/@(item.C2?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                    </div>
+                    <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(item.C2.Name)</div>
+                </div>
+                <div class="col px-1 text-center">
+                    <div class="d-inline-block" style="max-width:70px">
+                        <img src="~/images/icons/@(item.C3?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                    </div>
+                    <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(item.C3.Name)</div>
+                </div>
+                <div class="col px-1 text-center">
+                    <div class="d-inline-block" style="max-width:70px">
+                        <img src="~/images/icons/@(item.C4?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                    </div>
+                    <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(item.C4.Name)</div>
+                </div>
+                <div class="col px-1 text-center">
+                    <div class="d-inline-block" style="max-width:70px">
+                        <img src="~/images/icons/@(item.C5?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                    </div>
+                    <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(item.C5.Name)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-xl-8">
+            <div class="row py-2">
+                <div class="col-sm-6 py-1">
+                    <div>
                         <a asp-page="./Details" asp-route-id="@item.ZhouID">
                             @Html.DisplayFor(modelItem => item.Name)
                         </a>
+                        (@Html.DisplayFor(modelItem => item.Boss.ShortName))
                         @if (Model.IsAdmin)
                         {
                             <a asp-page="./Edit" asp-route-id="@item.ZhouID">编辑</a>
                         }
-                    </p>
-                    <p>个人设置：@(Model.UserZhouSettings.Contains(item.ZhouID) ? "可出此轴" : "不可出此轴")</p>
-                </td>
-                <td @Html.Raw(style)>
-                    <img src="~/images/icons/@(item.C1?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto"/>
-                </td>
-                <td @Html.Raw(style)>
-                    <img src="~/images/icons/@(item.C2?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
-                </td>
-                <td @Html.Raw(style)>
-                    <img src="~/images/icons/@(item.C3?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
-                </td>
-                <td @Html.Raw(style)>
-                    <img src="~/images/icons/@(item.C4?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
-                </td>
-                <td @Html.Raw(style)>
-                    <img src="~/images/icons/@(item.C5?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    @Html.DisplayFor(modelItem => item.C1.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.C2.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.C3.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.C4.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.C5.Name)
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                    </div>
+                    <div class="pt-2">
+                        个人设置：@(Model.UserZhouSettings.Contains(item.ZhouID) ? "可出此轴" : "不可出此轴")
+                    </div>
+                </div>
+                <div class="col-sm-6 py-1">
+                    @item.Variants.Count 个配置
+                    @if (item.Variants.Count == 1)
+                    {
+                        <span>
+                            （伤害 @item.Variants.First().Damage.ToDamageString()）
+                        </span>
+                    }
+                    else if (item.Variants.Count > 1)
+                    {
+                        <span>
+                            （伤害 @item.Variants.Min(v => v.Damage).ToDamageString() - @item.Variants.Max(v => v.Damage).ToDamageString()）
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="w-100 border-bottom"></div>
+    }
+</div>
