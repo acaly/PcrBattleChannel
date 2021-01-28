@@ -167,14 +167,14 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task RunSingleAsync(ApplicationDbContext context, Guild g)
+        public static async Task RunSingleAsync(ApplicationDbContext context, Guild g, bool forceRecalc)
         {
             var bosses = await BossIDConverter.Create(context);
             var allGuilds = await context.Guilds.Include(g => g.Members).ToListAsync();
             var comboList = new List<UserCombo>();
             try
             {
-                if (await RunGuild(context, g, bosses, comboList))
+                if (await RunGuild(context, g, bosses, comboList) || forceRecalc)
                 {
                     g.LastYobotSync = TimeZoneHelper.BeijingNow;
 

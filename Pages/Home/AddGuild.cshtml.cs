@@ -85,6 +85,19 @@ namespace PcrBattleChannel.Pages.Home
                 _context.CharacterConfigs.Add(config);
             }
 
+            //Create default boss plans.
+            foreach (var b in _context.Bosses)
+            {
+                var s = new GuildBossStatus
+                {
+                    Guild = guild,
+                    BossID = b.BossID,
+                    IsPlan = true,
+                    DamageRatio = 1,
+                };
+                _context.GuildBossStatuses.Add(s);
+            }
+
             await _context.SaveChangesAsync();
 
             return RedirectToPage("/Home/Index");

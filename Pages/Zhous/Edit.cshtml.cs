@@ -409,12 +409,11 @@ namespace PcrBattleChannel.Pages.Zhous
                 .ToListAsync();
             foreach (var uzv in uzvs)
             {
-                await context.UserCombos
+                context.UserCombos.RemoveRange(context.UserCombos
                     .Where(c =>
                         c.Zhou1ID == uzv.UserZhouVariantID ||
                         c.Zhou2ID == uzv.UserZhouVariantID ||
-                        c.Zhou3ID == uzv.UserZhouVariantID)
-                    .DeleteFromQueryAsync();
+                        c.Zhou3ID == uzv.UserZhouVariantID));
                 context.UserZhouVariants.Remove(uzv);
             }
         }

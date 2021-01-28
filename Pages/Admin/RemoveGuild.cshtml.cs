@@ -45,16 +45,19 @@ namespace PcrBattleChannel.Pages.Admin
             }
             foreach (var member in guild.Members)
             {
+                //Character status does not depend on guild. We have to delete those here, or it
+                //will be carried to the next guild.
+                _context.UserCharacterStatuses.RemoveRange(_context.UserCharacterStatuses.Where(c => c.UserID == member.Id));
+
                 if (member.Email is null)
                 {
                     //TODO
-                    //Something here is preventing user from being deleted.
+                    //Something here is preventing user from being deleted. (May be the UserCharacterStatuses above.)
                     //Need to figure this out and use cascade deletion.
                     //Also remember to fix the remove user page in Guilds/Edit.
-                    await _context.UserCombos.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
-                    await _context.UserZhouVariants.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
-                    await _context.UserCharacterConfigs.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
-                    await _context.UserCharacterStatuses.Where(c => c.UserID == member.Id).DeleteFromQueryAsync();
+                    _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == member.Id));
+                    _context.UserZhouVariants.RemoveRange(_context.UserZhouVariants.Where(c => c.UserID == member.Id));
+                    _context.UserCharacterConfigs.RemoveRange(_context.UserCharacterConfigs.Where(c => c.UserID == member.Id));
                     _context.Users.Remove(member);
                 }
                 else

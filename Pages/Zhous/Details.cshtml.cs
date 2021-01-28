@@ -145,6 +145,11 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 if (setting is not null)
                 {
+                    _context.UserCombos.RemoveRange(_context.UserCombos
+                        .Where(c =>
+                            c.Zhou1ID == setting.UserZhouVariantID ||
+                            c.Zhou2ID == setting.UserZhouVariantID ||
+                            c.Zhou3ID == setting.UserZhouVariantID));
                     _context.UserZhouVariants.Remove(setting);
                 }
             }

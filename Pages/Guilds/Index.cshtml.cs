@@ -68,7 +68,7 @@ namespace PcrBattleChannel.Pages.Guilds
             var g = await _context.Guilds
                 .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
 
-            await YobotSync.RunSingleAsync(_context, g);
+            await YobotSync.RunSingleAsync(_context, g, forceRecalc: true);
             return RedirectToPage("/Home/Index");
         }
     }

@@ -56,7 +56,9 @@ namespace PcrBattleChannel.Pages.Admin
                 return Page();
             }
 
-            var owner = _context.Users.FirstOrDefault(xx => xx.Email == Input.OwnerEmail);
+            var owner = _context.Users
+                .FirstOrDefault(xx => xx.Email == Input.OwnerEmail);
+
             if (owner is null)
             {
                 StatusMessage = "错误：会长用户不存在。";
@@ -90,6 +92,19 @@ namespace PcrBattleChannel.Pages.Admin
                     Description = "什么配置都可以。",
                 };
                 _context.CharacterConfigs.Add(config);
+            }
+
+            //Create default boss plans.
+            foreach (var b in _context.Bosses)
+            {
+                var s = new GuildBossStatus
+                {
+                    Guild = guild,
+                    BossID = b.BossID,
+                    IsPlan = true,
+                    DamageRatio = 1,
+                };
+                _context.GuildBossStatuses.Add(s);
             }
 
             await _context.SaveChangesAsync();
