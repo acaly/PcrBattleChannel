@@ -310,15 +310,24 @@ namespace PcrBattleChannel.Pages.Zhous
             var userBorrow = new Dictionary<string, int>();
             var deleteList = new List<string>();
 
-            void Merge(List<string> list, int borrow)
+            void Merge(IEnumerable<string> list, int borrow)
             {
-                tempSet.Clear();
-                tempSet.UnionWith(list);
+                HashSet<string> mergeSet;
+                if (list is HashSet<string> s)
+                {
+                    mergeSet = s;
+                }
+                else
+                {
+                    tempSet.Clear();
+                    tempSet.UnionWith(list);
+                    mergeSet = tempSet;
+                }
 
                 deleteList.Clear();
                 foreach (var (u, b) in userBorrow)
                 {
-                    if (!tempSet.Contains(u))
+                    if (!mergeSet.Contains(u))
                     {
                         deleteList.Add(u);
                     }
@@ -331,7 +340,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 deleteList.Clear();
                 foreach (var u in availableUsers)
                 {
-                    if (!tempSet.Contains(u))
+                    if (!mergeSet.Contains(u))
                     {
                         userBorrow.Add(u, borrow);
                         deleteList.Add(u);
@@ -372,13 +381,17 @@ namespace PcrBattleChannel.Pages.Zhous
             Merge(await FilterCharacter(zhou.C5ID), 4);
 
             //Check additional configs.
-            foreach (var c in configs)
+            var orGroupUsers = new HashSet<string>();
+            foreach (var configGroup in configs.GroupBy(c => (c.CharacterIndex, c.OrGroupIndex)))
             {
-                var users = await context.UserCharacterConfigs
-                    .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
-                    .Select(u => u.UserID)
-                    .ToListAsync();
-                Merge(users, c.CharacterIndex);
+                foreach (var c in configGroup)
+                {
+                    orGroupUsers.UnionWith(await context.UserCharacterConfigs
+                        .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
+                        .Select(u => u.UserID)
+                        .ToListAsync());
+                }
+                Merge(orGroupUsers, configGroup.Key.CharacterIndex);
             }
 
             //Add the variant to available users.

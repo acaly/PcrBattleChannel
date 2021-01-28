@@ -115,18 +115,25 @@ namespace PcrBattleChannel.Pages.Zhous
                 {
                     borrowId = borrowId.HasValue ? -1 : index;
                 }
-                if (!userCharacters.Contains(z.Zhou.C1ID.Value)) SetBorrow(0);
-                if (!userCharacters.Contains(z.Zhou.C2ID.Value)) SetBorrow(1);
-                if (!userCharacters.Contains(z.Zhou.C3ID.Value)) SetBorrow(2);
-                if (!userCharacters.Contains(z.Zhou.C4ID.Value)) SetBorrow(3);
-                if (!userCharacters.Contains(z.Zhou.C5ID.Value)) SetBorrow(4);
-                foreach (var c in z.CharacterConfigs)
+                bool CheckCharacterConfig(int index)
                 {
-                    if (c.CharacterConfigID.HasValue && !userAllConfigIds.Contains(c.CharacterConfigID.Value))
+                    var groups = z.CharacterConfigs
+                        .Where(c => c.CharacterIndex == index)
+                        .GroupBy(c => c.OrGroupIndex);
+                    foreach (var g in groups)
                     {
-                        SetBorrow(c.CharacterIndex);
+                        if (!g.Any(c => userAllConfigIds.Contains(c.CharacterConfigID ?? 0)))
+                        {
+                            return false;
+                        }
                     }
+                    return true;
                 }
+                if (!userCharacters.Contains(z.Zhou.C1ID.Value) || !CheckCharacterConfig(0)) SetBorrow(0);
+                if (!userCharacters.Contains(z.Zhou.C2ID.Value) || !CheckCharacterConfig(1)) SetBorrow(1);
+                if (!userCharacters.Contains(z.Zhou.C3ID.Value) || !CheckCharacterConfig(2)) SetBorrow(2);
+                if (!userCharacters.Contains(z.Zhou.C4ID.Value) || !CheckCharacterConfig(3)) SetBorrow(3);
+                if (!userCharacters.Contains(z.Zhou.C5ID.Value) || !CheckCharacterConfig(4)) SetBorrow(4);
                 if (borrowId != -1)
                 {
                     _context.UserZhouVariants.Add(new UserZhouVariant
