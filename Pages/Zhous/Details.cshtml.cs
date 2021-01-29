@@ -140,16 +140,21 @@ namespace PcrBattleChannel.Pages.Zhous
 
             var setting = await _context.UserZhouVariants
                 .FirstOrDefaultAsync(uv => uv.UserID == user.Id && uv.ZhouVariantID == vid);
-            
+
+            //There is one case we don't need to remove.
+            if (BorrowIndex.HasValue)
+            {
+                _context.UserCombos.RemoveRange(_context.UserCombos
+                    .Where(c =>
+                        c.Zhou1ID == setting.UserZhouVariantID ||
+                        c.Zhou2ID == setting.UserZhouVariantID ||
+                        c.Zhou3ID == setting.UserZhouVariantID));
+            }
+
             if (BorrowIndex == -1)
             {
                 if (setting is not null)
                 {
-                    _context.UserCombos.RemoveRange(_context.UserCombos
-                        .Where(c =>
-                            c.Zhou1ID == setting.UserZhouVariantID ||
-                            c.Zhou2ID == setting.UserZhouVariantID ||
-                            c.Zhou3ID == setting.UserZhouVariantID));
                     _context.UserZhouVariants.Remove(setting);
                 }
             }

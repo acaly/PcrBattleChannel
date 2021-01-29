@@ -93,9 +93,16 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage("/Index");
             }
 
-            await _context.UserZhouVariants
-                .Where(v => v.UserID == user.Id)
-                .DeleteFromQueryAsync();
+            foreach (var uzv in _context.UserZhouVariants)
+            {
+                _context.UserCombos.RemoveRange(_context.UserCombos
+                    .Where(c =>
+                        c.Zhou1ID == uzv.UserZhouVariantID ||
+                        c.Zhou2ID == uzv.UserZhouVariantID ||
+                        c.Zhou3ID == uzv.UserZhouVariantID));
+            }
+            _context.UserZhouVariants.RemoveRange(_context.UserZhouVariants
+                .Where(v => v.UserID == user.Id));
             var allZhous = _context.ZhouVariants
                 .Include(z => z.Zhou)
                 .Include(z => z.CharacterConfigs)
