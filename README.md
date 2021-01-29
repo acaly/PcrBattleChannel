@@ -2,7 +2,13 @@
 
 * QQ群 1045702612
 
-* [使用说明](https://github.com/acaly/PcrBattleChannel/wiki/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E)
+部署
+----
+ASP.NET Core发布出来的程序基本上直接启动就对了（Windows和Linux都是），不用安装任何其他软件包。
+
+默认监听本地5000和5001端口，需要对外网开放的话需要设置环境变量（ASPNETCORE_URLS），可以参考[这个链接](https://www.cnblogs.com/rabbityi/p/7020216.html)。当然也可以套反向代理。
+
+简单的使用说明可以参考release下载页面中的pdf和[Github wiki](https://github.com/acaly/PcrBattleChannel/wiki/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E)。
 
 项目结构
 ----
