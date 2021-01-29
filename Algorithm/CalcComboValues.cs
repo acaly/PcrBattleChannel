@@ -236,7 +236,7 @@ namespace PcrBattleChannel.Algorithm
                     {
                         hp -= FirstBossHp;
                     }
-                    _bossTotalHp.Add(hp / bossObj.DamageRatio * DamageScale);
+                    _bossTotalHp.Add(hp / bossObj.DamageRatio / DamageScale);
 
                     maxCount = Math.Max(count, maxCount);
                 }
@@ -760,6 +760,7 @@ namespace PcrBattleChannel.Algorithm
             var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss) + 2; //estimated lap (middle).
             var searchStep = InitStep;
             int? lastBalance = null;
+            solver.DamageScale = 1.0f;
 
             do
             {

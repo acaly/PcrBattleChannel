@@ -2,10 +2,6 @@
 @{
     var allBorrowLists = Model.Item.BorrowInfo.Split(';');
     var borrowList = allBorrowLists[0].Split(',').Select(x => int.Parse(x)).ToArray();
-    string BorrowTagStyle(int z, int c)
-    {
-        return borrowList[z] == c ? "position:absolute;top:0px;width:100%;height:100%;border:4px solid #000" : "display:none";
-    }
     string SelectNextDivStyle(int z, bool state)
     {
         return (Model.Item.SelectedZhou == z) == state ? "" : "display:none";
@@ -25,34 +21,54 @@
                 <div class="col-lg-6 col-md-9 col-10">
                     <div class="row py-2">
                         <div class="col pr-1 text-center">
-                            <div class="d-inline-block" style="max-width:70px">
+                            <div class="d-inline-block" style="max-width:70px;position:relative">
+                                @if (borrowList[i] == 0)
+                                {
+                                    <div style="position:absolute;border:solid red;width:100%;height:100%" class="d-block d-lg-none"></div>
+                                }
                                 <img src="~/images/icons/@(z.C1?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                             </div>
-                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C1.Name)</div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small@(borrowList[i] == 0 ? ";color:red" : "")">@Html.DisplayCharacterName(z.C1.Name)</div>
                         </div>
                         <div class="col px-1 text-center">
-                            <div class="d-inline-block" style="max-width:70px">
+                            <div class="d-inline-block" style="max-width:70px;position:relative">
+                                @if (borrowList[i] == 1)
+                                {
+                                    <div style="position:absolute;border:solid red;width:100%;height:100%" class="d-block d-lg-none"></div>
+                                }
                                 <img src="~/images/icons/@(z.C2?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                             </div>
-                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C2.Name)</div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small@(borrowList[i] == 1 ? ";color:red" : "")">@Html.DisplayCharacterName(z.C2.Name)</div>
                         </div>
                         <div class="col px-1 text-center">
-                            <div class="d-inline-block" style="max-width:70px">
+                            <div class="d-inline-block" style="max-width:70px;position:relative">
+                                @if (borrowList[i] == 2)
+                                {
+                                    <div style="position:absolute;border:solid red;width:100%;height:100%" class="d-block d-lg-none"></div>
+                                }
                                 <img src="~/images/icons/@(z.C3?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                             </div>
-                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C3.Name)</div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small@(borrowList[i] == 2 ? ";color:red" : "")">@Html.DisplayCharacterName(z.C3.Name)</div>
                         </div>
                         <div class="col px-1 text-center">
-                            <div class="d-inline-block" style="max-width:70px">
+                            <div class="d-inline-block" style="max-width:70px;position:relative">
+                                @if (borrowList[i] == 3)
+                                {
+                                    <div style="position:absolute;border:solid red;width:100%;height:100%" class="d-block d-lg-none"></div>
+                                }
                                 <img src="~/images/icons/@(z.C4?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                             </div>
-                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C4.Name)</div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small@(borrowList[i] == 3 ? ";color:red" : "")">@Html.DisplayCharacterName(z.C4.Name)</div>
                         </div>
                         <div class="col px-1 text-center">
-                            <div class="d-inline-block" style="max-width:70px">
+                            <div class="d-inline-block" style="max-width:70px;position:relative">
+                                @if (borrowList[i] == 4)
+                                {
+                                    <div style="position:absolute;border:solid red;width:100%;height:100%" class="d-block d-lg-none"></div>
+                                }
                                 <img src="~/images/icons/@(z.C5?.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
                             </div>
-                            <div class="d-none d-lg-block pt-1" style="font-size:small">@Html.DisplayCharacterName(z.C5.Name)</div>
+                            <div class="d-none d-lg-block pt-1" style="font-size:small@(borrowList[i] == 4 ? ";color:red" : "")">@Html.DisplayCharacterName(z.C5.Name)</div>
                         </div>
                     </div>
                 </div>

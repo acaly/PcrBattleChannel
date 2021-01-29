@@ -37,8 +37,16 @@ namespace PcrBattleChannel
                     Configuration.GetConnectionString("DefaultSqliteConnection")));
 
             services.AddDatabaseDeveloperPageExceptionFilter();
-
-            services.AddDefaultIdentity<PcrIdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
+            
+            services.AddDefaultIdentity<PcrIdentityUser>(options =>
+                {
+                    options.User.RequireUniqueEmail = true;
+                    options.SignIn.RequireConfirmedAccount = false;
+                    options.Password.RequireDigit = false;
+                    options.Password.RequireUppercase = false;
+                    options.Password.RequireNonAlphanumeric = false;
+                    options.Lockout.AllowedForNewUsers = false;
+                })
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
