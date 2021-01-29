@@ -136,9 +136,12 @@ namespace PcrBattleChannel.Algorithm
                     var rangeLaps = lastBoss.Lap - currentRangeStart.Lap + 1;
 
                     //Note that we reversed the two loops in order to put last boss last.
-                    for (int i = bossCountLast; i < bossCount; ++i)
+                    if (rangeLaps > 0)
                     {
-                        results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps - 1));
+                        for (int i = bossCountLast; i < bossCount; ++i)
+                        {
+                            results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps - 1));
+                        }
                     }
                     for (int i = 0; i < bossCountLast; ++i)
                     {
@@ -514,6 +517,7 @@ namespace PcrBattleChannel.Algorithm
                     result.ComboValues[c.ComboID] = oldValue + _values[i];
                 }
 
+                result.EndBossIndex = StaticInfo.ConvertBossIndex(LastBoss);
                 result.EndBossDamage = MathF.Min(1, _bossBuffer[_bosses.Count - 1]);
             }
 
@@ -697,6 +701,7 @@ namespace PcrBattleChannel.Algorithm
                 var lastBossStep = staticInfo.Bosses[firstBoss.Stage].Count - 1;
                 var lastBoss = new BossIndexInfo(firstBoss.Stage, firstBoss.Lap, lastBossStep);
 
+                solver.FirstBoss = firstBoss;
                 solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
                 solver.LastBoss = lastBoss;
 
@@ -761,13 +766,13 @@ namespace PcrBattleChannel.Algorithm
             var searchStep = InitStep;
             int? lastBalance = null;
             solver.DamageScale = 1.0f;
+            solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
 
             do
             {
                 solver.FirstBoss = staticInfo.ConvertBossIndex(firstBossIndex);
                 solver.LastBoss = staticInfo.ConvertBossIndex(lastBossIndex);
                 solver.Run(result, false);
-                result.EndBossIndex = lastBossIndex;
                 if (result.Balance == 0)
                 {
                     return result;
