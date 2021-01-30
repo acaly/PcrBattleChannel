@@ -20,20 +20,21 @@
     </div>
 </div>
 
-<table class="table border-bottom">
-    <thead>
-        <tr>
-            <th>阵容</th>
-            <th><span style="display:inline-block">推荐度</span><span style="display:inline-block">（当前/初始）</span></th>
-        </tr>
-    </thead>
-    @foreach (var item in Model.UserCombo)
-    {
-        <tbody id="combo-@item.UserComboID">
-            <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
-        </tbody>
-    }
-</table>
+<div class="row align-bottom py-2 border-top border-bottom">
+    <div class="col-xl-10 col-lg-9 col-md-8 col-sm-12">
+        <span class="font-weight-bold">阵容</span>
+    </div>
+    <div class="col-xl-2 col-lg-3 col-md-4 d-none d-md-block">
+        <span class="d-inline-block font-weight-bold">推荐度</span>
+        <span class="d-inline-block font-weight-bold">（当前/初始）</span>
+    </div>
+</div>
+@foreach (var item in Model.UserCombo)
+{
+    <div id="combo-@item.UserComboID">
+        <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
+    </div>
+}
 
 <style>
     #character-list .character-list-item {
@@ -51,9 +52,9 @@
         display: none;
     }
 
-    #character-list .tick-mark img {
-        width: 100%;
-    }
+        #character-list .tick-mark img {
+            width: 100%;
+        }
 
     #character-list .selected .tick-mark {
         display: block;
