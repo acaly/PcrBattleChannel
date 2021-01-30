@@ -165,9 +165,20 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
                 //End of character list.
-                else if (addedCharacters.Count == 5 && i == words.Length - 1)
+                else if (addedCharacters.Count == 5 && i >= words.Length - 2)
                 {
-                    retv.Damage = int.Parse(word);
+                    var multiplier = word.Trim()[^1] switch
+                    {
+                        'm' or 'M' => 1_000_000,
+                        'w' or 'W' => 10000,
+                        'k' or 'K' => 1000,
+                        _ => 1,
+                    };
+                    retv.Damage = multiplier * int.Parse(multiplier == 1 ? word : word[..^1]);
+                    if (i == words.Length - 2)
+                    {
+                        ret.Description = words[^1];
+                    }
                     break;
                 }
                 else
