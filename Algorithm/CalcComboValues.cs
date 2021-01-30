@@ -51,7 +51,14 @@ namespace PcrBattleChannel.Algorithm
                 {
                     iboss += Bosses[stage].Count;
                     lap += 1;
-                    if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
+                    if (stage + 1 == FirstLapForStages.Count)
+                    {
+                        if (Bosses[stage].Count == 0)
+                        {
+                            throw new Exception("Invalid boss data");
+                        }
+                    }
+                    else if (lap >= FirstLapForStages[stage + 1])
                     {
                         stage += 1;
                     }

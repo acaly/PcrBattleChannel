@@ -67,7 +67,14 @@ namespace PcrBattleChannel.Pages.Home
             {
                 bossIndex -= BossNames[stage].Count;
                 lap += 1;
-                if (stage + 1 < FirstLapForStages.Length && lap >= FirstLapForStages[stage + 1])
+                if (stage + 1 == FirstLapForStages.Length)
+                {
+                    if (BossNames[stage].Count == 0)
+                    {
+                        throw new Exception("Invalid boss data");
+                    }
+                }
+                else if (lap >= FirstLapForStages[stage + 1])
                 {
                     stage += 1;
                 }
@@ -90,7 +97,7 @@ namespace PcrBattleChannel.Pages.Home
             Guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
 
             var stages = await _context.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
-            FirstLapForStages = stages.Select(s => s.StartLap).ToArray();
+            FirstLapForStages = stages.Select(s => s.StartLap).OrderBy(i => i).ToArray();
 
             BossNames = new();
             BossShortNames = new();

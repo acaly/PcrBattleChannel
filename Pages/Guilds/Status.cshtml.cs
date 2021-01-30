@@ -79,7 +79,14 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 bossIndex -= BossNames[stage].Count;
                 lap += 1;
-                if (stage + 1 < FirstLapForStages.Length && lap >= FirstLapForStages[stage + 1])
+                if (stage + 1 == FirstLapForStages.Length)
+                {
+                    if (BossNames[stage].Count == 0)
+                    {
+                        throw new Exception("Invalid boss data");
+                    }
+                }
+                else if (lap >= FirstLapForStages[stage + 1])
                 {
                     stage += 1;
                 }
