@@ -38,6 +38,9 @@ namespace PcrBattleChannel.Pages.Home
         [Display(Name = "选择已用角色（不含助战）")]
         public string UsedCharacterString { get; set; }
 
+        [BindProperty]
+        public bool UserIncludesDrafts { get; set; }
+
         public Dictionary<int, Zhou> CachedZhouData { get; set; } = new();
 
         public class SingleComboModel
@@ -67,6 +70,7 @@ namespace PcrBattleChannel.Pages.Home
         private async Task GetUserInfo(PcrIdentityUser user)
         {
             AppUser = user;
+            UserIncludesDrafts = user.ComboIncludesDrafts;
 
             if (user.Attempt1ID.HasValue)
             {
@@ -407,6 +411,24 @@ namespace PcrBattleChannel.Pages.Home
             _context.UserCombos.Update(c);
 
             await _context.SaveChangesAsync();
+            return StatusCode(200);
+        }
+
+        public async Task<IActionResult> OnPostSetDraftAsync()
+        {
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return StatusCode(400);
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null || !user.GuildID.HasValue)
+            {
+                return StatusCode(400);
+            }
+
+            user.ComboIncludesDrafts = UserIncludesDrafts;
+            await _context.SaveChangesAsync();
+
             return StatusCode(200);
         }
     }

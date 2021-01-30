@@ -27,7 +27,9 @@
         <form id="delete-all-form" method="post" asp-page-handler="deleteall"></form>
     }
     <form method="post" asp-page-handler="refresh">
-        <button class="btn btn-primary">重新匹配</button>
+        <button type="submit" class="btn btn-primary">重新匹配</button>
+        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()">显示草稿</button>
+        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()" style="display:none">隐藏草稿</button>
     </form>
 </div>
 
@@ -37,7 +39,10 @@
     {
         var item = Model.Zhou[i];
         var style = i == 0 ? @"style=""width:12%""" : "";
-        <div class="col-lg-6 col-xl-4">
+        var isDraft = item.Variants.All(v => v.IsDraft);
+        var toggleDraftClass = isDraft ? "toggle-draft" : string.Empty;
+        var toggleDraftStyleHtml = isDraft ? @"style=""display:none""" : string.Empty;
+        <div class="col-lg-6 col-xl-4 @toggleDraftClass" @Html.Raw(toggleDraftStyleHtml)>
             <div class="row py-2">
                 <div class="col pr-1 text-center">
                     <div class="d-inline-block" style="max-width:70px">
@@ -71,7 +76,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 col-xl-8">
+        <div class="col-lg-6 col-xl-8 @toggleDraftClass" @Html.Raw(toggleDraftStyleHtml)>
             <div class="row py-2">
                 <div class="col-sm-6 py-1">
                     <div>
@@ -105,6 +110,6 @@
                 </div>
             </div>
         </div>
-        <div class="w-100 border-bottom"></div>
+        <div class="w-100 border-bottom @toggleDraftClass" @Html.Raw(toggleDraftStyleHtml)></div>
     }
 </div>

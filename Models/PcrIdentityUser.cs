@@ -30,6 +30,8 @@ namespace PcrBattleChannel.Models
         //are inaccurate and should not be included in value optimization.
         public bool IsIgnored { get; set; }
 
+        public bool ComboIncludesDrafts { get; set; }
+
         //Attempts
 
         [ForeignKey(nameof(Attempt1))]

@@ -12,11 +12,18 @@
 <h4>分刀套餐</h4>
 <div class="row pt-2 pb-2">
     <div class="col-md-10">
+        <form method="post" asp-page-handler="setdraft"
+              data-ajax="true" data-ajax-method="post"
+              data-ajax-failure="draft_option_update_failure">
+            <label class="form-group form-check-label pb-2">
+                <input type="checkbox" asp-for="UserIncludesDrafts"
+                       onchange="$(this.form).submit()" />
+                匹配时包括草稿
+            </label>
+        </form>
         <form method="post" asp-page-handler="refresh">
             <button type="submit" class="btn btn-primary">重新计算</button>
         </form>
-        <table>
-        </table>
     </div>
 </div>
 
@@ -93,6 +100,9 @@
             $(id).toggle();
         }
         function combo_select_failure() {
+            alert('设置失败');
+        }
+        function draft_option_update_failure() {
             alert('设置失败');
         }
     </script>

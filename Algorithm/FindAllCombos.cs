@@ -76,10 +76,21 @@ namespace PcrBattleChannel.Algorithm
             var borrowCalculator = new FindBorrowCases();
 
             //Collect all variants.
-            var allVariants = await context.UserZhouVariants
-                .Include(v => v.ZhouVariant)
-                .Where(v => v.UserID == user.Id && !v.ZhouVariant.IsDraft)
-                .ToListAsync();
+            List<UserZhouVariant> allVariants;
+            if (user.ComboIncludesDrafts)
+            {
+                allVariants = await context.UserZhouVariants
+                    .Include(v => v.ZhouVariant)
+                    .Where(v => v.UserID == user.Id)
+                    .ToListAsync();
+            }
+            else
+            {
+                allVariants = await context.UserZhouVariants
+                    .Include(v => v.ZhouVariant)
+                    .Where(v => v.UserID == user.Id && !v.ZhouVariant.IsDraft)
+                    .ToListAsync();
+            }
 
             //Get all used characters.
             var allUsedCharacterList = overrideStatus?.Select(s => s.CharacterID).ToList() ?? 
