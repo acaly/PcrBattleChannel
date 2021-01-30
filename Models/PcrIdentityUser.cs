@@ -31,6 +31,7 @@ namespace PcrBattleChannel.Models
         public bool IsIgnored { get; set; }
 
         public bool ComboIncludesDrafts { get; set; }
+        public bool IsValueApproximate { get; set; }
 
         //Attempts
 

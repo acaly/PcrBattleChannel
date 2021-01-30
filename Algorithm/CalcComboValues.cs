@@ -41,7 +41,6 @@ namespace PcrBattleChannel.Algorithm
             public Guild Guild { get; init; }
             public List<int> FirstLapForStages { get; init; }
             public List<List<GuildBossStatus>> Bosses { get; init; }
-            public Dictionary<int, ZhouVariant> Zhous { get; set; } //with .Zhou loaded
             public Dictionary<int, float> BossPlanRatios { get; init; } //BossID -> plan ratio
             public UserCombo[][] Users { get; set; } //with .ZhouX loaded
 
@@ -188,6 +187,8 @@ namespace PcrBattleChannel.Algorithm
 
             private readonly List<float> _values = new();
             private readonly List<float> _bossBuffer = new(); //for both damage ratio and correction factor.
+            private readonly List<float> _valueInitBuffer = new();
+            private readonly List<int> _valueInitSplitCount = new();
 
             private readonly Dictionary<int, float> _mergeBossHp = new();
 
@@ -322,6 +323,45 @@ namespace PcrBattleChannel.Algorithm
                     for (int j = 0; j < userCombos; ++j)
                     {
                         _values.Add(val);
+                    }
+                }
+                while (_bossBuffer.Count < _bosses.Count)
+                {
+                    _bossBuffer.Add(0);
+                }
+            }
+
+            private void InitValues(InitValuesDelegate valueSource)
+            {
+                _values.Clear();
+                for (int i = 1; i < _userFirstSplitComboIndex.Count; ++i)
+                {
+                    _valueInitBuffer.Clear();
+                    _valueInitSplitCount.Clear();
+                    valueSource(StaticInfo, i - 1, _valueInitBuffer);
+
+                    var begin = _userFirstSplitComboIndex[i - 1];
+                    var end = _userFirstSplitComboIndex[i];
+
+                    //Count each combo.
+                    for (int j = begin; j < end; ++j)
+                    {
+                        var comboIndex = _splitCombos[j].ComboID.combo;
+                        while (_valueInitSplitCount.Count <= comboIndex)
+                        {
+                            _valueInitSplitCount.Add(0);
+                        }
+                        _valueInitSplitCount[comboIndex] += 1;
+                    }
+                    //Calculate split average values.
+                    for (int j = 0; j < _valueInitBuffer.Count; ++j)
+                    {
+                        _valueInitBuffer[j] /= _valueInitSplitCount[j];
+                    }
+                    //Set the values.
+                    for (int j = begin; j < end; ++j)
+                    {
+                        _values.Add(_valueInitBuffer[_splitCombos[j].ComboID.combo]);
                     }
                 }
                 while (_bossBuffer.Count < _bosses.Count)
@@ -576,8 +616,96 @@ namespace PcrBattleChannel.Algorithm
                 }
                 return total / _bosses.Count;
             }
+
+            public delegate void InitValuesDelegate(StaticInfo staticInfo, int userIndex, List<float> buffer);
+
+            //Run approximately, with given initial values (given by delegate).
+            public void RunApproximate(InitValuesDelegate initValues)
+            {
+                ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: false);
+                SplitCombos();
+                InitValues(initValues);
+
+                float learningRate = 0.01f;
+                for (int i = 0; i < 1000; ++i)
+                {
+                    CalculateDamage();
+                    AdjustGradient(learningRate);
+                }
+            }
+
+            //Initial values from the result of another calculation.
+            //If the combo count of a user changes, initalize with same values.
+            public static InitValuesDelegate InitValues_DefaultUniform(ResultStorage result)
+            {
+                return (StaticInfo staticInfo, int userIndex, List<float> buffer) =>
+                {
+                    var newCount = staticInfo.Users[userIndex].Length;
+                    if (result.ComboValues.ContainsKey((userIndex, newCount - 1)) &&
+                        !result.ComboValues.ContainsKey((userIndex, newCount)))
+                    {
+                        //Count matches. Direct copy.
+                        for (int i = 0; i < newCount; ++i)
+                        {
+                            buffer.Add(result.ComboValues[(userIndex, i)]);
+                        }
+                    }
+                    else
+                    {
+                        //Default: uniform.
+                        var avg = 1f / newCount;
+                        for (int i = 0; i < newCount; ++i)
+                        {
+                            buffer.Add(avg);
+                        }
+                    }
+                };
+            }
+
+            //Get init values from combo.Value, except for the combos of the last user,
+            //whose combos are initialized with uniform values.
+            public static void InitValues_FromComboValues(StaticInfo staticInfo, int userIndex, List<float> buffer)
+            {
+                if (userIndex == staticInfo.Users.Length - 1)
+                {
+                    var newCount = staticInfo.Users[userIndex].Length;
+                    var avg = 1f / newCount;
+                    for (int i = 0; i < newCount; ++i)
+                    {
+                        buffer.Add(avg);
+                    }
+                }
+                else
+                {
+                    foreach (var c in staticInfo.Users[userIndex])
+                    {
+                        buffer.Add(c.Value);
+                    }
+                }
+            }
+
+            public static void InitValues_FromComboNetValues(StaticInfo staticInfo, int userIndex, List<float> buffer)
+            {
+                if (userIndex == staticInfo.Users.Length - 1)
+                {
+                    var newCount = staticInfo.Users[userIndex].Length;
+                    var avg = 1f / newCount;
+                    for (int i = 0; i < newCount; ++i)
+                    {
+                        buffer.Add(avg);
+                    }
+                }
+                else
+                {
+                    foreach (var c in staticInfo.Users[userIndex])
+                    {
+                        buffer.Add(c.NetValue);
+                    }
+                }
+            }
         }
 
+        //Run for all users in the guild.
         public static async Task RunAllAsync(ApplicationDbContext context, Guild guild, IEnumerable<UserCombo> allCombos)
         {
             await context.GuildBossStatuses
@@ -621,24 +749,27 @@ namespace PcrBattleChannel.Algorithm
                 bossListStage.Sort((b1, b2) => b1.Boss.BossID - b2.Boss.BossID);
             }
 
-            var zhous = await context.Zhous
-                .Include(z => z.Variants)
-                .Where(z => z.GuildID == guild.GuildID)
-                .ToListAsync();
-            var variants = zhous.SelectMany(z => z.Variants).ToDictionary(v => v.ZhouVariantID);
-
             var staticInfo = new StaticInfo()
             {
                 FirstLapForStages = stageLapList,
                 Bosses = bossList,
-                Zhous = variants,
                 BossPlanRatios = planRatios,
                 Users = allUsers,
                 Guild = guild,
             };
 
-            var totalResult = Run(staticInfo, false);
+            //Accurate.
             var nonselectedResult = Run(staticInfo, true);
+
+            //TODO approximate
+            //copy from accurate: all non-fixed
+            //fix: none
+            var totalResult = Run(staticInfo, false);
+
+            //TODO approximate, grouped
+            //copy from accurate: all users except the group
+            //fix: all users except the group
+            //----
 
             for (int userIndex = 0; userIndex < allUsers.Length; ++userIndex)
             {
@@ -680,6 +811,91 @@ namespace PcrBattleChannel.Algorithm
             guild.PredictBossIndex = nonselectedResult.EndBossIndex;
             guild.PredictBossDamageRatio = nonselectedResult.EndBossDamage;
             guild.LastCalculation = TimeZoneHelper.BeijingNow;
+        }
+
+        //Run for a single user and get approximate results. This is useful to show some number quickly after
+        //the user refreshes the combo list.
+        public static async Task RunSingleAsync(ApplicationDbContext context, Guild guild,
+            PcrIdentityUser user, List<UserCombo> userCombos)
+        {
+            var allCombosExcludeOne = await context.UserCombos
+                .Include(c => c.User)
+                .Where(c => c.GuildID == guild.GuildID && c.User.Id != user.Id)
+                .ToListAsync();
+
+            var allUsers = allCombosExcludeOne
+                .GroupBy(c => c.UserID)
+                .Select(g => g.ToArray())
+                .Concat(Enumerable.Repeat(userCombos.ToArray(), 1)) //Put the calculated user last.
+                .ToArray();
+
+            var stages = await context.BattleStages
+                .OrderBy(s => s.StartLap)
+                .ToListAsync();
+            var stageLapList = new List<int>();
+            var bossList = new List<List<GuildBossStatus>>();
+            for (int i = 0; i < stages.Count; ++i)
+            {
+                stageLapList.Add(stages[i].StartLap);
+                bossList.Add(new());
+            }
+
+            var bossPlans = await context.GuildBossStatuses
+                .Include(s => s.Boss)
+                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
+                .ToListAsync();
+            var planRatios = new Dictionary<int, float>();
+            foreach (var boss in bossPlans)
+            {
+                var stageID = boss.Boss.BattleStageID;
+                var stage = stages.FindIndex(s => s.BattleStageID == stageID);
+                bossList[stage].Add(boss);
+                planRatios.Add(boss.BossID, boss.DamageRatio);
+            }
+            foreach (var bossListStage in bossList)
+            {
+                bossListStage.Sort((b1, b2) => b1.Boss.BossID - b2.Boss.BossID);
+            }
+
+            var zhous = await context.Zhous
+                .Include(z => z.Variants)
+                .Where(z => z.GuildID == guild.GuildID)
+                .ToListAsync();
+            var variants = zhous.SelectMany(z => z.Variants).ToDictionary(v => v.ZhouVariantID);
+
+            var staticInfo = new StaticInfo()
+            {
+                FirstLapForStages = stageLapList,
+                Bosses = bossList,
+                BossPlanRatios = planRatios,
+                Users = allUsers,
+                Guild = guild,
+            };
+
+            var nonselectedResult = RunApproximate(staticInfo, true, guild, Solver.InitValues_FromComboValues);
+            var totalResult = RunApproximate(staticInfo, false, guild, Solver.InitValues_FromComboNetValues);
+
+            for (int comboIndex = 0; comboIndex < userCombos.Count; ++comboIndex)
+            {
+                var comboID = (allUsers.Length - 1, comboIndex);
+                var c = userCombos[comboIndex];
+                if (totalResult.ComboValues.TryGetValue(comboID, out var netValue))
+                {
+                    c.NetValue = netValue;
+                }
+                else
+                {
+                    c.NetValue = 0;
+                }
+                if (nonselectedResult.ComboValues.TryGetValue(comboID, out var value))
+                {
+                    c.Value = value;
+                }
+                else
+                {
+                    c.Value = 0;
+                }
+            }
         }
 
         public static ResultStorage Run(StaticInfo staticInfo, bool fixSelected)
@@ -807,6 +1023,27 @@ namespace PcrBattleChannel.Algorithm
                 solver.Run(result, false);
             }
 
+            solver.Merge(result);
+            return result;
+        }
+
+        private static ResultStorage RunApproximate(StaticInfo staticInfo, bool fixSelected,
+            Guild guild, Solver.InitValuesDelegate initValues)
+        {
+            var solver = new Solver
+            {
+                StaticInfo = staticInfo,
+                FixSelectedCombo = fixSelected,
+
+                FirstBoss = staticInfo.ConvertBossIndex(guild.BossIndex),
+                FirstBossHp = guild.BossDamageRatio,
+                LastBoss = staticInfo.ConvertBossIndex(guild.PredictBossIndex),
+
+                DamageScale = 1f,
+            };
+            solver.RunApproximate(initValues);
+
+            var result = new ResultStorage();
             solver.Merge(result);
             return result;
         }

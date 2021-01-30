@@ -190,10 +190,18 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return Redirect("/");
             }
+            var guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
+            if (guild is null)
+            {
+                return Redirect("/");
+            }
 
             //Remove without submitting. This ensures the FindAllCombos.Run can find the combo to inherit.
             _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == user.Id));
-            await FindAllCombos.RunAsync(_context, user, null, null, inherit: true);
+
+            var userCombos = new List<UserCombo>(); //Store unsaved combos.
+            await FindAllCombos.RunAsync(_context, user, null, userCombos, inherit: true);
+            await CalcComboValues.RunSingleAsync(_context, guild, user, userCombos);
             await _context.SaveChangesAsync();
 
             return RedirectToPage();

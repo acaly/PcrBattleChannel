@@ -423,6 +423,9 @@ namespace PcrBattleChannel.Migrations
                     b.Property<bool>("IsIgnored")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsValueApproximate")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("LastComboUpdate")
                         .HasColumnType("TEXT");
 

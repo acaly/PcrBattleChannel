@@ -9,8 +9,8 @@ using PcrBattleChannel.Data;
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210130035405_ComboWithDraftOption")]
-    partial class ComboWithDraftOption
+    [Migration("20210130173603_UpdateUserForComboCalc")]
+    partial class UpdateUserForComboCalc
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -423,6 +423,9 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsIgnored")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsValueApproximate")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LastComboUpdate")
