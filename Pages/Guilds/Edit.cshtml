@@ -5,7 +5,7 @@
 }
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-12">
         <h4>公会 - @Model.Guild.Name</h4>
         <hr />
         <partial name="_StatusMessage" model="Model.StatusMessage" />
@@ -35,7 +35,7 @@
     </div>
 </div>
 <div class="row pt-4">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-12">
         <h4>成员列表</h4>
         <form method="post">
             <table class="table border-bottom table-align-middle">
@@ -82,6 +82,10 @@
                                         移出公会
                                     </button>
                                 }
+                                <button type="submit" class="btn btn-secondary"
+                                        asp-page="ResetUserPassword" asp-route-id="@item.Id">
+                                    重置密码
+                                </button>
                             </td>
                         </tr>
                     }
@@ -95,7 +99,7 @@
     </div>
 </div>
 <div class="row pt-4">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-12">
         <h4>邀请成员</h4>
         <hr />
 
