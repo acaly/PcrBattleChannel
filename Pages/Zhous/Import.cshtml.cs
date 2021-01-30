@@ -45,6 +45,10 @@ namespace PcrBattleChannel.Pages.Zhous
         [Display(Name = "在导入数据中指定轴名")]
         public bool HasName { get; set; } = false;
 
+        [BindProperty]
+        [Display(Name = "导入为草稿")]
+        public bool AsDraft { get; set; } = false;
+
         private async Task<int?> CheckUserPrivilege()
         {
             if (!_signInManager.IsSignedIn(User))
@@ -126,6 +130,7 @@ namespace PcrBattleChannel.Pages.Zhous
                             zz.C5ID == z.C5ID);
                     }
                     var v = ((List<ZhouVariant>)z.Variants)[0];
+                    v.IsDraft = AsDraft;
                     if (existing is not null)
                     {
                         v.ZhouID = existing.ZhouID;
@@ -143,12 +148,13 @@ namespace PcrBattleChannel.Pages.Zhous
             }
             else
             {
-                _context.Zhous.AddRange(list);
                 foreach (var z in list)
                 {
                     var v = ((List<ZhouVariant>)z.Variants)[0];
+                    v.IsDraft = AsDraft;
                     await EditModel.CheckAndAddUserVariants(_context, guildID.Value, z, v, v.CharacterConfigs);
                 }
+                _context.Zhous.AddRange(list);
             }
 
             await _context.SaveChangesAsync();
