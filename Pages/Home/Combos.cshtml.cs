@@ -27,7 +27,7 @@ namespace PcrBattleChannel.Pages.Home
             _userManager = userManager;
         }
 
-        public List<UserCombo> UserCombo { get; set; }
+        public List<(string name, List<UserCombo> list, float value, float netValue)> UserCombo { get; set; }
         public PcrIdentityUser AppUser { get; set; }
         public List<UserCharacterStatus> UsedCharacters { get; set; }
         public HashSet<int> UsedCharacterIds { get; set; }
@@ -135,14 +135,13 @@ namespace PcrBattleChannel.Pages.Home
             }
             await GetUserInfo(user);
 
-            UserCombo = await _context.UserCombos
+            var rawList = await _context.UserCombos
                 .Include(u => u.Zhou1)
                 .Include(u => u.Zhou2)
                 .Include(u => u.Zhou3)
                 .Where(u => u.UserID == user.Id)
-                .OrderByDescending(u => u.NetValue)
                 .ToListAsync();
-            foreach (var c in UserCombo)
+            foreach (var c in rawList)
             {
                 if (c.Zhou1ID.HasValue)
                 {
@@ -165,6 +164,24 @@ namespace PcrBattleChannel.Pages.Home
                     await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
                 }
             }
+
+            static string GetComboGroupedName(UserCombo c)
+            {
+                return $"{c.Zhou1.ZhouVariant.Zhou.Boss.ShortName} + {c.Zhou2.ZhouVariant.Zhou.Boss.ShortName} + {c.Zhou3.ZhouVariant.Zhou.Boss.ShortName}";
+            }
+            UserCombo = rawList
+                .GroupBy(GetComboGroupedName)
+                .Select(g =>
+                {
+                    var groupList = g.ToList();
+                    groupList.Sort((c1, c2) => MathF.Sign(c2.Value - c1.Value));
+                    var sumValue = groupList.Sum(c => c.Value);
+                    var sumNetValue = groupList.Sum(c => c.NetValue);
+                    return (g.Key, groupList, sumValue, sumNetValue);
+                })
+                .ToList();
+            //Sort by max value (not by total value).
+            UserCombo.Sort((a, b) => MathF.Sign(b.list[0].Value - a.list[0].Value));
 
             UsedCharacters = await _context.UserCharacterStatuses
                 .Include(s => s.Character)

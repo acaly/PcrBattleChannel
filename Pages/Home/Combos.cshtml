@@ -36,10 +36,24 @@
         <span class="d-inline-block font-weight-bold">（当前/初始）</span>
     </div>
 </div>
-@foreach (var item in Model.UserCombo)
+@for (int i = 0; i < Model.UserCombo.Count; ++i)
 {
-    <div id="combo-@item.UserComboID">
-        <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
+    var group = Model.UserCombo[i];
+    <div class="row align-bottom py-2 border-bottom">
+        <div class="col-xl-10 col-lg-9 col-8">
+            <a href="javascript:void(0)" onclick="$('#toggle-combo-group-@i').toggle()">@group.name (@group.list.Count 个套餐)</a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-4">
+            <span>@group.value.ToString("P0") / @group.netValue.ToString("P0")</span>
+        </div>
+    </div>
+    <div id="toggle-combo-group-@i" style="display:none">
+        @foreach (var item in group.list)
+        {
+            <div id="combo-@item.UserComboID">
+                <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
+            </div>
+        }
     </div>
 }
 
