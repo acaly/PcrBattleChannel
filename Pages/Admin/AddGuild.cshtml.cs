@@ -35,17 +35,22 @@ namespace PcrBattleChannel.Pages.Admin
 
         [TempData]
         public string StatusMessage { get; set; }
+        public string StatusMessage2 { get; set; }
 
         [BindProperty]
         public InputModel Input { get; set; }
 
-        public IActionResult OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
             Input = new InputModel
             {
                 GuildName = "",
                 OwnerEmail = "",
             };
+            if (!await _context.Bosses.AnyAsync())
+            {
+                StatusMessage2 = "警告：创建公会前请先设置赛季数据和Boss数据！";
+            }
             return Page();
         }
 
@@ -61,7 +66,7 @@ namespace PcrBattleChannel.Pages.Admin
 
             if (owner is null)
             {
-                StatusMessage = "错误：会长用户不存在。";
+                StatusMessage2 = "错误：会长用户不存在。";
                 return Page();
             }
 

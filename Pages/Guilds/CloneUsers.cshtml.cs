@@ -29,6 +29,7 @@ namespace PcrBattleChannel.Pages.Guilds
 
         [TempData]
         public string StatusMessage { get; set; }
+        public string StatusMessage2 { get; set; }
 
         [BindProperty]
         [Required]
@@ -93,12 +94,12 @@ namespace PcrBattleChannel.Pages.Guilds
 
             if (CloneCount <= 0)
             {
-                StatusMessage = "错误：克隆数量无效。";
+                StatusMessage2 = "错误：克隆数量无效。";
                 return Page();
             }
             if (CloneCount + currentCount > 30)
             {
-                StatusMessage = "错误：公会人数不得超过30人。";
+                StatusMessage2 = "错误：公会人数不得超过30人。";
                 return Page();
             }
 
@@ -106,12 +107,12 @@ namespace PcrBattleChannel.Pages.Guilds
                 .FirstOrDefaultAsync(u => u.Email == TemplateUserEmail);
             if (templateUser is null)
             {
-                StatusMessage = "错误：模板用户不存在。";
+                StatusMessage2 = "错误：模板用户不存在。";
                 return Page();
             }
             if (templateUser.GuildID != guild.GuildID)
             {
-                StatusMessage = "错误：模板用户不在本公会。";
+                StatusMessage2 = "错误：模板用户不在本公会。";
                 return Page();
             }
 
@@ -125,8 +126,8 @@ namespace PcrBattleChannel.Pages.Guilds
                 var email = string.Format(EmailFormat, i + 1).ToUpperInvariant();
                 if (await _context.Users.AnyAsync(u => u.NormalizedEmail == email))
                 {
-                    StatusMessage = $"错误：用户{string.Format(EmailFormat, i + 1)}已存在。";
-                    return RedirectToPage();
+                    StatusMessage2 = $"错误：用户{string.Format(EmailFormat, i + 1)}已存在。";
+                    return Page();
                 }
             }
 

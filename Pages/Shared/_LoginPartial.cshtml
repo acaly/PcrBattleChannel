@@ -12,6 +12,8 @@
         var guild = await DbContext.Guilds.FindAsync(u.GuildID);
         if (guild.OwnerID == u.Id) isOwner = true;
     }
+    var canAddGuild = AddGuildModel.IsAllowed && u is not null && !u.GuildID.HasValue ?
+        DbContext.Bosses.Any() : false;
 }
 
 <ul class="navbar-nav flex-grow-1">
@@ -52,7 +54,7 @@
                 <a class="nav-link text-dark" asp-page="/Guilds/Edit">公会管理</a>
             </li>
         }
-        @if (AddGuildModel.IsAllowed && !u.GuildID.HasValue)
+        @if (canAddGuild)
         {
             <li class="nav-item">
                 <a class="nav-link text-dark" asp-page="/Home/AddGuild">新建公会</a>

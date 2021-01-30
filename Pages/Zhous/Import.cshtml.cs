@@ -32,6 +32,7 @@ namespace PcrBattleChannel.Pages.Zhous
 
         [TempData]
         public string StatusMessage { get; set; }
+        public string StatusMessage2 { get; set; }
 
         [BindProperty]
         public string Input { get; set; }
@@ -97,7 +98,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
             catch
             {
-                StatusMessage = $"错误：读取轴表第{lineNum + 1}行失败。";
+                StatusMessage2 = $"错误：读取轴表第{lineNum + 1}行失败。";
                 return Page();
             }
 
