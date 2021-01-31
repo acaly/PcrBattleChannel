@@ -21,7 +21,7 @@
                         全部选择
                     </button>
                     <button type="button" class="btn btn-light"
-                            onclick="$('#config-container-rarity-@list[0].character.Rarity .character-checkbox-0:checked').trigger('change').prop('checked', false)">
+                            onclick="$('#config-container-rarity-@list[0].character.Rarity .character-checkbox:checked').trigger('change').prop('checked', false)">
                         全部取消
                     </button>
                 </div>
@@ -47,7 +47,7 @@
                                         data-ajax="true" data-ajax-method="post"
                                         data-ajax-failure="config_update_failure">
                                     <label class="form-check-label">
-                                        <input type="checkbox" class="form-check-input character-checkbox-@((int)cc.Kind)"
+                                        <input type="checkbox" class="form-check-input character-checkbox character-checkbox-@((int)cc.Kind)"
                                                 id="character-checkbox-@cc.CharacterID-@((int)cc.Kind)"
                                                 @Html.Raw(isChecked) onchange="$(this.form).submit()" />
                                         @Html.DisplayFor(m => cc.Name)

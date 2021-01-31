@@ -62,6 +62,38 @@ namespace PcrBattleChannel.Pages.Guilds
             return user.GuildID;
         }
 
+        public static async Task CheckAndAddRankConfigAsync(ApplicationDbContext context, CharacterConfig cc,
+            List<UserCharacterConfig> output)
+        {
+            if (cc.Kind != CharacterConfigKind.Rank || cc.Name.Length == 0 && cc.Name[^1] != 'X')
+            {
+                return;
+            }
+            var searchName = cc.Name[..^1];
+            var affectedConfigs = await context.CharacterConfigs
+                .Where(xcc => xcc.GuildID == cc.GuildID && xcc.CharacterID == cc.CharacterID && xcc.Name.StartsWith(searchName))
+                .Select(xcc => xcc.CharacterConfigID)
+                .ToListAsync();
+            var affectedUsers = new HashSet<string>();
+            foreach (var actualConfig in affectedConfigs)
+            {
+                affectedUsers.UnionWith(await context.UserCharacterConfigs
+                    .Where(ucc => ucc.CharacterConfigID == actualConfig)
+                    .Select(ucc => ucc.UserID)
+                    .ToListAsync());
+            }
+            foreach (var uid in affectedUsers)
+            {
+                var ucc = new UserCharacterConfig
+                {
+                    UserID = uid,
+                    CharacterConfig = cc,
+                };
+                context.UserCharacterConfigs.Add(ucc);
+                output?.Add(ucc);
+            }
+        }
+
         public async Task<IActionResult> OnGetAsync()
         {
             var guildID = await CheckUserPrivilege();
@@ -105,7 +137,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return StatusCode(400);
             }
 
-            var config = new CharacterConfig()
+            var config = new CharacterConfig
             {
                 GuildID = guildID.Value,
                 CharacterID = NewConfig.CharacterID,
@@ -114,6 +146,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 Description = NewConfig.Description,
             };
             _context.Add(config);
+            await CheckAndAddRankConfigAsync(_context, config, null);
             await _context.SaveChangesAsync();
 
             return Partial("_Configs_ConfigPartial", config);

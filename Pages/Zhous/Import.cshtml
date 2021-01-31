@@ -23,11 +23,6 @@
                 </div>
                 <div class="form-group form-check">
                     <label class="form-check-label">
-                        <input class="form-check-input" asp-for="Merge" /> @Html.DisplayNameFor(model => model.Merge)
-                    </label>
-                </div>
-                <div class="form-group form-check">
-                    <label class="form-check-label">
                         <input class="form-check-input" asp-for="HasName"
                                onclick="$('#format-zhou-name').toggle()" />
                         @Html.DisplayNameFor(model => model.HasName)
@@ -36,6 +31,16 @@
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="AsDraft" /> @Html.DisplayNameFor(model => model.AsDraft)
+                    </label>
+                </div>
+                <div class="form-group form-check">
+                    <label class="form-check-label">
+                        <input class="form-check-input" asp-for="CreateConfigs" /> @Html.DisplayNameFor(model => model.CreateConfigs)
+                    </label>
+                </div>
+                <div class="form-group form-check">
+                    <label class="form-check-label">
+                        <input class="form-check-input" asp-for="Merge" /> @Html.DisplayNameFor(model => model.Merge)
                     </label>
                 </div>
                 <div class="form-group">

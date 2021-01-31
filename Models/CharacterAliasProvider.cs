@@ -1,6 +1,7 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
+using PcrBattleChannel.Algorithm;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -13,7 +14,7 @@ namespace PcrBattleChannel.Models
 {
     public interface ICharacterAliasProvider
     {
-        bool TryGet(string key, out int id);
+        bool TryGet(ref ReadOnlySpan<char> input, out string keyResult, out int idResult);
     }
 
     public class CharacterAliasProvider : ICharacterAliasProvider
@@ -32,7 +33,7 @@ namespace PcrBattleChannel.Models
             public int Id { get => InternalId; init => InternalId = value; }
         }
 
-        private readonly Dictionary<string, int> _table = new();
+        private readonly Trie0<int> _table = new();
 
         private static Stream OpenTableFile()
         {
@@ -59,14 +60,14 @@ namespace PcrBattleChannel.Models
             {
                 foreach (var n in e.Name.Split(',', ' ', '/'))
                 {
-                    _table[n] = e.InternalId;
+                    _table.Add(n, e.InternalId);
                 }
             }
         }
 
-        public bool TryGet(string key, out int id)
+        public bool TryGet(ref ReadOnlySpan<char> input, out string keyResult, out int idResult)
         {
-            return _table.TryGetValue(key, out id);
+            return _table.TryGet(ref input, out keyResult, out idResult);
         }
     }
 }

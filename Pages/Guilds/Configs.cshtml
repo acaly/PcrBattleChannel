@@ -84,7 +84,7 @@
                         <tbody>
                             <tr>
                                 <td>
-                                    <select asp-for="NewConfig.Kind" class="form-control"
+                                    <select asp-for="NewConfig.Kind" class="form-control" id="config-list-new-config-select-@(item.Character.CharacterID)"
                                             form="config-list-new-config-form-@(item.Character.CharacterID)">
                                         <option value="1">星级</option>
                                         <option value="2">等级</option>
@@ -94,7 +94,7 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <input asp-for="NewConfig.Name" class="form-control"
+                                    <input asp-for="NewConfig.Name" class="form-control" id="config-list-new-config-name-@(item.Character.CharacterID)"
                                            form="config-list-new-config-form-@(item.Character.CharacterID)" />
                                 </td>
                                 <td>
@@ -108,7 +108,7 @@
                                           id="config-list-new-config-form-@(item.Character.CharacterID)"
                                           data-character-id="@(item.Character.CharacterID)">
                                         <input type="hidden" asp-for="NewConfig.CharacterID" value="@item.Character.CharacterID" />
-                                        <button type="submit" class="btn btn-primary">
+                                        <button type="submit" class="btn btn-primary" onclick="return check_config_name_new(this)">
                                             添加
                                         </button>
                                     </form>
@@ -149,7 +149,29 @@
             config_list_update_count(this);
         }
         function config_list_delete_failure() {
-            alert('删除失败');
+            alert('删除失败。请检查是否有包括这个配置的轴没有删除。');
+        }
+
+        regex_check_reg = [
+            @foreach (var info in StandardConfigNames.FrontEndRegexCheck)
+            {
+                Write(Html.Raw("/" + info.regex + "/,"));
+            }
+        ];
+        regex_check_example = [
+            @foreach (var info in StandardConfigNames.FrontEndRegexCheck)
+            {
+                Write(Html.Raw("'" + info.example + "',"));
+            }
+        ];
+        function check_config_name_new(e) {
+            var id = e.form.getAttribute('data-character-id');
+            var kind = $('#config-list-new-config-select-' + id).val();
+            var name = $('#config-list-new-config-name-' + id).val();
+            if (name.match(regex_check_reg[kind]) == null) {
+                return confirm('配置名不符合该类别的标准命名（示例：' + regex_check_example[kind] + '），是否确认添加？');
+            }
+            return true;
         }
     </script>
 }

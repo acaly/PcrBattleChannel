@@ -5,6 +5,6 @@
     var statusMessageClass = Model.Contains("错误") ? "danger" : "success";
     <div class="alert alert-@statusMessageClass alert-dismissible" role="alert">
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        @Model
+        <span style="white-space:pre-wrap">@Model</span>
     </div>
 }

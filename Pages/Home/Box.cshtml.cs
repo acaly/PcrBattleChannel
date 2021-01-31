@@ -49,6 +49,7 @@ namespace PcrBattleChannel.Pages.Home
                 .ToListAsync();
 
             var grouped = allConfigs
+                .Where(c => c.Kind != CharacterConfigKind.Rank || c.Name.Length == 0 || c.Name[^1] != 'X') //Exclude Ra-X.
                 .GroupBy(c => c.CharacterID)
                 .Select(g => (g.Key, g.OrderBy(c => c.Kind).ToArray()));
 
@@ -104,6 +105,13 @@ namespace PcrBattleChannel.Pages.Home
             }
 
             var ccidv = ccid.Value;
+            var cc = await _context.CharacterConfigs
+                .FirstOrDefaultAsync(ccx => ccx.CharacterConfigID == ccidv);
+            if (cc is null || cc.GuildID != user.GuildID.Value)
+            {
+                return StatusCode(400);
+            }
+
             var ucc = await _context.UserCharacterConfigs
                 .FirstOrDefaultAsync(x => x.CharacterConfigID == ccidv && x.UserID == user.Id);
             if (ucc is null)
@@ -118,6 +126,48 @@ namespace PcrBattleChannel.Pages.Home
             {
                 _context.UserCharacterConfigs.Remove(ucc);
             }
+
+            if (cc.Kind == CharacterConfigKind.Rank && cc.Name.Length > 0 && cc.Name[^1] != 'X')
+            {
+                var namePrefix = cc.Name[..^1];
+                var autoName = cc.Name[..^1] + "X";
+                var autoConfig = await _context.CharacterConfigs
+                    .FirstOrDefaultAsync(ccx =>
+                        ccx.GuildID == user.GuildID.Value &&
+                        ccx.CharacterID == cc.CharacterID &&
+                        ccx.Kind == CharacterConfigKind.Rank &&
+                        ccx.Name == autoName);
+                if (autoConfig is not null)
+                {
+                    var userAutoConfig = await _context.UserCharacterConfigs
+                        .FirstOrDefaultAsync(uccx => uccx.CharacterConfigID == autoConfig.CharacterConfigID && uccx.UserID == user.Id);
+                    if (ucc is null && userAutoConfig is null)
+                    {
+                        //Add (easy).
+                        _context.UserCharacterConfigs.Add(new UserCharacterConfig
+                        {
+                            UserID = user.Id,
+                            CharacterConfigID = autoConfig.CharacterConfigID,
+                        });
+                    }
+                    else if (ucc is not null && userAutoConfig is not null)
+                    {
+                        //Remove (hard).
+                        var matchingUserConfigs = await _context.UserCharacterConfigs
+                            .Include(uccx => uccx.CharacterConfig)
+                            .Where(uccx => uccx.UserID == user.Id &&
+                                uccx.CharacterConfig.CharacterID == cc.CharacterID &&
+                                uccx.CharacterConfig.Kind == CharacterConfigKind.Rank &&
+                                uccx.CharacterConfig.Name.StartsWith(namePrefix))
+                            .CountAsync();
+                        if (matchingUserConfigs == 2)
+                        {
+                            _context.UserCharacterConfigs.Remove(userAutoConfig);
+                        }
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             return StatusCode(200);

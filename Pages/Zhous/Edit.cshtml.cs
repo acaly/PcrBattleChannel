@@ -303,7 +303,7 @@ namespace PcrBattleChannel.Pages.Zhous
 
         //This method is also used by ImportModel.
         public static async Task CheckAndAddUserVariants(ApplicationDbContext context, int guildID,
-            Zhou zhou, ZhouVariant variant, IEnumerable<ZhouVariantCharacterConfig> configs)
+            Zhou zhou, ZhouVariant variant, IEnumerable<ZhouVariantCharacterConfig> configs, List<UserCharacterConfig> newUserConfigs)
         {
             var availableUsers = new HashSet<string>();
             var tempSet = new HashSet<string>();
@@ -386,10 +386,19 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 foreach (var c in configGroup)
                 {
-                    orGroupUsers.UnionWith(await context.UserCharacterConfigs
-                        .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
-                        .Select(u => u.UserID)
-                        .ToListAsync());
+                    if (c.CharacterConfigID.HasValue)
+                    {
+                        orGroupUsers.UnionWith(await context.UserCharacterConfigs
+                            .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
+                            .Select(u => u.UserID)
+                            .ToListAsync());
+                    }
+                    else
+                    {
+                        orGroupUsers.UnionWith(newUserConfigs
+                            .Where(cc => cc.CharacterConfig == c.CharacterConfig)
+                            .Select(u => u.UserID));
+                    }
                 }
                 Merge(orGroupUsers, configGroup.Key.CharacterIndex);
             }
@@ -468,7 +477,7 @@ namespace PcrBattleChannel.Pages.Zhous
             var configs = await ApplyConfigString(Zhou, variant, EditVariantConfigs);
 
             //Setup user variants.
-            await CheckAndAddUserVariants(_context, user.GuildID.Value, Zhou, variant, configs);
+            await CheckAndAddUserVariants(_context, user.GuildID.Value, Zhou, variant, configs, null);
 
             await _context.SaveChangesAsync();
 

@@ -4,6 +4,7 @@ using PcrBattleChannel.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Algorithm
@@ -23,6 +24,69 @@ namespace PcrBattleChannel.Algorithm
         }
     }
 
+    internal class Trie0<T>
+    {
+        private readonly Dictionary<char, List<(string str, T data)>> _data = new();
+
+        public void Add(string str, T data)
+        {
+            if (string.IsNullOrEmpty(str)) return; //Let's ignore these.
+            if (!_data.TryGetValue(str[0], out var list))
+            {
+                list = new();
+                _data.Add(str[0], list);
+            }
+            list.Add((str, data));
+        }
+
+        public bool Remove(string str)
+        {
+            if (string.IsNullOrEmpty(str)) return false;
+            if (!_data.TryGetValue(str[0], out var list))
+            {
+                return false;
+            }
+            for (int i = 0; i < list.Count; ++i)
+            {
+                if (list[i].str == str)
+                {
+                    list.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool TryGet(ref ReadOnlySpan<char> input, out string key, out T result)
+        {
+            if (input.Length == 0)
+            {
+                key = default;
+                result = default;
+                return false;
+            }
+            if (!_data.TryGetValue(input[0], out var list))
+            {
+                key = default;
+                result = default;
+                return false;
+            }
+            foreach (var (str, data) in list)
+            {
+                if (input.StartsWith(str, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    input = input[str.Length..];
+                    key = str;
+                    result = data;
+                    return true;
+                }
+            }
+            key = default;
+            result = default;
+            return false;
+        }
+    }
+
     public class ZhouParser
     {
         private readonly ApplicationDbContext _context;
@@ -30,9 +94,9 @@ namespace PcrBattleChannel.Algorithm
         private readonly ICharacterAliasProvider _alias;
 
         private Dictionary<int, CharacterConfig> _defaultConfigs = new();
-        private Dictionary<string, CharacterConfig> _characterNames = new();
-        private Dictionary<string, CharacterConfig> _allConfigs = new();
-        private Dictionary<int, Dictionary<string, CharacterConfig>> _groupedConfigs = new(); //character ID -> config name -> config
+        private Trie0<CharacterConfig> _characterNames = new();
+        private Trie0<CharacterConfig> _allConfigs = new();
+        private Dictionary<int, Trie0<CharacterConfig>> _groupedConfigs = new(); //character ID -> config name -> config
         private Dictionary<string, int> _cachedBossNames = new();
 
         public ZhouParser(ApplicationDbContext context, int guildID, ICharacterAliasProvider alias)
@@ -43,7 +107,7 @@ namespace PcrBattleChannel.Algorithm
         }
 
         private static void GroupConfigs(HashSet<string> nameCheck, IEnumerable<CharacterConfig> configs,
-            Dictionary<string, CharacterConfig> results)
+            Trie0<CharacterConfig> results)
         {
             nameCheck.Clear();
             foreach (var c in configs)
@@ -67,10 +131,10 @@ namespace PcrBattleChannel.Algorithm
                 .Where(c => c.GuildID == _guildID)
                 .ToListAsync();
             var nameCheck = new HashSet<string>();
-            GroupConfigs(nameCheck, allConfigs, _allConfigs);
+            GroupConfigs(nameCheck, allConfigs.Where(c => c.Kind == CharacterConfigKind.Others), _allConfigs);
             foreach (var c in allConfigs.GroupBy(cc => cc.CharacterID))
             {
-                var group = new Dictionary<string, CharacterConfig>();
+                var group = new Trie0<CharacterConfig>();
                 GroupConfigs(nameCheck, c, group);
                 _groupedConfigs.Add(c.Key, group);
             }
@@ -87,10 +151,63 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public Zhou Parse(string str, bool hasName)
+        private bool CheckStandardConfigName(string str, int cid, ref ReadOnlySpan<char> input, out CharacterConfig config)
         {
-            var words = str.Split(new[] { ' ', '\t', ',', '(', ')', '（', '）', '[', ']', '/' },
+            foreach (var (regex, kind) in StandardConfigNames.Values)
+            {
+                var match = regex.Match(str, str.Length - input.Length);
+                if (match.Success)
+                {
+                    input = input[match.Length..];
+                    config = new CharacterConfig
+                    {
+                        Name = match.Value.ToUpperInvariant(),
+                        Kind = kind,
+                        GuildID = _guildID,
+                        CharacterID = cid,
+                    };
+                    _context.CharacterConfigs.Add(config);
+                    return true;
+                }
+            }
+            config = default;
+            return false;
+        }
+
+        private static void SkipEmptyAndSeparatorChars(ref ReadOnlySpan<char> str)
+        {
+            while (str.Length > 0 && (char.IsWhiteSpace(str[0]) || Array.IndexOf(_separators, str[0]) != -1))
+            {
+                str = str[1..];
+            }
+        }
+
+        private static readonly char[] _separators = new[]
+        {
+            ' ', '\t', ',', '(', ')', '（', '）', '[', ']', '/',
+        };
+        private static readonly char[] _separatorsEndDamage = new[] {
+            ' ', '\t', ',', '(', ')', '（', '）', '[', ']', '/',
+            'k', 'K', 'w', 'W', 'm', 'M',
+        };
+
+        public Zhou Parse(string str, bool hasName, bool createConfigs, List<CharacterConfig> newConfigs)
+        {
+            var words = str.Split(_separators, hasName ? 3 : 2,
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (!_cachedBossNames.TryGetValue(words[0], out var bossID))
+            {
+                throw new Exception($"无法识别Boss名：{words[0]}");
+            }
+            if (hasName && words.Length < 3)
+            {
+                throw new Exception($"未指定轴名、角色列表和伤害");
+            }
+            if (!hasName && words.Length < 2)
+            {
+                throw new Exception($"未指定角色列表和伤害");
+            }
 
             var retv = new ZhouVariant()
             {
@@ -107,16 +224,30 @@ namespace PcrBattleChannel.Algorithm
 
             List<(Character character, string word)> addedCharacters = new();
 
-            Dictionary<string, CharacterConfig> currentCharacter = null;
+            Trie0<CharacterConfig> currentCharacter = null;
             CharacterConfig cc = null;
 
-            //Skip boss and zhou names.
-            for (int i = hasName ? 2 : 1; i < words.Length; ++i)
-            {
-                var word = words[i];
+            var remainingParentStr = words[^1]; //Already trimmed.
+            ReadOnlySpan<char> remaining = remainingParentStr;
 
-                //A config of current character (highest priority).
-                if (currentCharacter?.TryGetValue(word, out cc) ?? false && cc is not null)
+            while (true)
+            {
+                if (remaining.Length == 0)
+                {
+                    if (addedCharacters.Count == 5)
+                    {
+                        throw new Exception("未指定伤害");
+                    }
+                    else
+                    {
+                        throw new Exception($"阵容列表的角色数量必须为5：{string.Join(' ', addedCharacters.Select(c => c.character))}");
+                    }
+                }
+
+                string importedName = null;
+
+                //Config of current character.
+                if (currentCharacter?.TryGet(ref remaining, out importedName, out cc) ?? false)
                 {
                     if (cc.Kind != CharacterConfigKind.Default)
                     {
@@ -129,10 +260,25 @@ namespace PcrBattleChannel.Algorithm
                         });
                     }
                 }
-                //A named config (high priority).
-                else if (_allConfigs.TryGetValue(word, out cc))
+                //New standard config.
+                else if (currentCharacter is not null && createConfigs &&
+                    CheckStandardConfigName(remainingParentStr, addedCharacters[^1].character.CharacterID, ref remaining, out cc))
                 {
-                    addedCharacters.Add((cc.Character, word));
+                    currentCharacter.Add(cc.Name, cc); //Add it to dict to avoid creating multiple.
+                    newConfigs.Add(cc); //Inform caller we have created a new config (need to call ConfigModel.CheckAndAddRankConfig).
+
+                    retv.CharacterConfigs.Add(new ZhouVariantCharacterConfig
+                    {
+                        ZhouVariant = retv,
+                        CharacterConfig = cc,
+                        CharacterConfigID = cc.CharacterConfigID == 0 ? null : cc.CharacterConfigID,
+                        OrGroupIndex = (int)cc.Kind,
+                    });
+                }
+                //Named configs.
+                else if (_allConfigs.TryGet(ref remaining, out importedName, out cc))
+                {
+                    addedCharacters.Add((cc.Character, importedName));
                     currentCharacter = _groupedConfigs[cc.CharacterID];
 
                     if (cc.Kind != CharacterConfigKind.Default)
@@ -146,11 +292,12 @@ namespace PcrBattleChannel.Algorithm
                         });
                     }
                 }
-                //Character alias (low priority).
-                else if (_alias.TryGet(word, out var internalID) && _defaultConfigs.TryGetValue(internalID, out cc) ||
-                    _characterNames.TryGetValue(word, out cc))
+                //Character alias.
+                else if (_characterNames.TryGet(ref remaining, out importedName, out cc) ||
+                    _alias.TryGet(ref remaining, out importedName, out var internalID) &&
+                    _defaultConfigs.TryGetValue(internalID, out cc))
                 {
-                    addedCharacters.Add((cc.Character, word));
+                    addedCharacters.Add((cc.Character, importedName));
                     currentCharacter = _groupedConfigs[cc.CharacterID];
 
                     if (cc.Kind != CharacterConfigKind.Default)
@@ -165,33 +312,46 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
                 //End of character list.
-                else if (addedCharacters.Count == 5 && i >= words.Length - 2)
+                else if (addedCharacters.Count == 5)
                 {
-                    var multiplier = word.Trim()[^1] switch
+                    var endOfDamage = remaining.IndexOfAny(_separatorsEndDamage);
+                    if (!int.TryParse(endOfDamage == -1 ? remaining : remaining[..endOfDamage], out var damage))
                     {
-                        'm' or 'M' => 1_000_000,
-                        'w' or 'W' => 10000,
-                        'k' or 'K' => 1000,
-                        _ => 1,
-                    };
-                    retv.Damage = multiplier * int.Parse(multiplier == 1 ? word : word[..^1]);
-                    if (i == words.Length - 2)
+                        throw new Exception($"无法识别轴伤害：{remaining[..endOfDamage].ToString()}");
+                    }
+                    if (endOfDamage != -1)
                     {
-                        ret.Description = words[^1];
+                        var multiplier = remaining[endOfDamage] switch
+                        {
+                            'm' or 'M' => 1_000_000,
+                            'w' or 'W' => 10000,
+                            'k' or 'K' => 1000,
+                            _ => 1,
+                        };
+                        damage *= multiplier;
+                        remaining = remaining[(endOfDamage + multiplier == 1 ? 0 : 1)..];
+                    }
+                    else
+                    {
+                        remaining = remaining[^0..];
+                    }
+                    retv.Damage = damage;
+                    if (remaining.Length > 0)
+                    {
+                        ret.Description = remaining.ToString();
                     }
                     break;
                 }
                 else
                 {
-                    //Unknown character
-                    throw new Exception();
+                    var nextSegment = remaining.ToString().Split(_separators, 2,
+                        StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
+                    throw new Exception($"无法识别角色名：{nextSegment}");
                 }
-            }
 
-            if (addedCharacters.Count != 5)
-            {
-                throw new Exception();
+                SkipEmptyAndSeparatorChars(ref remaining);
             }
+            
             addedCharacters.Sort((a, b) => MathF.Sign(a.character.Range - b.character.Range));
             ret.C1ID = addedCharacters[0].character.CharacterID;
             ret.C2ID = addedCharacters[1].character.CharacterID;
