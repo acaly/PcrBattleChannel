@@ -292,7 +292,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
             foreach (var v in zhou.Variants)
             {
-                await CheckAndRemoveUserVariants(_context, id.Value);
+                await CheckAndRemoveUserVariantsAsync(_context, id.Value);
             }
             zhou.Variants.Clear();
             _context.Zhous.Remove(zhou);
@@ -424,7 +424,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
         }
 
-        public static async Task CheckAndRemoveUserVariants(ApplicationDbContext context, int zhouVariantID)
+        public static async Task CheckAndRemoveUserVariantsAsync(ApplicationDbContext context, int zhouVariantID)
         {
             var uzvs = await context.UserZhouVariants
                 .Where(uzv => uzv.ZhouVariantID == zhouVariantID)
@@ -438,6 +438,12 @@ namespace PcrBattleChannel.Pages.Zhous
                         c.Zhou3ID == uzv.UserZhouVariantID));
                 context.UserZhouVariants.Remove(uzv);
             }
+        }
+
+        public static void CheckAndRemoveAll(ApplicationDbContext context, int guildID)
+        {
+            context.UserCombos.RemoveRange(context.UserCombos.Where(c => c.GuildID == guildID));
+            context.Zhous.RemoveRange(context.Zhous.Where(z => z.GuildID == guildID));
         }
 
         //Ajax
@@ -506,7 +512,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return StatusCode(400);
             }
 
-            await CheckAndRemoveUserVariants(_context, id.Value);
+            await CheckAndRemoveUserVariantsAsync(_context, id.Value);
             _context.ZhouVariants.Remove(v);
             await _context.SaveChangesAsync();
 

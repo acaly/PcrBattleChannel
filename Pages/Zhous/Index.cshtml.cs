@@ -167,20 +167,8 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return RedirectToPage("/Index");
             }
-            var zhous = await _context.Zhous
-                .Include(z => z.Variants)
-                .Where(z => z.GuildID == Guild.GuildID)
-                .ToListAsync();
 
-            foreach (var zhou in zhous)
-            {
-                foreach (var v in zhou.Variants)
-                {
-                    await EditModel.CheckAndRemoveUserVariants(_context, v.ZhouVariantID);
-                }
-                zhou.Variants.Clear();
-                _context.Zhous.Remove(zhou);
-            }
+            EditModel.CheckAndRemoveAll(_context, user.GuildID.Value);
             await _context.SaveChangesAsync();
 
             return RedirectToPage();
