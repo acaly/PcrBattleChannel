@@ -150,6 +150,7 @@ namespace PcrBattleChannel.Pages.Zhous
                     var existing = await _context.Zhous
                         .FirstOrDefaultAsync(zz =>
                             zz.GuildID == guildID.Value &&
+                            zz.BossID == z.BossID &&
                             zz.C1ID == z.C1ID &&
                             zz.C2ID == z.C2ID &&
                             zz.C3ID == z.C3ID &&
@@ -158,6 +159,7 @@ namespace PcrBattleChannel.Pages.Zhous
                     if (existing is null)
                     {
                         existing = unsavedMergeCheck.FirstOrDefault(zz =>
+                            zz.BossID == z.BossID &&
                             zz.C1ID == z.C1ID &&
                             zz.C2ID == z.C2ID &&
                             zz.C3ID == z.C3ID &&

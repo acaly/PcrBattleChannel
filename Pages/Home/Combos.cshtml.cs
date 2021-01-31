@@ -180,8 +180,7 @@ namespace PcrBattleChannel.Pages.Home
                     return (g.Key, groupList, sumValue, sumNetValue);
                 })
                 .ToList();
-            //Sort by max value (not by total value).
-            UserCombo.Sort((a, b) => MathF.Sign(b.list[0].Value - a.list[0].Value));
+            UserCombo.Sort((a, b) => MathF.Sign(b.value - a.value));
 
             UsedCharacters = await _context.UserCharacterStatuses
                 .Include(s => s.Character)

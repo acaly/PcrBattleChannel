@@ -106,9 +106,12 @@ namespace PcrBattleChannel.Algorithm
                     {
                         results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps));
                     }
-                    for (int i = 0; i < currentRangeStart.Step; ++i)
+                    if (rangeLaps > 1)
                     {
-                        results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps - 1));
+                        for (int i = 0; i < currentRangeStart.Step; ++i)
+                        {
+                            results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps - 1));
+                        }
                     }
                     currentRangeStart = new(endStage, endLap, 0);
                 }
@@ -377,6 +380,46 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
+            //Remove combos whose values are lower than valueRatio*maxValue.
+            private void Compress(float valueRatio)
+            {
+                int compressPointer = 0;
+                for (int i = 0; i < _userFirstSplitComboIndex.Count - 1; ++i)
+                {
+                    var currentUserBegin = _userFirstSplitComboIndex[i];
+                    var currentUserEnd = _userFirstSplitComboIndex[i + 1];
+                    var currentUserNewBegin = compressPointer;
+
+                    //First pass: find max value.
+                    var maxValue = 0f;
+                    for (int j = currentUserBegin; j < currentUserEnd; ++j)
+                    {
+                        maxValue = MathF.Max(maxValue, _values[j]);
+                    }
+                    var removeThreshold = maxValue * valueRatio;
+
+                    //Second pass: compress, removing lower values.
+                    for (int j = currentUserBegin; j < currentUserEnd; ++j)
+                    {
+                        if (_values[j] > removeThreshold)
+                        {
+                            _values[compressPointer] = _values[j];
+                            _splitCombos[compressPointer] = _splitCombos[j];
+                            //No need to move _userAdjustmentBuffer because it's updated in each step.
+
+                            compressPointer += 1;
+                        }
+                    }
+
+                    _userFirstSplitComboIndex[i] = currentUserNewBegin;
+                }
+                _userFirstSplitComboIndex[^1] = compressPointer;
+
+                _values.RemoveRange(compressPointer, _values.Count - compressPointer);
+                _splitCombos.RemoveRange(compressPointer, _splitCombos.Count - compressPointer);
+                _userAdjustmentBuffer.RemoveRange(compressPointer, _userAdjustmentBuffer.Count - compressPointer);
+            }
+
             private int CalculateDamage()
             {
                 //_bossBuffer used as damage ratio.
@@ -580,9 +623,9 @@ namespace PcrBattleChannel.Algorithm
                 int damage;
 
                 float learningRate = 0.01f;
-                for (int i = 0; i < 2; ++i)
+                for (int i = 0; i < 4; ++i)
                 {
-                    for (int j = 0; j < 1000; ++j)
+                    for (int j = 0; j < 500; ++j)
                     {
                         CalculateDamage();
                         AdjustGradient(learningRate);
@@ -592,7 +635,12 @@ namespace PcrBattleChannel.Algorithm
                         result.Balance = damage;
                         return;
                     }
-                    learningRate = 0.005f;
+                    Compress(0.05f);
+
+                    if (i == 1)
+                    {
+                        learningRate = 0.005f;
+                    }
                 }
 
                 damage = CalculateDamage();
