@@ -4,6 +4,8 @@ using PcrBattleChannel.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -160,18 +162,262 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
+        //Pretreat all combos from a single user. Group them by boss combination and (approximate) damage.
+        //Here we assume bossID has been sorted when generating the combos, so we can compare one by one.
+        //Note that this merging is before (and thus different from) another splitting (by SplitCombos).
+        private class ComboMerger
+        {
+            public struct SpreadInfo
+            {
+                public int UserIndex;
+                public int ComboIndex; //Index in original UserCombo[] array.
+                public int ComboGroupIndex; //Merged index.
+                public float Weight; //value of single combo = Weight * value of group
+            }
+
+            public unsafe struct MergedComboGroup
+            {
+                public (int a, int b, int c) Boss { get; }
+
+                //Single linked-list in Result. Note that 0 is used as invalid here, because
+                //the first group is never a "next" group.
+                public int NextGroupIndex;
+
+                //For the first group of each boss combination (a,b,c), this contains the count
+                //of all groups in the linked list. This field in the following entries in the
+                //linked list is not used (remain 1).
+                public int CountInGroupChain;
+
+                public int Count;
+
+                //Total weight of this group relative to the total weight of all groups in the
+                //linked list. This is used to initialize this groups value in calculation.
+                public float RelativeWeightInChain;
+
+                //Here vector is used instead of fixed buffer in order to accelerate weighted-
+                //average calculation.
+                private Vector3 _damageMin, _damageMax;
+
+                private Vector3 _damageSum;
+                private Vector3 _damageSqSum;
+
+                //Caution: this property calculates vector division. Try to access only once.
+                public Vector3 WeightedAverageDamage => _damageSqSum / _damageSum;
+                public float AverageTotalDamage => (_damageSum.X + _damageSum.Y + _damageSum.Z) / Count;
+
+                public MergedComboGroup((int a, int b, int c) boss, Vector3 damage, float initValue)
+                {
+                    Boss = boss;
+
+                    //Note that we initialize the group with the damage from the first combo.
+                    //This damage will be fixed to be weighted-average of all combos in the
+                    //group later. This will give unstable results for different users (meaning
+                    //that, if the order of combo list changes, the merging result will also
+                    //change, and since that order is given by database, we expect that different
+                    //users see slightly different results).
+                    //We could have been more accurate, by calculating the average of all combos
+                    //that have been added to this group and use the accurate value to compare,
+                    //but it wouldn't lead to significantly better results.
+                    _damageMin = damage * 0.95f;
+                    _damageMax = damage * 1.05f;
+
+                    _damageSum = damage;
+                    _damageSqSum = damage * damage;
+
+                    NextGroupIndex = 0;
+                    Count = 1;
+                    CountInGroupChain = 1;
+                    RelativeWeightInChain = initValue;
+                }
+
+                public bool TryAdd(Vector3 damage, float initValue)
+                {
+                    //return false;
+                    var lowerBd = damage - _damageMin;
+                    var upperBd = _damageMax - damage;
+                    //Damage can be 0, so inclusive.
+                    if (lowerBd.X >= 0 && lowerBd.Y >= 0 && lowerBd.Z >= 0 &&
+                        upperBd.X >= 0 && upperBd.Y >= 0 && upperBd.Z >= 0)
+                    {
+                        _damageSum += damage;
+                        _damageSqSum += damage * damage;
+                        Count += 1;
+                        RelativeWeightInChain += initValue;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
+            //Using array allows us to get a mutable reference to the struct.
+            private MergedComboGroup[] _resultBuffer = new MergedComboGroup[20];
+            private int _resultCount;
+
+            //First entry for the boss (a,b,c) in Result. There can be multiple such entries,
+            //forming a single linked list.
+            public Dictionary<(int a, int b, int c), int> BossIndexDict = new();
+
+            public Span<MergedComboGroup> Results => new(_resultBuffer, 0, _resultCount);
+
+            private int AddResult(MergedComboGroup g)
+            {
+                //Always ensure there is one slot available.
+                var ret = _resultCount++;
+                _resultBuffer[ret] = g;
+                if (_resultCount == _resultBuffer.Length)
+                {
+                    var newBuffer = new MergedComboGroup[_resultBuffer.Length * 2];
+                    Array.Copy(_resultBuffer, newBuffer, _resultBuffer.Length);
+                    _resultBuffer = newBuffer;
+                }
+                return ret;
+            }
+
+            //Same as Run, but with one single combo as input.
+            public void RunSingle(int userIndex, int comboIndex, UserCombo input, List<SpreadInfo> mappingOutput)
+            {
+                _resultCount = 0;
+                BossIndexDict.Clear();
+
+                var boss = (input.Boss1, input.Boss2, input.Boss3);
+                var dmg = new Vector3(input.Damage1, input.Damage2, input.Damage3);
+                BossIndexDict.Add(boss, 0);
+                _resultBuffer[_resultCount++] = new MergedComboGroup(boss, dmg, 1);
+                mappingOutput.Add(new SpreadInfo
+                {
+                    UserIndex = userIndex,
+                    ComboIndex = comboIndex,
+                    ComboGroupIndex = 0,
+                    Weight = 1f,
+                });
+                //Leave the only group's RelativeWeightInChain as 1.
+            }
+
+            public void Run(int userIndex, UserCombo[] input, List<float> comboInitValueBuffer,
+                List<SpreadInfo> mappingOutput)
+            {
+                _resultCount = 0;
+                BossIndexDict.Clear();
+
+                var firstOutput = mappingOutput.Count;
+
+                //First pass: make groups.
+                for (int comboIndex = 0; comboIndex < input.Length; ++comboIndex)
+                {
+                    var combo = input[comboIndex];
+                    var boss = (combo.Boss1, combo.Boss2, combo.Boss3);
+                    var dmg = new Vector3(combo.Damage1, combo.Damage2, combo.Damage3);
+
+                    //Use 0 if not provided. Will be corrected later.
+                    var initValue = comboInitValueBuffer?[comboIndex] ?? 0;
+
+                    if (!BossIndexDict.TryGetValue(boss, out var groupIndex))
+                    {
+                        groupIndex = AddResult(new MergedComboGroup(boss, dmg, initValue));
+                        BossIndexDict.Add(boss, groupIndex);
+                        mappingOutput.Add(new SpreadInfo
+                        {
+                            UserIndex = userIndex,
+                            ComboIndex = comboIndex,
+                            ComboGroupIndex = groupIndex,
+                        });
+                        continue;
+                    }
+
+                    _resultBuffer[groupIndex].CountInGroupChain += 1;
+                    int lastGroupIndex = 0; //This 0 is never used.
+                    do
+                    {
+                        if (_resultBuffer[groupIndex].TryAdd(dmg, initValue))
+                        {
+                            mappingOutput.Add(new SpreadInfo
+                            {
+                                UserIndex = userIndex,
+                                ComboIndex = comboIndex,
+                                ComboGroupIndex = groupIndex,
+                            });
+                            groupIndex = -1;
+                            break;
+                        }
+                        lastGroupIndex = groupIndex;
+                        groupIndex = _resultBuffer[groupIndex].NextGroupIndex;
+                    } while (groupIndex != 0);
+
+                    if (groupIndex == 0)
+                    {
+                        groupIndex = AddResult(new MergedComboGroup(boss, dmg, initValue));
+                        _resultBuffer[lastGroupIndex].NextGroupIndex = groupIndex;
+                        mappingOutput.Add(new SpreadInfo
+                        {
+                            UserIndex = userIndex,
+                            ComboIndex = comboIndex,
+                            ComboGroupIndex = groupIndex,
+                        });
+                    }
+                }
+
+                //Second pass: calculate weight of each combo relative to its combo group.
+                for (int i = 0; i < input.Length; ++i)
+                {
+                    var combo = input[i];
+
+                    var comboTotalDamage = combo.Damage1 + combo.Damage2 + combo.Damage3;
+                    var outputElement = mappingOutput[firstOutput + i];
+                    ref var g = ref _resultBuffer[outputElement.ComboGroupIndex];
+                    var groupTotalDamage = g.AverageTotalDamage * g.Count;
+                    outputElement.Weight = comboTotalDamage / groupTotalDamage;
+                    mappingOutput[firstOutput + i] = outputElement; //Write back (this is a List).
+                }
+
+                //Finally correct the weight of each combo group relative to its chain if initValues are
+                //not provided.
+                if (comboInitValueBuffer is null)
+                {
+                    foreach (var (_, firstGroupIndex) in BossIndexDict)
+                    {
+                        float sum = 0f;
+
+                        //Calculate sum.
+                        var groupIndex = firstGroupIndex;
+                        do
+                        {
+                            ref var g = ref _resultBuffer[groupIndex];
+                            sum += g.AverageTotalDamage * g.Count;
+                            groupIndex = g.NextGroupIndex;
+                        } while (groupIndex != 0);
+
+                        //Calculate weight.
+                        var normalize = sum == 0 ? 1f : 1f / sum;
+                        groupIndex = firstGroupIndex;
+                        do
+                        {
+                            ref var g = ref _resultBuffer[groupIndex];
+                            g.RelativeWeightInChain = g.AverageTotalDamage * normalize;
+                            groupIndex = g.NextGroupIndex;
+                        } while (groupIndex != 0);
+                    }
+                }
+            }
+        }
+
         private class Solver
         {
             private unsafe struct SplitComboInfo
             {
                 //We process on non-saved combo entities, so we can't rely on
                 //primary key.
-                public (int user, int combo) ComboID;
+                public (int user, int group) ComboID;
                 private fixed int _boss[3];
                 private fixed float _damage[3];
 
                 public Span<int> Boss => MemoryMarshal.CreateSpan(ref _boss[0], 3);
                 public Span<float> Damage => MemoryMarshal.CreateSpan(ref _damage[0], 3);
+
+                public (int boss, float damage) this[int index]
+                {
+                    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                    get => (_boss[index], _damage[index]);
+                }
             }
 
             public float AdjustmentCoefficient { get; set; } = 0.1f;
@@ -198,11 +444,15 @@ namespace PcrBattleChannel.Algorithm
             private readonly List<float> _values = new();
             private readonly List<float> _bossBuffer = new(); //for both damage ratio and correction factor.
             private readonly List<float> _valueInitBuffer = new();
-            private readonly List<int> _valueInitSplitCount = new();
 
             private readonly Dictionary<int, float> _mergeBossHp = new();
 
             private readonly List<float> _userAdjustmentBuffer = new();
+
+            private readonly ComboMerger _comboMerger = new();
+            private readonly List<ComboMerger.SpreadInfo> _comboGroupSpreadInfoList = new();
+
+            private readonly Dictionary<(int user, int comboGroup), float> _valueMergeIntermediate = new();
 
             private void ListAndSplitBosses(bool firstIsSpecial, bool lastIsSpecial)
             {
@@ -256,16 +506,17 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
-            private void SplitCombos()
+            private void SplitCombosAndInitValues(InitValuesDelegate initValues)
             {
                 SplitComboInfo buffer = default;
-                void SplitCombo(ref SplitComboInfo buffer, UserCombo combo, int index)
+                void SplitCombo(ref SplitComboInfo buffer, ref ComboMerger.MergedComboGroup comboGroup,
+                    Vector3 damage, float bossHpProduct, int index)
                 {
                     (int boss, int damage)? zvinfo = index switch
                     {
-                        0 => (combo.Boss1, combo.Damage1),
-                        1 => (combo.Boss2, combo.Damage2),
-                        2 => (combo.Boss3, combo.Damage3),
+                        0 => (comboGroup.Boss.a, (int)damage.X),
+                        1 => (comboGroup.Boss.b, (int)damage.Y),
+                        2 => (comboGroup.Boss.c, (int)damage.Z),
                         _ => null,
                     };
                     if (!zvinfo.HasValue)
@@ -277,6 +528,8 @@ namespace PcrBattleChannel.Algorithm
                         }
                         _splitCombos.Add(buffer);
                         _userAdjustmentBuffer.Add(0);
+                        _valueInitBuffer.Add(bossHpProduct); //Here the list is used to store per group info.
+                        //_values will be added later.
                         return;
                     }
                     if (!_splitBossTableIndex.TryGetValue(zvinfo.Value.boss, out var splitBossTableIndex))
@@ -284,7 +537,7 @@ namespace PcrBattleChannel.Algorithm
                         //The boss is not included in calculation. Skip.
                         buffer.Boss[index] = 0;
                         buffer.Damage[index] = 0;
-                        SplitCombo(ref buffer, combo, index + 1);
+                        SplitCombo(ref buffer, ref comboGroup, damage, bossHpProduct, index + 1);
                     }
                     else
                     {
@@ -292,88 +545,91 @@ namespace PcrBattleChannel.Algorithm
                         {
                             buffer.Boss[index] = splitBossID;
                             buffer.Damage[index] = zvinfo.Value.damage / _bossTotalHp[splitBossID];
-                            SplitCombo(ref buffer, combo, index + 1);
+                            SplitCombo(ref buffer, ref comboGroup, damage,
+                                bossHpProduct * _bossTotalHp[splitBossID] / 1_000_000f,
+                                index + 1);
                         }
                     }
                 }
+
                 _splitCombos.Clear();
                 _userFirstSplitComboIndex.Clear();
                 _userAdjustmentBuffer.Clear();
+                _comboGroupSpreadInfoList.Clear();
+                _values.Clear();
                 for (int userIndex = 0; userIndex < StaticInfo.Users.Length; ++userIndex)
                 {
                     var user = StaticInfo.Users[userIndex];
                     _userFirstSplitComboIndex.Add(_splitCombos.Count);
-                    if (FixSelectedCombo)
+
+                    //Get init value if provided.
+                    //Here _valueInitBuffer is used to store initial values of each combo of the user.
+                    _valueInitBuffer.Clear();
+                    bool useInitValue = initValues?.Invoke(StaticInfo, userIndex, _valueInitBuffer) ?? false;
+
+                    int selected;
+                    if (FixSelectedCombo && (selected = Array.FindIndex(user, c => c.SelectedZhou.HasValue)) != -1)
                     {
-                        var selected = Array.FindIndex(user, c => c.SelectedZhou.HasValue);
-                        if (selected != -1)
-                        {
-                            //Only add one combo.
-                            buffer.ComboID = (userIndex, selected);
-                            SplitCombo(ref buffer, user[selected], 0);
-                            continue;
-                        }
+                        //Make a group containing one combo.
+                        _comboMerger.RunSingle(userIndex, selected, user[selected], _comboGroupSpreadInfoList);
                     }
-                    for (int comboIndex = 0; comboIndex < user.Length; ++ comboIndex)
+                    else
                     {
-                        buffer.ComboID = (userIndex, comboIndex);
-                        SplitCombo(ref buffer, user[comboIndex], 0);
+                        _comboMerger.Run(userIndex, user,
+                            useInitValue ? _valueInitBuffer : null, //Only provide if we got it from the delegate.
+                            _comboGroupSpreadInfoList);
+                    }
+                    //Up to here info in _valueInitBuffer has been included into merger. We will use this list
+                    //in the following loop to store boss hp.
+
+                    //Prepare for calculating a uniform value.
+                    var totalValueForEachGroupChain = 1f / _comboMerger.BossIndexDict.Count;
+
+                    foreach (var (bosses, firstGroupIndex) in _comboMerger.BossIndexDict)
+                    {
+                        var groupIndex = firstGroupIndex;
+                        do
+                        {
+                            ref var group = ref _comboMerger.Results[groupIndex];
+                            buffer.ComboID = (userIndex, groupIndex);
+
+                            var splitStartIndex = _splitCombos.Count;
+                            _valueInitBuffer.Clear();
+                            SplitCombo(ref buffer, ref group, group.WeightedAverageDamage, 1f, 0);
+
+                            //Calculate normalization coefficient from boss hp product.
+                            var sumBossHpProduct = 0f;
+                            for (int i = 0; i < _valueInitBuffer.Count; ++i)
+                            {
+                                sumBossHpProduct += _valueInitBuffer[i];
+                            }
+                            var splitComboNormalize = 1f / sumBossHpProduct;
+
+                            //Add init values.
+                            float totalValueForGroup;
+                            if (useInitValue)
+                            {
+                                //The group's value is the sum of all combos. This has been done by the merger and the
+                                //results stored in group.RelativeWeightInChain.
+                                totalValueForGroup = group.RelativeWeightInChain;
+                            }
+                            else
+                            {
+                                //Use a uniform value.
+                                totalValueForGroup = totalValueForEachGroupChain * group.RelativeWeightInChain;
+                            }
+                            for (int i = 0; i < _valueInitBuffer.Count; ++i)
+                            {
+                                _values.Add(_valueInitBuffer[i] * splitComboNormalize * totalValueForGroup);
+                            }
+
+                            groupIndex = _comboMerger.Results[groupIndex].NextGroupIndex;
+                        } while (groupIndex != 0);
                     }
                 }
                 _userFirstSplitComboIndex.Add(_splitCombos.Count);
-            }
 
-            private void InitValues()
-            {
-                _values.Clear();
-                for (int i = 1; i < _userFirstSplitComboIndex.Count; ++i)
-                {
-                    var userCombos = _userFirstSplitComboIndex[i] - _userFirstSplitComboIndex[i - 1];
-                    var val = 1f / userCombos;
-                    for (int j = 0; j < userCombos; ++j)
-                    {
-                        _values.Add(val);
-                    }
-                }
-                while (_bossBuffer.Count < _bosses.Count)
-                {
-                    _bossBuffer.Add(0);
-                }
-            }
-
-            private void InitValues(InitValuesDelegate valueSource)
-            {
-                _values.Clear();
-                for (int i = 1; i < _userFirstSplitComboIndex.Count; ++i)
-                {
-                    _valueInitBuffer.Clear();
-                    _valueInitSplitCount.Clear();
-                    valueSource(StaticInfo, i - 1, _valueInitBuffer);
-
-                    var begin = _userFirstSplitComboIndex[i - 1];
-                    var end = _userFirstSplitComboIndex[i];
-
-                    //Count each combo.
-                    for (int j = begin; j < end; ++j)
-                    {
-                        var comboIndex = _splitCombos[j].ComboID.combo;
-                        while (_valueInitSplitCount.Count <= comboIndex)
-                        {
-                            _valueInitSplitCount.Add(0);
-                        }
-                        _valueInitSplitCount[comboIndex] += 1;
-                    }
-                    //Calculate split average values.
-                    for (int j = 0; j < _valueInitBuffer.Count; ++j)
-                    {
-                        _valueInitBuffer[j] /= _valueInitSplitCount[j];
-                    }
-                    //Set the values.
-                    for (int j = begin; j < end; ++j)
-                    {
-                        _values.Add(_valueInitBuffer[_splitCombos[j].ComboID.combo]);
-                    }
-                }
+                //Init boss buffer.
                 while (_bossBuffer.Count < _bosses.Count)
                 {
                     _bossBuffer.Add(0);
@@ -433,7 +689,8 @@ namespace PcrBattleChannel.Algorithm
                     var combo = _splitCombos[i];
                     for (int j = 0; j < 3; ++j)
                     {
-                        _bossBuffer[combo.Boss[j]] += combo.Damage[j] * value;
+                        var (b, d) = combo[j];
+                        _bossBuffer[b] += d * value;
                     }
                 }
                 bool allPositive = true, allNegative = true;
@@ -480,7 +737,8 @@ namespace PcrBattleChannel.Algorithm
                         var combo = _splitCombos[j];
                         for (int k = 0; k < 3; ++k)
                         {
-                            comboAdjustment += _bossBuffer[combo.Boss[k]] * combo.Damage[k];
+                            var (b, d) = combo[k];
+                            comboAdjustment += _bossBuffer[b] * d;
                         }
                         _values[j] -= comboAdjustment;
                         if (_values[j] < 0)
@@ -542,7 +800,8 @@ namespace PcrBattleChannel.Algorithm
                         var combo = _splitCombos[j];
                         for (int k = 0; k < 3; ++k)
                         {
-                            comboAdjustment += combo.Damage[k] * _bossBuffer[combo.Boss[k]];
+                            var (b, d) = combo[k];
+                            comboAdjustment += _bossBuffer[b] * d;
                         }
                         comboAdjustment *= deltaRatio;
                         userTotalDec += comboAdjustment * _values[j];
@@ -598,13 +857,21 @@ namespace PcrBattleChannel.Algorithm
                     result.BossValues[k] = result.BossValues[k] / v;
                 }
 
-                result.ComboValues.Clear();
-
+                //Merge to get values of each combo group.
+                _valueMergeIntermediate.Clear();
                 for (int i = 0; i < _values.Count; ++i)
                 {
                     var c = _splitCombos[i];
-                    result.ComboValues.TryGetValue(c.ComboID, out var oldValue);
-                    result.ComboValues[c.ComboID] = oldValue + _values[i];
+                    _valueMergeIntermediate.TryGetValue(c.ComboID, out var oldValue);
+                    _valueMergeIntermediate[c.ComboID] = oldValue + _values[i];
+                }
+
+                //Split values of each group into combos.
+                result.ComboValues.Clear();
+                foreach (var info in _comboGroupSpreadInfoList)
+                {
+                    _valueMergeIntermediate.TryGetValue((info.UserIndex, info.ComboGroupIndex), out var groupValue);
+                    result.ComboValues.Add((info.UserIndex, info.ComboIndex), info.Weight * groupValue);
                 }
 
                 result.EndBossIndex = StaticInfo.ConvertBossIndex(LastBoss);
@@ -618,10 +885,9 @@ namespace PcrBattleChannel.Algorithm
                 result.EndBossDamage = 0f;
 
                 ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: true);
-                SplitCombos();
-                InitValues();
-                int damage;
+                SplitCombosAndInitValues(initValues: null);
 
+                int damage;
                 float learningRate = 0.01f;
                 for (int i = 0; i < 4; ++i)
                 {
@@ -655,8 +921,8 @@ namespace PcrBattleChannel.Algorithm
             public float RunEstimate()
             {
                 ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: false);
-                SplitCombos();
-                InitValues();
+                SplitCombosAndInitValues(initValues: null);
+
                 for (int i = 0; i < 10; ++i)
                 {
                     CalculateDamage();
@@ -672,14 +938,17 @@ namespace PcrBattleChannel.Algorithm
                 return total / _bosses.Count;
             }
 
-            public delegate void InitValuesDelegate(StaticInfo staticInfo, int userIndex, List<float> buffer);
+            //Try initialize the buffer with values for each combo for the user. Returns false if fails (fallback to
+            //same value for each combo chain).
+            //Implementation does not know about combo group or combo chain and write values in the same order as
+            //StaticInfo.Users.
+            public delegate bool InitValuesDelegate(StaticInfo staticInfo, int userIndex, List<float> buffer);
 
             //Run approximately, with given initial values (given by delegate).
             public void RunApproximate(InitValuesDelegate initValues)
             {
                 ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: false);
-                SplitCombos();
-                InitValues(initValues);
+                SplitCombosAndInitValues(initValues);
 
                 float learningRate = 0.01f;
                 for (int i = 0; i < 1000; ++i)
@@ -691,7 +960,7 @@ namespace PcrBattleChannel.Algorithm
 
             //Initial values from the result of another calculation.
             //If the combo count of a user changes, initalize with same values.
-            public static InitValuesDelegate InitValues_DefaultUniform(ResultStorage result)
+            public static InitValuesDelegate InitValues_FromResult(ResultStorage result)
             {
                 return (StaticInfo staticInfo, int userIndex, List<float> buffer) =>
                 {
@@ -704,59 +973,40 @@ namespace PcrBattleChannel.Algorithm
                         {
                             buffer.Add(result.ComboValues[(userIndex, i)]);
                         }
+                        return true;
                     }
-                    else
-                    {
-                        //Default: uniform.
-                        var avg = 1f / newCount;
-                        for (int i = 0; i < newCount; ++i)
-                        {
-                            buffer.Add(avg);
-                        }
-                    }
+                    //Leave buffer uninitialized (caller will give each combo group same value).
+                    return false;
                 };
             }
 
-            //Get init values from combo.Value, except for the combos of the last user,
-            //whose combos are initialized with uniform values.
-            public static void InitValues_FromComboValues(StaticInfo staticInfo, int userIndex, List<float> buffer)
+            //Get init values from combo.Value, except for the combos of the last user.
+            public static bool InitValues_FromComboValuesExceptLast(StaticInfo staticInfo, int userIndex,
+                List<float> buffer)
             {
-                if (userIndex == staticInfo.Users.Length - 1)
-                {
-                    var newCount = staticInfo.Users[userIndex].Length;
-                    var avg = 1f / newCount;
-                    for (int i = 0; i < newCount; ++i)
-                    {
-                        buffer.Add(avg);
-                    }
-                }
-                else
+                if (userIndex != staticInfo.Users.Length - 1)
                 {
                     foreach (var c in staticInfo.Users[userIndex])
                     {
                         buffer.Add(c.Value);
                     }
+                    return true;
                 }
+                return false;
             }
 
-            public static void InitValues_FromComboNetValues(StaticInfo staticInfo, int userIndex, List<float> buffer)
+            public static bool InitValues_FromComboNetValuesExceptLast(StaticInfo staticInfo, int userIndex,
+                List<float> buffer)
             {
-                if (userIndex == staticInfo.Users.Length - 1)
-                {
-                    var newCount = staticInfo.Users[userIndex].Length;
-                    var avg = 1f / newCount;
-                    for (int i = 0; i < newCount; ++i)
-                    {
-                        buffer.Add(avg);
-                    }
-                }
-                else
+                if (userIndex != staticInfo.Users.Length - 1)
                 {
                     foreach (var c in staticInfo.Users[userIndex])
                     {
                         buffer.Add(c.NetValue);
                     }
+                    return true;
                 }
+                return false;
             }
         }
 
@@ -927,8 +1177,8 @@ namespace PcrBattleChannel.Algorithm
                 Guild = guild,
             };
 
-            var nonselectedResult = RunApproximate(staticInfo, true, guild, Solver.InitValues_FromComboValues);
-            var totalResult = RunApproximate(staticInfo, false, guild, Solver.InitValues_FromComboNetValues);
+            var nonselectedResult = RunApproximate(staticInfo, true, guild, Solver.InitValues_FromComboValuesExceptLast);
+            var totalResult = RunApproximate(staticInfo, false, guild, Solver.InitValues_FromComboNetValuesExceptLast);
 
             for (int comboIndex = 0; comboIndex < userCombos.Count; ++comboIndex)
             {

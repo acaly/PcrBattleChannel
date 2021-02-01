@@ -15,14 +15,14 @@ namespace PcrBattleChannel.Models
 
         //Value of this combo if all members do not select any combo.
         //This reflects how favored is a combo among all members.
-        [DisplayFormat(DataFormatString = "{0:P0}")]
+        [DisplayFormat(DataFormatString = "{0:P1}")]
         public float NetValue { get; set; }
 
         //Value of this combo if this user does not select any combo.
         //This reflects how favored is this combo for this user.
         //Note that combos only have Value when the user has not yet
         //selected.
-        [DisplayFormat(DataFormatString = "{0:P0}")]
+        [DisplayFormat(DataFormatString = "{0:P1}")]
         public float Value { get; set; }
 
         [ForeignKey(nameof(User))]
