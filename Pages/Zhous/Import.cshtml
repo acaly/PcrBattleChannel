@@ -18,7 +18,7 @@
                     <span>角色1、2、3、4、5、伤害，中间用空格分隔。角色可接配置名。</span>
                 </div>
                 <div class="form-group">
-                    <textarea asp-for="Input" class="form-control" rows="20"></textarea>
+                    <textarea name="Input" class="form-control" rows="20">@Model.Input</textarea>
                     <span asp-validation-for="Input" class="text-danger"></span>
                 </div>
                 <div class="form-group form-check">
@@ -42,6 +42,16 @@
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="Merge" /> @Html.DisplayNameFor(model => model.Merge)
                     </label>
+                </div>
+                <div class="form-group">
+                    <label asp-for="DuplicateCheckBehavior" class="control-label"></label>
+                    <select asp-for="DuplicateCheckBehavior" class="form-control">
+                        <option value="0">忽略</option>
+                        <option value="1">提示</option>
+                        <option value="2">覆盖</option>
+                        <option value="3">跳过</option>
+                    </select>
+                    <span asp-validation-for="DuplicateCheckBehavior" class="text-danger"></span>
                 </div>
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary">提交</button>
