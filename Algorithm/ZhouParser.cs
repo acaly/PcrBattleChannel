@@ -329,7 +329,7 @@ namespace PcrBattleChannel.Algorithm
                             _ => 1,
                         };
                         damage *= multiplier;
-                        remaining = remaining[(endOfDamage + multiplier == 1 ? 0 : 1)..];
+                        remaining = remaining[(endOfDamage + 1)..];
                     }
                     else
                     {

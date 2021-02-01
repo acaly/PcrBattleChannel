@@ -232,7 +232,6 @@ namespace PcrBattleChannel.Algorithm
 
                 public bool TryAdd(Vector3 damage, float initValue)
                 {
-                    //return false;
                     var lowerBd = damage - _damageMin;
                     var upperBd = _damageMax - damage;
                     //Damage can be 0, so inclusive.
