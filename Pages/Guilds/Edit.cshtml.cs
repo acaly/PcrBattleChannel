@@ -186,5 +186,24 @@ namespace PcrBattleChannel.Pages.Guilds
             StatusMessage = "用户已移出公会。";
             return RedirectToPage();
         }
+
+        public async Task<IActionResult> OnPostLoginAsync(string id)
+        {
+            var guild = await CheckUserPrivilege();
+            if (guild is null)
+            {
+                return RedirectToPage("/Home/Index");
+            }
+
+            var user = await _context.Users.FindAsync(id);
+            if (user is null || user.GuildID != guild.GuildID)
+            {
+                StatusMessage = "错误：用户不存在。";
+                return RedirectToPage();
+            }
+
+            await _signInManager.SignInAsync(user, false);
+            return RedirectToPage("/Home/Index");
+        }
     }
 }

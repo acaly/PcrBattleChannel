@@ -86,6 +86,10 @@
                                         asp-page="ResetUserPassword" asp-route-id="@item.Id">
                                     重置密码
                                 </button>
+                                <button type="submit" class="btn btn-light"
+                                        asp-page-handler="login" asp-route-id="@item.Id">
+                                    登录
+                                </button>
                             </td>
                         </tr>
                     }
