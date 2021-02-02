@@ -218,6 +218,7 @@ namespace PcrBattleChannel.Algorithm
                 {
                     _results.Add((_zmatrix[0].data[0],                  -1, _zmatrix[2].data[1])); //AxB
                     _results.Add((_zmatrix[0].data[1], _zmatrix[1].data[0], -1));                  //BAx
+                    _results.Add((                 -1, _zmatrix[1].data[0], _zmatrix[2].data[1])); //xAB
                 }
                 break;
             case (2, 1): //A A A
