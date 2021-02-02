@@ -8,9 +8,7 @@
 <hr />
 
 <partial name="_Combo_StatusPartial" model="Model" />
-
-<h4>分刀套餐</h4>
-<div class="row pt-2 pb-2">
+<div class="row pt-2 pb-4">
     <div class="col-md-10">
         <form method="post" asp-page-handler="setdraft"
               data-ajax="true" data-ajax-method="post"
@@ -27,6 +25,22 @@
     </div>
 </div>
 
+<h4>Boss推荐度</h4>
+
+<div class="row pt-2 pb-4">
+    <div class="w-100 border-top"></div>
+    @foreach (var (name, value) in Model.BossValues)
+    {
+        <div class="col-12 col-md-6 col-lg-4 py-2 border-bottom">
+            <div class="row">
+                <div class="col-6">@name</div>
+                <div class="col-6">@value.ToString("P1")</div>
+            </div>
+        </div>
+    }
+</div>
+
+<h4>阵容推荐度</h4>
 <div class="row align-bottom py-2 border-top border-bottom">
     <div class="col-xl-10 col-lg-9 col-md-8 col-sm-12">
         <span class="font-weight-bold">阵容</span>

@@ -43,6 +43,8 @@ namespace PcrBattleChannel.Pages.Home
 
         public Dictionary<int, Zhou> CachedZhouData { get; set; } = new();
 
+        public List<(string, float)> BossValues { get; set; } = new();
+
         public class SingleComboModel
         {
             public UserCombo Item { get; init; }
@@ -167,7 +169,13 @@ namespace PcrBattleChannel.Pages.Home
 
             static string GetComboGroupedName(UserCombo c)
             {
-                return $"{c.Zhou1.ZhouVariant.Zhou.Boss.ShortName} + {c.Zhou2.ZhouVariant.Zhou.Boss.ShortName} + {c.Zhou3.ZhouVariant.Zhou.Boss.ShortName}";
+                var b1 = c.Zhou1?.ZhouVariant.Zhou.Boss;
+                var b2 = c.Zhou2?.ZhouVariant.Zhou.Boss;
+                var b3 = c.Zhou3?.ZhouVariant.Zhou.Boss;
+                if (b1 is null) return "空";
+                if (b2 is null) return $"{b1.ShortName}";
+                if (b3 is null) return $"{b1.ShortName} + {b2.ShortName}";
+                return $"{b1?.ShortName} + {b2.ShortName} + {b3.ShortName}";
             }
             UserCombo = rawList
                 .GroupBy(GetComboGroupedName)
@@ -181,6 +189,25 @@ namespace PcrBattleChannel.Pages.Home
                 })
                 .ToList();
             UserCombo.Sort((a, b) => MathF.Sign(b.value - a.value));
+
+            var bossDict = new Dictionary<Boss, float>();
+            void AddBoss(UserZhouVariant uzv, float value)
+            {
+                var b = uzv?.ZhouVariant.Zhou.Boss;
+                if (b is null) return;
+                bossDict.TryGetValue(b, out var oldVal);
+                bossDict[b] = oldVal + value;
+            }
+            foreach (var c in rawList)
+            {
+                AddBoss(c.Zhou1, c.Value);
+                AddBoss(c.Zhou2, c.Value);
+                AddBoss(c.Zhou3, c.Value);
+            }
+            BossValues = bossDict
+                .OrderBy(bb => bb.Key.BossID)
+                .Select(bb => ($"{bb.Key.ShortName} ({bb.Key.Name})", bb.Value))
+                .ToList();
 
             UsedCharacters = await _context.UserCharacterStatuses
                 .Include(s => s.Character)
