@@ -160,8 +160,10 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return null;
             }
-            var guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID);
-            if (guild is null)
+            user = await _context.Users
+                .Include(u => u.Guild)
+                .FirstOrDefaultAsync(uu => uu.Id == user.Id);
+            if (user.Guild is null)
             {
                 return null;
             }
@@ -266,6 +268,7 @@ namespace PcrBattleChannel.Pages.Zhous
             zhou.BossID = Zhou.BossID;
 
             _context.Update(zhou);
+            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
 
             await _context.SaveChangesAsync();
             return RedirectToPage("./Details", new { id = Zhou.ZhouID });
@@ -283,19 +286,26 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage("./Index");
             }
 
+            //Remove zhou variants.
+            //If these are loaded through zhou.Variants, the db refuses to delete them.
+            //Not sure what causes this, but here removing them without loading from zhou works fine.
+            foreach (var v in await _context.ZhouVariants.Where(zv => zv.ZhouID == id.Value).ToListAsync())
+            {
+                await CheckAndRemoveUserVariantsAsync(_context, v.ZhouVariantID);
+                _context.ZhouVariants.Remove(v);
+            }
+
+            //Then remove the zhou.
             var zhou = await _context.Zhous
-                .Include(z => z.Variants)
                 .FirstOrDefaultAsync(z => z.ZhouID == id);
             if (zhou is null || zhou.GuildID != user.GuildID)
             {
-                return NotFound();
+                return RedirectToPage("./Index");
             }
-            foreach (var v in zhou.Variants)
-            {
-                await CheckAndRemoveUserVariantsAsync(_context, id.Value);
-            }
-            zhou.Variants.Clear();
+
             _context.Zhous.Remove(zhou);
+
+            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
             await _context.SaveChangesAsync();
 
             return RedirectToPage("./Index");
@@ -484,6 +494,7 @@ namespace PcrBattleChannel.Pages.Zhous
 
             //Setup user variants.
             await CheckAndAddUserVariants(_context, user.GuildID.Value, Zhou, variant, configs, null);
+            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
 
             await _context.SaveChangesAsync();
 
@@ -514,6 +525,8 @@ namespace PcrBattleChannel.Pages.Zhous
 
             await CheckAndRemoveUserVariantsAsync(_context, id.Value);
             _context.ZhouVariants.Remove(v);
+
+            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
             await _context.SaveChangesAsync();
 
             return StatusCode(200);
@@ -562,6 +575,8 @@ namespace PcrBattleChannel.Pages.Zhous
 
             _context.Update(v);
             await ApplyConfigString(Zhou, v, EditVariantConfigs);
+
+            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
             await _context.SaveChangesAsync();
 
             ViewData["allConfigs"] = await InitCharacterConfigs(user.GuildID.Value);

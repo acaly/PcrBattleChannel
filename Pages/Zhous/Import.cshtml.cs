@@ -298,7 +298,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 if (Merge)
                 {
                     mergedInto = existingSameZhou;
-                    if (HasName && mergedInto.Name != z.Name)
+                    if (HasName && mergedInto is not null && mergedInto.Name != z.Name)
                     {
                         //Only merge when name is the same.
                         mergedInto = null;
@@ -331,6 +331,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return Page();
             }
 
+            (await _context.Guilds.FirstAsync(g => g.GuildID == guildID)).LastZhouUpdate = TimeZoneHelper.BeijingNow;
             await _context.SaveChangesAsync();
 
             if (DuplicateCheckBehavior == ZhouParserDuplicateCheckBehavior.Return)

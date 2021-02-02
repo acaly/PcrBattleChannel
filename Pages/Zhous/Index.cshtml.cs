@@ -155,6 +155,7 @@ namespace PcrBattleChannel.Pages.Zhous
                     });
                 }
             });
+            user.LastComboUpdate = default;
             await _context.SaveChangesAsync();
 
             return RedirectToPage();
@@ -169,6 +170,7 @@ namespace PcrBattleChannel.Pages.Zhous
             }
 
             EditModel.CheckAndRemoveAll(_context, user.GuildID.Value);
+            Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
             await _context.SaveChangesAsync();
 
             return RedirectToPage();

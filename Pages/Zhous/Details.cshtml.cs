@@ -176,6 +176,8 @@ namespace PcrBattleChannel.Pages.Zhous
                     _context.UserZhouVariants.Update(setting);
                 }
             }
+
+            user.LastComboUpdate = default; //Force recalculation.
             await _context.SaveChangesAsync();
 
             return StatusCode(200);

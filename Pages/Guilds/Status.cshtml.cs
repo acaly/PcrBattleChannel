@@ -236,7 +236,7 @@ namespace PcrBattleChannel.Pages.Guilds
 
                 //Refresh only when needed.
                 var attemptCountChanged = lastCalcAttemptsCount != user.Attempts;
-                var zhouChangedSinceLastUpdate = user.LastComboUpdate < guild.LastZhouUpdate;
+                var zhouChangedSinceLastUpdate = user.LastComboUpdate <= guild.LastZhouUpdate;
                 if (attemptCountChanged || zhouChangedSinceLastUpdate)
                 {
                     _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == uid));

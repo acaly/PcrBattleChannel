@@ -325,6 +325,7 @@ namespace PcrBattleChannel.Pages.Home
                 user.GuessedAttempts = 0;
                 user.IsIgnored = false;
                 user.LastConfirm = TimeZoneHelper.BeijingNow;
+                user.LastComboUpdate = default;
             }
             catch
             {
