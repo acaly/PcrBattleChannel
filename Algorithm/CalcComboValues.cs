@@ -1115,6 +1115,10 @@ namespace PcrBattleChannel.Algorithm
             guild.PredictBossIndex = nonselectedResult.EndBossIndex;
             guild.PredictBossDamageRatio = nonselectedResult.EndBossDamage;
             guild.LastCalculation = TimeZoneHelper.BeijingNow;
+
+            await context.Users
+                .Where(u => u.GuildID == guild.GuildID)
+                .ForEachAsync(u => u.IsValueApproximate = false);
         }
 
         //Run for a single user and get approximate results. This is useful to show some number quickly after
@@ -1200,6 +1204,8 @@ namespace PcrBattleChannel.Algorithm
                     c.Value = 0;
                 }
             }
+
+            user.IsValueApproximate = true;
         }
 
         public static ResultStorage Run(StaticInfo staticInfo, bool fixSelected)
