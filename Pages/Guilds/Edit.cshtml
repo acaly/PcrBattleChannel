@@ -98,6 +98,8 @@
 
             <div class="form-group">
                 <a asp-page="/Guilds/CloneUsers">克隆会员</a>
+                @Html.HelpMessage("会长可以以公会内指定的一名会员为模板，创建Box完全相同的多个虚拟会员账户。" +
+                    "这些账户会被加入到公会的分刀计算当中。可以用来测试分刀功能。如果部分会员无法访问本网站也可以用这个方法补足。")
             </div>
         </form>
     </div>

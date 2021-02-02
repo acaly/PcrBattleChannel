@@ -2,6 +2,7 @@
 @model PcrBattleChannel.Pages.Zhous.IndexModel
 @{
     ViewData["Title"] = "公会轴表";
+    var draftCount = Model.Zhou.Count(zz => zz.Variants.All(zv => zv.IsDraft));
 }
 
 <div class="pb-4">
@@ -28,8 +29,8 @@
     }
     <form method="post" asp-page-handler="refresh">
         <button type="submit" class="btn btn-primary">重新匹配</button>
-        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()">显示草稿</button>
-        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()" style="display:none">隐藏草稿</button>
+        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()">显示草稿 (@draftCount)</button>
+        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()" style="display:none">隐藏草稿 (@draftCount)</button>
     </form>
 </div>
 

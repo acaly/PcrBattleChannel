@@ -327,7 +327,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 deleteList.Clear();
                 foreach (var (u, b) in userBorrow)
                 {
-                    if (!mergeSet.Contains(u))
+                    if (b != borrow && !mergeSet.Contains(u))
                     {
                         deleteList.Add(u);
                     }

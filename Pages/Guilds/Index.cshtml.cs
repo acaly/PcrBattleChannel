@@ -27,6 +27,7 @@ namespace PcrBattleChannel.Pages.Guilds
         }
 
         public Guild Guild { get; set; }
+        public bool IsAdmin { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -39,6 +40,7 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 return RedirectToPage("/Home/Index");
             }
+            IsAdmin = user.IsGuildAdmin;
 
             Guild = await _context.Guilds
                 .Include(g => g.Owner)

@@ -22,15 +22,31 @@
         </dd>
     </dl>
 </div>
-<div>
-    <h4>管理</h4>
-    <ul>
-        <li><a asp-page="Configs">配置角色</a></li>
-        <li><a asp-page="Status">编辑状态</a></li>
-        <li><a href="javascript:void(0)" onclick="$('#sync-form').submit()">Yobot同步</a></li>
-    </ul>
-    <form method="post" asp-page-handler="sync" id="sync-form"></form>
-</div>
+@if (Model.IsAdmin)
+{
+    <div>
+        <h4>管理</h4>
+        <ul>
+            <li>
+                <a asp-page="Configs">配置角色</a>
+                @Html.HelpMessage("创建或删除公会中每个角色的详细配置（星级、Rank等）。设置好的角色可以在每个轴里进行指定，" +
+                    "帮助会员对能出的轴进行筛选。角色配置可以通过这个链接手动创建，但对于星级和Rank配置更推荐在导入轴表时指定配置的名称来自动创建。")
+            </li>
+            <li>
+                <a asp-page="Status">编辑状态</a>
+                @Html.HelpMessage("手动编辑公会当前公会战的进度（当前Boss和当前Boss的血量）。如果设置好yobot接口后进度会定期自动更新，" +
+                    "不推荐手动进行修改。但是手动设置进度可以强制立刻刷新所有玩家的分刀套餐以及套餐的推荐度，在轴表或状态设置出现偏差需要修正时可以使用。" +
+                    "注意：根据公会里轴的数量，这一操作可能会持续若干秒至几分钟，请耐心等待。")
+            </li>
+            <li>
+                <a href="javascript:void(0)" onclick="$('#sync-form').submit()">Yobot同步</a>
+                @Html.HelpMessage("强制立即从yobot接口读取当前的进度，并重新计算所有玩家的套餐及推荐度。注意：根据公会里轴的数量，" +
+                    "这一操作可能会持续若干秒至几分钟，请耐心等待。")
+            </li>
+        </ul>
+        <form method="post" asp-page-handler="sync" id="sync-form"></form>
+    </div>
+}
 <div>
     <h4>成员列表</h4>
     <form method="post">

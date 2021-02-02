@@ -16,18 +16,23 @@
     <div class="col-md-8 offset-md-2 pb-2">
         <div>
             <a asp-page="EditGlobalData">编辑赛季数据</a>
+            @Html.HelpMessage("初始化服务器上的全局数据。务必在编辑Boss数据和创建公会之前进行。")
         </div>
         <div>
             <a asp-page="Bosses/Index">编辑Boss数据</a>
+            @Html.HelpMessage("编辑服务器上的Boss数据。务必在创建公会之前进行。")
         </div>
         <div>
             <a asp-page="AddGuild">创建公会</a>
+            @Html.HelpMessage("以指定的用户（通过注册邮箱指定）为会长创建新公会。")
         </div>
         <div>
             <a asp-page="RemoveGuild">删除公会</a>
+            @Html.HelpMessage("查看当前服务器上的公会列表，删除公会。")
         </div>
         <div>
             <a asp-page="SuLogin">登录用户</a>
+            @Html.HelpMessage("登出当前管理员账户并以任意指定用户的身份重新登录服务器。")
         </div>
     </div>
     <div class="col-md-8 offset-md-2 pb-2">

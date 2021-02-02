@@ -13,6 +13,7 @@
 {
     <div class="text-center">
         <p>请登录并加入公会。</p>
+        <p>如果已有公会请让会长从公会设置中邀请。</p>
     </div>
 }
 else
@@ -26,14 +27,22 @@ else
         <div class="col-md-6">
             <h4>总体状态</h4>
             <dl>
-                <dt>当前进度</dt>
+                <dt>
+                    当前进度
+                    @Html.HelpMessage("管理员手动设置或服务器通过yobot接口获取的当前公会战进度。")
+                </dt>
                 <dd>
                     @(startConv.lap + 1) 周目 @(startConv.boss + 1) 号Boss
                     @(Model.GetBossName(startConv.stage, startConv.boss))
                     (@(Model.GetBossShortName(startConv.stage, startConv.boss))) -
                     @(Model.Guild.BossDamageRatio.ToString("P0"))
                 </dd>
-                <dt>预计进度</dt>
+                <dt>
+                    预计进度
+                    @Html.HelpMessage("通过优化计算预测的本日最终进度。如果会员预约的分刀方案无法击败Boss序列中的某个Boss" +
+                        "则进度会卡在该Boss之前。因为计算不考虑尾刀，目前的版本中管理员需要尽量保证公会中有2-3人不做预约选择，" +
+                        "否则30人全部选择的情况下很容易在Boss间产生较大的不平衡性导致计算误认为会卡进度。")
+                </dt>
                 <dd>
                     @(predConv.lap + 1) 周目 @(predConv.boss + 1) 号Boss
                     @(Model.GetBossName(predConv.stage, predConv.boss))
@@ -48,18 +57,32 @@ else
                 <dd>
                     @(Model.RemainingAttempts) 刀
                 </dd>
-                <dt>待确认</dt>
+                <dt>
+                    待确认
+                    @Html.HelpMessage("通过yobot数据自动推测，但尚未经本人人工确认的已出刀数。如果成员确实按照分刀界面中的" +
+                        "预约分刀方案出刀则待确认刀数没有影响。")
+                </dt>
                 <dd>
                     @(Model.GuessedAttempts) 刀
                 </dd>
-                <dt>已忽略</dt>
+                <dt>
+                    已忽略
+                    @Html.HelpMessage("因为无法通过yobot数据推测已出刀中所用的角色，所以无法计算剩余刀的可能方案的人数。" +
+                        "最可能的情况是这些会员没有在分刀界面中设置“预约”的阵容。")
+                </dt>
                 <dd>
                     @(Model.UnknownAttempts) 刀
                 </dd>
             </dl>
         </div>
         <div class="col-md-6">
-            <h4>分刀平衡度</h4>
+            <div>
+                <h4 style="display:inline-block">分刀平衡度</h4>
+                <span style="vertical-align:top">
+                    @Html.HelpMessage("按照优化计算的结果，每个Boss会受到的总伤害和其总血量之比。大于100%表示伤害溢出，" +
+                        "小于100%表示伤害不足。")
+                </span>
+            </div>
             <dl>
                 @foreach (var s in Model.BossStatus)
                 {

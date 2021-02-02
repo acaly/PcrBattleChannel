@@ -169,7 +169,8 @@
             var kind = $('#config-list-new-config-select-' + id).val();
             var name = $('#config-list-new-config-name-' + id).val();
             if (name.match(regex_check_reg[kind]) == null) {
-                return confirm('配置名不符合该类别的标准命名（示例：' + regex_check_example[kind] + '），是否确认添加？');
+                return confirm('创建新配置推荐使用该类别的标准命名（示例：' + regex_check_example[kind] +
+                    '），这样有助于避免创建相同含义但名称不同的重复配置。是否确认添加不符合上述标准命名的配置？');
             }
             return true;
         }

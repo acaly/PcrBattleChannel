@@ -10,7 +10,7 @@
         {
             <div class="col-md-2">
                 <p>
-                    第一刀<span class="guessed">@(0 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? "" : "（推测）")</span>
+                    第一刀<span class="guessed">@(0 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? null : Html.Guessed())</span>
                 </p>
             </div>
             <div class="col-md-10">
@@ -34,7 +34,7 @@
         {
             <div class="col-md-2">
                 <p>
-                    第二刀<span class="guessed">@(1 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? "" : "（推测）")</span>
+                    第二刀<span class="guessed">@(1 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? null : Html.Guessed())</span>
                 </p>
             </div>
             <div class="col-md-10">
@@ -58,7 +58,7 @@
         {
             <div class="col-md-2">
                 <p>
-                    第三刀<span class="guessed">@(2 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? "" : "（推测）")</span>
+                    第三刀<span class="guessed">@(2 + Model.AppUser.GuessedAttempts < Model.AppUser.Attempts ? null : Html.Guessed())</span>
                 </p>
             </div>
             <div class="col-md-10">

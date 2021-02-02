@@ -13,9 +13,41 @@
         <div>
             <form method="post">
                 <div class="form-group">
-                    <span>粘贴文本格式内容来批量导入多个轴。每个轴一行，包括：Boss简称（如A1）、</span>
-                    <span id="format-zhou-name" style="display:none">轴名、</span>
-                    <span>角色1、2、3、4、5、伤害，中间用空格分隔。角色可接配置名。</span>
+                    <p>
+                        <span>粘贴文本格式内容来批量导入多个轴。每个轴一行，包括：Boss简称（如A1）、</span>
+                        <span class="format-zhou-name" style="display:none">轴名、</span>
+                        <span>角色1、2、3、4、5、伤害，中间用空格分隔。角色可接配置名。下列输入都可被接受：</span>
+                    </p>
+                    <p>
+                        <a href="javascript:void(0)" onclick="$('#format-examples').toggle()">展开/折叠 示例</a>
+                    </p>
+                    <div id="format-examples" style="display:none">
+                        <p>
+                            <span>A1</span>
+                            <span class="format-zhou-name" style="display:none">1王测试轴</span>
+                            <span>黑骑 狗 狼 克 环 1000000</span>
+                        </p>
+                        <p>
+                            <span>A1</span>
+                            <span class="format-zhou-name" style="display:none">1王测试轴</span>
+                            <span>黑骑狗狼克环 100w</span>
+                        </p>
+                        <p>
+                            <span>A1</span>
+                            <span class="format-zhou-name" style="display:none">1王测试轴</span>
+                            <span>黑骑 狗 狼 5星 R11-6 R11-5 克 环 100w</span>
+                        </p>
+                        <p>
+                            <span>A1</span>
+                            <span class="format-zhou-name" style="display:none">1王测试轴</span>
+                            <span>黑骑 狗 狼(5星,R11-6,R11-5) 克 环 100w auto轴</span>
+                        </p>
+                        <p>
+                            <span>A1</span>
+                            <span class="format-zhou-name" style="display:none">1王测试轴</span>
+                            <span>黑骑 狗 狼(5星/R11-6/R11-5) 克 环 100w auto轴 视频地址：xxx</span>
+                        </p>
+                    </div>
                 </div>
                 <div class="form-group">
                     <textarea name="Input" class="form-control" rows="20">@Model.Input</textarea>
@@ -24,27 +56,37 @@
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="HasName"
-                               onclick="$('#format-zhou-name').toggle()" />
+                               onclick="$('.format-zhou-name').toggle()" />
                         @Html.DisplayNameFor(model => model.HasName)
                     </label>
+                    @Html.HelpMessage("在导入数据的每一行的Boss名和阵容之间指定轴名。如果选择不指定，导入时会给每个轴" +
+                        "按照阵容自动生成一个名字。默认不指定。")
                 </div>
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="AsDraft" /> @Html.DisplayNameFor(model => model.AsDraft)
                     </label>
+                    @Html.HelpMessage("草稿一般为没有在公会中验证过或挑选过的轴，默认情况下不会包括在会员的分刀的计算中。")
                 </div>
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="CreateConfigs" /> @Html.DisplayNameFor(model => model.CreateConfigs)
                     </label>
+                    @Html.HelpMessage("自动在公会中创建诸如R11-6、R12-X、4星、5星、开专、满专等符合标准命名的角色配置。" +
+                        "符合标准命名的配置不必担心错误、重复等问题。推荐开启。")
                 </div>
                 <div class="form-group form-check">
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="Merge" /> @Html.DisplayNameFor(model => model.Merge)
+                        @Html.HelpMessage("自动按照Boss和角色合并若干轴。被合并的轴各自会作为轴的“详细配置”。" +
+                            "合并有助于简化轴表的查阅。推荐开启。注意：手动指定轴名的情况下轴名必须相同才能合并。")
                     </label>
                 </div>
                 <div class="form-group">
                     <label asp-for="DuplicateCheckBehavior" class="control-label"></label>
+                    @Html.HelpMessage("自动检查已经存在的完全相同（不包括伤害）的轴。推荐不要忽略。各个选项的含义：" +
+                        "忽略：不检查，直接添加。提示：将重复的轴作为错误，如果出现重复则中止导入操作。覆盖：" +
+                        "自动对旧的轴的数据（伤害和备注）进行更新。跳过：只导入不重复的轴，重复的轴的数据会保留在输入框中。")
                     <select asp-for="DuplicateCheckBehavior" class="form-control">
                         <option value="0">忽略</option>
                         <option value="1">提示</option>
