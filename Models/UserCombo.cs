@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Models
 {
+    [Obsolete("Use memory storage")]
     public class UserCombo
     {
         public int UserComboID { get; set; }

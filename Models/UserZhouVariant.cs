@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace PcrBattleChannel.Models
 {
     //Many-to-many relationship between user and ZhouVariant.
+    [Obsolete("Use memory storage")]
     public class UserZhouVariant
     {
         public int UserZhouVariantID { get; set; }

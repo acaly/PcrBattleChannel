@@ -25,6 +25,13 @@ namespace PcrBattleChannel.Data
                 .WithOne(m => m.Guild)
                 .HasForeignKey(m => m.GuildID);
 
+            builder.Entity<ZhouVariantCharacterConfig>()
+                .HasOne(c => c.ZhouVariant)
+                .WithMany(v => v.CharacterConfigs)
+                .HasForeignKey(c => c.ZhouVariantID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.Entity<UserZhouVariant>()
                 .HasOne(v => v.User)
                 .WithMany(u => u.ZhouVariants)
@@ -34,12 +41,6 @@ namespace PcrBattleChannel.Data
                 .HasOne(v => v.ZhouVariant)
                 .WithMany()
                 .HasForeignKey(v => v.ZhouVariantID)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<ZhouVariantCharacterConfig>()
-                .HasOne(c => c.ZhouVariant)
-                .WithMany(v => v.CharacterConfigs)
-                .HasForeignKey(c => c.ZhouVariantID)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<UserCombo>()
@@ -57,12 +58,8 @@ namespace PcrBattleChannel.Data
                 .WithMany()
                 .HasForeignKey(c => c.Zhou3ID)
                 .OnDelete(DeleteBehavior.Restrict);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
-
-        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        //{
-        //    optionsBuilder.LogTo(Console.WriteLine);
-        //}
 
         //Game characters. Imported from Admin/EditGlobalData.
         public DbSet<Character> Characters { get; set; }
@@ -83,7 +80,10 @@ namespace PcrBattleChannel.Data
         public DbSet<Zhou> Zhous { get; set; }
         public DbSet<ZhouVariant> ZhouVariants { get; set; }
         public DbSet<ZhouVariantCharacterConfig> ZhouVariantCharacterConfigs { get; set; }
+
+        [Obsolete("Use memory storage")]
         public DbSet<UserZhouVariant> UserZhouVariants { get; set; }
+        [Obsolete("Use memory storage")]
         public DbSet<UserCombo> UserCombos { get; set; }
     }
 }
