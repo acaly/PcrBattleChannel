@@ -147,7 +147,7 @@ namespace PcrBattleChannel.Algorithm
                     var rangeLaps = lastBoss.Lap - currentRangeStart.Lap + 1;
 
                     //Note that we reversed the two loops in order to put last boss last.
-                    if (rangeLaps > 0)
+                    if (rangeLaps > 1)
                     {
                         for (int i = bossCountLast; i < bossCount; ++i)
                         {
