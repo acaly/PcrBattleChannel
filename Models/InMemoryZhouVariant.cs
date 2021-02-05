@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Models
 {
+    //default of this struct is used for new user.
     public struct InMemoryUserZhouVariantData
     {
-        //0-4: borrow. other values (5): no borrow
-        public byte Borrow;
+        //0: invalid, 1-5: borrow, 6: no borrow.
+        public byte BorrowPlusOne;
     }
 
     //Track a ZhouVariant entry in database.

@@ -17,10 +17,10 @@ namespace PcrBattleChannel.Pages.Home
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public IndexModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public IndexModel(InMemoryStorageContext memContext, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
-            _context = context;
+            _context = memContext.DbContext;
             _signInManager = signInManager;
             _userManager = userManager;
         }

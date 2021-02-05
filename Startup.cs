@@ -59,6 +59,7 @@ namespace PcrBattleChannel
             //Helper class to provide translation from nickname to character id.
             services.AddSingleton<ICharacterAliasProvider>(new CharacterAliasProvider());
             services.AddSingleton<ZhouParserFactory>();
+            services.AddScoped<InMemoryStorageContext>();
 
             //Yobot sync scheduler.
             services.AddHostedService<YobotSyncScheduler>();

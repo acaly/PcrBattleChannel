@@ -52,11 +52,10 @@ namespace PcrBattleChannel.Pages.Admin
                 if (member.Email is null)
                 {
                     //TODO
-                    //Something here is preventing user from being deleted. (May be the UserCharacterStatuses above.)
+                    //Something here is preventing user from being deleted.
+                    //(May be the UserCharacterStatuses above, or the combo info that has been moved to InMemoryStorage.)
                     //Need to figure this out and use cascade deletion.
                     //Also remember to fix the remove user page in Guilds/Edit.
-                    _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == member.Id));
-                    _context.UserZhouVariants.RemoveRange(_context.UserZhouVariants.Where(c => c.UserID == member.Id));
                     _context.UserCharacterConfigs.RemoveRange(_context.UserCharacterConfigs.Where(c => c.UserID == member.Id));
                     _context.Users.Remove(member);
                 }

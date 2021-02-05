@@ -19,7 +19,9 @@ namespace PcrBattleChannel.Models
 
         //TODO some of these navigation collections are not used
 
+        [Obsolete("Use memory storage")]
         public ICollection<UserZhouVariant> ZhouVariants { get; set; }
+        [Obsolete("Use memory storage")]
         public ICollection<UserCombo> Combos { get; set; }
 
         public ICollection<UserCharacterStatus> CharacterStatuses { get; set; }
@@ -37,20 +39,25 @@ namespace PcrBattleChannel.Models
 
         [ForeignKey(nameof(Attempt1))]
         public int? Attempt1ID { get; set; }
+        [Obsolete("Use memory storage")]
         public UserZhouVariant Attempt1 { get; set; }
         public int? Attempt1Borrow { get; set; }
 
         [ForeignKey(nameof(Attempt2))]
         public int? Attempt2ID { get; set; }
+        [Obsolete("Use memory storage")]
         public UserZhouVariant Attempt2 { get; set; }
         public int? Attempt2Borrow { get; set; }
 
         [ForeignKey(nameof(Attempt3))]
         public int? Attempt3ID { get; set; }
+        [Obsolete("Use memory storage")]
         public UserZhouVariant Attempt3 { get; set; }
         public int? Attempt3Borrow { get; set; }
 
+        [Obsolete("Use memory storage")]
         public DateTime LastComboUpdate { get; set; }
+
         public DateTime LastConfirm { get; set; }
     }
 }

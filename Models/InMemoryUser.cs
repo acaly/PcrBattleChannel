@@ -43,7 +43,7 @@ namespace PcrBattleChannel.Models
         //considers not only boss, but also damage.
         //startIndex is the index of ComboValues, not ComboList. They differ by a factor of ComboZhouCount.
         //The last element marks the total combo count.
-        public List<(string name, int startIndex)> ComboGroups { get; } = new();
+        public List<(string name, int startIndex)> ComboGroups { get; } = new() { (null, 0) };
 
         public List<float> ComboValues { get; } = new();
         public List<(int zhou, InMemoryComboBorrowInfo borrow)> ComboList { get; } = new(); //zhou: Index of ZhouVariant in guild.

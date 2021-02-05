@@ -312,6 +312,7 @@ namespace PcrBattleChannel.Pages.Zhous
         }
 
         //This method is also used by ImportModel.
+        //There is an in-memory version of this method in class InMemoryStorage.
         public static async Task CheckAndAddUserVariants(ApplicationDbContext context, int guildID,
             Zhou zhou, ZhouVariant variant, IEnumerable<ZhouVariantCharacterConfig> configs, List<UserCharacterConfig> newUserConfigs)
         {
