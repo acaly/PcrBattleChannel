@@ -11,7 +11,7 @@ namespace PcrBattleChannel.Data
 {
     public static class InMemoryStorage
     {
-        private static ConcurrentDictionary<int, InMemoryGuild> _guilds = new();
+        private static readonly ConcurrentDictionary<int, InMemoryGuild> _guilds = new();
 
         public static async Task<InMemoryGuild> GetAndLockGuild(ApplicationDbContext context, int guildID)
         {
@@ -35,16 +35,7 @@ namespace PcrBattleChannel.Data
                 .ToList();
             for (int i = 0; i < members.Count; ++i)
             {
-                var member = new InMemoryUser()
-                {
-                    Guild = ret,
-                    UserID = members[i].Id,
-                    Index = i,
-                    LastComboCalculation = default,
-                    ComboZhouCount = 3 - members[i].Attempts,
-                };
-                ret.Members[i] = member;
-                ret.MemberIndexMap.Add(members[i].Id, i);
+                ret.AddUser(members[i].Id, members[i].Attempts, null);
             }
 
             var userConfigs = dbContext.UserCharacterConfigs
@@ -60,130 +51,7 @@ namespace PcrBattleChannel.Data
 
             foreach (var zv in zhouVariants)
             {
-                var conv = CreateUserVariants(ret, ret.DefaultCharacterIDs, userConfigs, zv.Zhou, zv, zv.CharacterConfigs, members);
-                ret.Zhous.Add(conv);
-            }
-
-            return ret;
-        }
-
-        public static InMemoryZhouVariant CreateUserVariants(InMemoryGuild guild,
-            ImmutableDictionary<int, int> defaultConfigIDs, List<UserCharacterConfig> allUserConfigs,
-            Zhou zhou, ZhouVariant variant, IEnumerable<ZhouVariantCharacterConfig> configs, 
-            List<PcrIdentityUser> allUsers)
-        {
-            var availableUsers = new HashSet<string>();
-            var tempSet = new HashSet<string>();
-            var userBorrow = new Dictionary<string, int>();
-            var deleteList = new List<string>();
-
-            void Merge(IEnumerable<string> list, int borrow)
-            {
-                HashSet<string> mergeSet;
-                if (list is HashSet<string> s)
-                {
-                    mergeSet = s;
-                }
-                else
-                {
-                    tempSet.Clear();
-                    tempSet.UnionWith(list);
-                    mergeSet = tempSet;
-                }
-
-                deleteList.Clear();
-                foreach (var (u, b) in userBorrow)
-                {
-                    if (b != borrow && !mergeSet.Contains(u))
-                    {
-                        deleteList.Add(u);
-                    }
-                }
-                foreach (var u in deleteList)
-                {
-                    userBorrow.Remove(u);
-                }
-
-                deleteList.Clear();
-                foreach (var u in availableUsers)
-                {
-                    if (!mergeSet.Contains(u))
-                    {
-                        userBorrow.Add(u, borrow);
-                        deleteList.Add(u);
-                    }
-                }
-                foreach (var u in deleteList)
-                {
-                    availableUsers.Remove(u);
-                }
-            }
-
-            //Mark all users as available.
-            availableUsers.UnionWith(allUsers.Select(u => u.Id));
-
-            //Check characters (default config).
-            IEnumerable<string> FilterCharacter(int? characterID)
-            {
-                if (!characterID.HasValue) return Enumerable.Empty<string>();
-                if (!defaultConfigIDs.TryGetValue(characterID.Value, out var defaultConfigID))
-                {
-                    availableUsers.Clear();
-                    return Enumerable.Empty<string>();
-                }
-                return allUserConfigs
-                    .Where(c => c.CharacterConfigID == defaultConfigID)
-                    .Select(c => c.UserID);
-            }
-            Merge(FilterCharacter(zhou.C1ID), 0);
-            Merge(FilterCharacter(zhou.C2ID), 1);
-            Merge(FilterCharacter(zhou.C3ID), 2);
-            Merge(FilterCharacter(zhou.C4ID), 3);
-            Merge(FilterCharacter(zhou.C5ID), 4);
-
-            //Check additional configs.
-            var orGroupUsers = new HashSet<string>();
-            foreach (var configGroup in configs.GroupBy(c => (c.CharacterIndex, c.OrGroupIndex)))
-            {
-                foreach (var c in configGroup)
-                {
-                    if (c.CharacterConfigID.HasValue)
-                    {
-                        orGroupUsers.UnionWith(allUserConfigs
-                            .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
-                            .Select(u => u.UserID));
-                    }
-                    else
-                    {
-                        orGroupUsers.UnionWith(allUserConfigs
-                            .Where(cc => cc.CharacterConfig == c.CharacterConfig)
-                            .Select(u => u.UserID));
-                    }
-                }
-                Merge(orGroupUsers, configGroup.Key.CharacterIndex);
-            }
-
-            var ret = new InMemoryZhouVariant
-            {
-                Owner = guild,
-                ZhouVariantID = variant.ZhouVariantID,
-                BossID = zhou.BossID,
-                Damage = variant.Damage,
-                UserData = new InMemoryUserZhouVariantData[30],
-            };
-
-            for (int i = 0; i < 30; ++i)
-            {
-                var userID = guild.Members[i]?.UserID;
-                if (userID is null) continue;
-                if (availableUsers.Contains(userID))
-                {
-                    ret.UserData[i].BorrowPlusOne = 6;
-                }
-                else if (userBorrow.TryGetValue(userID, out var borrow))
-                {
-                    ret.UserData[i].BorrowPlusOne = (byte)(borrow + 1);
-                }
+                ret.AddZhouVariant(userConfigs, zv, zv.Zhou, zv.CharacterConfigs);
             }
 
             return ret;

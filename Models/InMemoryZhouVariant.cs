@@ -17,6 +17,8 @@ namespace PcrBattleChannel.Models
     public class InMemoryZhouVariant
     {
         public InMemoryGuild Owner { get; init; }
+        public int Index { get; init; }
+        public int ZhouID { get; init; }
         public int ZhouVariantID { get; init; }
 
         public int BossID { get; init; }

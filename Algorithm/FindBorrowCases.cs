@@ -41,48 +41,6 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        private string Run2(Dictionary<int, int> z1, Dictionary<int, int> z2)
-        {
-            tempSet.Clear();
-            tempSet.UnionWith(z1.Keys);
-            tempSet.UnionWith(z2.Keys);
-            tempList.Clear();
-            tempList.AddRange(z1.Keys);
-            tempList.AddRange(z2.Keys);
-
-            if (tempSet.Count == 10)
-            {
-                //x x x x x
-                //x x x x x
-                return "-1,-1,-1";
-            }
-            else
-            {
-                foreach (var c in tempSet)
-                {
-                    tempList.Remove(c);
-                }
-                if (tempList.Count == 1)
-                {
-                    //A x x x x
-                    //A x x x x
-                    var a1 = z1[tempList[0]];
-                    var a2 = z2[tempList[0]];
-                    return $"{a1},-1,-1;-1,{a2},-1";
-                }
-                else
-                {
-                    //A B x x x
-                    //A B x x x
-                    var a1 = z1[tempList[0]];
-                    var a2 = z2[tempList[0]];
-                    var b1 = z1[tempList[1]];
-                    var b2 = z2[tempList[1]];
-                    return $"{a1},{b2},-1;{b1},{a2},-1";
-                }
-            }
-        }
-
         private List<(int key, int count)> _abc = new();
         private (int oldIndex, int[] data)[] _zmatrix = new[] { (0, new int[3]), (0, new int[3]), (0, new int[3]) };
         private List<(int, int, int)> _results = new();
