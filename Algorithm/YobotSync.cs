@@ -129,10 +129,12 @@ namespace PcrBattleChannel.Algorithm
                 {
                     if (_stageStartLaps[i] > c.Cycle - 1)
                     {
+                        ret += (c.Cycle - 1 - _stageStartLaps[i - 1]) * _bosses[i - 1].Count;
                         return (ret + c.BossNum - 1, _bosses[i - 1][c.BossNum - 1].hp);
                     }
                     ret += (_stageStartLaps[i] - _stageStartLaps[i - 1]) * _bosses[i - 1].Count;
                 }
+                ret += (c.Cycle - 1 - _stageStartLaps[^1]) * _bosses[^1].Count;
                 return (ret + c.BossNum - 1, _bosses[^1][c.BossNum - 1].hp);
             }
         }
@@ -372,7 +374,7 @@ namespace PcrBattleChannel.Algorithm
                     _dailyDataBuilder.Add(cont.Damage > c.Damage ? cont : c);
                     cont = null;
                 }
-                else if (c.IsContinue)
+                else if (c.HealthRemain == 0 && !c.IsContinue)
                 {
                     cont = c;
                 }
