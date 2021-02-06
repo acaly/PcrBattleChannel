@@ -379,7 +379,11 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
-            inheritComboInfo?.Setup(inheritedNewCombo);
+            if (inheritedNewCombo is not null)
+            {
+                //It's possible, e.g., when user modifies the UserZhouVariant.
+                inheritComboInfo?.Setup(inheritedNewCombo);
+            }
 
             user.LastComboUpdate = TimeZoneHelper.BeijingNow;
         }

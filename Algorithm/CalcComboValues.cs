@@ -121,7 +121,7 @@ namespace PcrBattleChannel.Algorithm
                 //Loop from second lap. Stop before last lap.
                 {
                     int stage, lap;
-                    for (stage = firstBoss.Stage, lap = firstBoss.Lap + 1; lap < lastBoss.Lap; ++lap)
+                    for (stage = firstBoss.Stage, lap = firstBoss.Lap + 1; lap <= lastBoss.Lap; ++lap)
                     {
                         if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
                         {
@@ -134,12 +134,12 @@ namespace PcrBattleChannel.Algorithm
                         }
                     }
 
-                    //Still need to update stage first.
-                    if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
-                    {
-                        stage += 1;
-                        Purge(stage, lap);
-                    }
+                    ////Still need to update stage first.
+                    //if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
+                    //{
+                    //    stage += 1;
+                    //    Purge(stage, lap);
+                    //}
 
                     //Purge last range. This starts from first boss, but may ends in the middle.
                     var bossCount = Bosses[currentRangeStart.Stage].Count;
@@ -459,7 +459,7 @@ namespace PcrBattleChannel.Algorithm
                 //ListBossesInRange method treats the whole lap as special. This is
                 //OK. We only end up with a few more bosses in the following calc.
                 _bosses.Clear();
-                StaticInfo.ListBossesInRange(FirstBoss, LastBoss, _bosses, firstIsSpecial);
+                StaticInfo.ListBossesInRange(FirstBoss, LastBoss, _bosses, firstIsSpecial || FirstBoss.Step != 0);
 
                 //ListBossesInRange does not handle last, but we can split it here.
                 if (lastIsSpecial && _bosses[^1].count > 1)
@@ -497,7 +497,7 @@ namespace PcrBattleChannel.Algorithm
                     float hp = count * bossObj.Boss.Life;
                     if (_bossTotalHp.Count == 0)
                     {
-                        hp -= FirstBossHp;
+                        hp *= 1 - FirstBossHp;
                     }
                     _bossTotalHp.Add(hp / bossObj.DamageRatio / DamageScale);
 
@@ -711,6 +711,7 @@ namespace PcrBattleChannel.Algorithm
                     averageRatio += _bossBuffer[i];
                 }
                 averageRatio /= _bosses.Count;
+                averageRatio *= 1.1f; //Make it a little bit larger.
 
                 var totalAdjustment = 0f;
                 for (int i = 0; i < _bosses.Count; ++i)
@@ -1219,46 +1220,20 @@ namespace PcrBattleChannel.Algorithm
             var result = new ResultStorage();
             solver.DamageScale = 1f;
 
-            //Close the current lap.
             var firstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex);
             var totalPower = 1f;
             if (staticInfo.Guild.BossDamageRatio != 0 || firstBoss.Step != 0)
             {
                 var lastBossStep = staticInfo.Bosses[firstBoss.Stage].Count - 1;
-                var lastBoss = new BossIndexInfo(firstBoss.Stage, firstBoss.Lap, lastBossStep);
 
-                solver.FirstBoss = firstBoss;
-                solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
-                solver.LastBoss = lastBoss;
+                //Close the current lap.
+                //We no longer use estimated value to do this.
 
-                var avgDamageRatio = solver.RunEstimate();
-                if (avgDamageRatio < 1)
-                {
-                    do
-                    {
-                        //Try one less.
-                        lastBoss = new(lastBoss.Stage, lastBoss.Lap, lastBoss.Step - 1);
-                        if (lastBoss.Step < firstBoss.Step)
-                        {
-                            break;
-                        }
-                        solver.LastBoss = lastBoss;
-                        avgDamageRatio = solver.RunEstimate();
-                    } while (avgDamageRatio < 1);
-                    solver.Merge(result);
-                    if (solver.LastBoss.Step == solver.FirstBoss.Step)
-                    {
-                        result.EndBossDamage += solver.FirstBossHp;
-                        if (result.EndBossDamage > 1)
-                        {
-                            result.EndBossDamage = 1;
-                        }
-                    }
-                    return result;
-                }
-                totalPower -= 1f / avgDamageRatio;
+                //AdjustAverage cannot handle this case. It will sometimes reports less than 1 ratio
+                //although when fully optimized the value can be very large. This is a problem especially
+                //when the current lap only has one or two bosses left.
+
                 firstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex + (lastBossStep - firstBoss.Step) + 1);
-                solver.FirstBossHp = 0;
             }
 
             //Run full laps.
