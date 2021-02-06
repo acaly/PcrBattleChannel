@@ -39,7 +39,7 @@ namespace PcrBattleChannel.Pages.Guilds
 
         [BindProperty]
         [Display(Name = "血量矫正系数")]
-        [Range(0, 2)]
+        [Range(0.5, 2)]
         public float? PlanRatio { get; set; }
 
         [BindProperty]
