@@ -246,6 +246,9 @@ namespace PcrBattleChannel.Algorithm
                                 //Can't decide. Ignore.
                                 u.IsIgnored = true;
 
+                                //Must update u.Attempts. Otherwise this user won't be properly reset in the following day.
+                                u.Attempts = userData.Length;
+
                                 //Still perform a guild update, and more importantly, save the above change.
                                 guildChanged = true;
 
@@ -260,6 +263,7 @@ namespace PcrBattleChannel.Algorithm
                             if (selectedCombo is null)
                             {
                                 u.IsIgnored = true;
+                                u.Attempts = userData.Length; //See comments above.
                                 continue;
                             }
 
@@ -283,6 +287,7 @@ namespace PcrBattleChannel.Algorithm
                             if (availableZhouCountInCombo + u.Attempts != 3)
                             {
                                 u.IsIgnored = true;
+                                u.Attempts = userData.Length; //See comments above.
                                 continue;
                             }
 
