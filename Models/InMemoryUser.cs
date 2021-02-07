@@ -63,6 +63,7 @@ namespace PcrBattleChannel.Models
             _comboGroups.Clear();
             _comboList.Clear();
             _comboValues.Clear();
+            LastComboCalculation = default;
         }
 
         public InMemoryComboGroupReference GetComboGroup(int index)
@@ -129,6 +130,37 @@ namespace PcrBattleChannel.Models
             _comboList.RemoveRange(_comboList.Count - removedCount * ComboZhouCount, removedCount * ComboZhouCount);
             _comboValues.RemoveRange(_comboValues.Count - removedCount, removedCount);
             _comboGroups[^1] = (null, _comboValues.Count);
+        }
+
+        public void MatchAllZhouVariants(HashSet<int> userAllCharacterIDs, HashSet<int> userAllConfigIDs)
+        {
+            ClearComboList(null);
+
+            foreach (var zv in Guild.ZhouVariants)
+            {
+                int? borrowId = null;
+                void SetBorrow(int index)
+                {
+                    borrowId = borrowId.HasValue ? -1 : index;
+                }
+                bool CheckCharacterConfig(int index)
+                {
+                    foreach (var g in zv.CharacterConfigIDs[index])
+                    {
+                        if (!g.Any(c => userAllConfigIDs.Contains(c)))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                for (int i = 0; i < 5; ++i)
+                {
+                    if (!userAllCharacterIDs.Contains(zv.CharacterIDs[i]) || !CheckCharacterConfig(i)) SetBorrow(i);
+                }
+                var borrowPlusOne = (borrowId ?? 5) + 1;
+                zv.UserData[Index].BorrowPlusOne = (byte)borrowPlusOne;
+            }
         }
 
         public readonly struct InMemoryComboGroupReference

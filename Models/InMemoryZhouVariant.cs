@@ -1,6 +1,7 @@
 ﻿using PcrBattleChannel.Data;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,6 +24,11 @@ namespace PcrBattleChannel.Models
 
         public int BossID { get; init; }
         public int Damage { get; init; }
+
+        public ImmutableArray<int> CharacterIDs { get; init; }
+
+        //character index -> group index -> ccid[]
+        public ImmutableArray<ImmutableArray<ImmutableArray<int>>> CharacterConfigIDs { get; init; }
 
         public InMemoryUserZhouVariantData[] UserData { get; init; }
     }

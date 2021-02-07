@@ -25,6 +25,7 @@ namespace PcrBattleChannel.Models
 
         public DateTime LastZhouUpdate { get; private set; }
 
+        //If cloneFrom is null, no ZhouVariant is matched. Caller should call InMemoryUser.MatchAllZhou.
         public void AddUser(string id, int attemptsToday, string cloneFrom)
         {
             var index = Array.FindIndex(_members, m => m is null);
@@ -33,7 +34,6 @@ namespace PcrBattleChannel.Models
                 Guild = this,
                 UserID = id,
                 Index = index,
-                LastComboCalculation = default,
             };
             user.ClearComboList(3 - attemptsToday);
             _members[index] = user;
@@ -199,6 +199,9 @@ namespace PcrBattleChannel.Models
                 }
             }
 
+            var cclist = variant.CharacterConfigs
+                .GroupBy(cc => (character: cc.CharacterIndex, group: cc.OrGroupIndex))
+                .Select(g => (key: g.Key.character, list: g.Select(cc => cc.CharacterConfigID ?? 0).ToImmutableArray()));
             var ret = new InMemoryZhouVariant
             {
                 Owner = this,
@@ -208,6 +211,10 @@ namespace PcrBattleChannel.Models
                 BossID = zhou.BossID,
                 Damage = variant.Damage,
                 UserData = userData,
+                CharacterIDs = ImmutableArray.Create(zhou.C1ID ?? 0, zhou.C2ID ?? 0, zhou.C3ID ?? 0, zhou.C4ID ?? 0, zhou.C5ID ?? 0),
+                CharacterConfigIDs = Enumerable.Range(0, 4)
+                    .Select(ii => cclist.Where(g => g.key == ii).Select(g => g.list).ToImmutableArray())
+                    .ToImmutableArray(),
             };
             _zhouVariants[ret.Index] = ret;
             LastZhouUpdate = TimeZoneHelper.BeijingNow;
@@ -239,6 +246,8 @@ namespace PcrBattleChannel.Models
             }
         }
 
+        //Update damage and character configs. Other fields will not be modified.
+        //Note that user selection (borrow index) will also remain unchanged.
         public void UpdateZhouVariant(ZhouVariant dbzv)
         {
             if (!_zhouVariantIndexMap.TryGetValue(dbzv.ZhouVariantID, out var index))
@@ -247,6 +256,9 @@ namespace PcrBattleChannel.Models
             }
             var zv = _zhouVariants[index];
 
+            var cclist = dbzv.CharacterConfigs
+                .GroupBy(cc => (character: cc.CharacterIndex, group: cc.OrGroupIndex))
+                .Select(g => (key: g.Key.character, list: g.Select(cc => cc.CharacterConfigID ?? 0).ToImmutableArray()));
             _zhouVariants[index] = new InMemoryZhouVariant
             {
                 ZhouID = zv.ZhouID,
@@ -255,6 +267,10 @@ namespace PcrBattleChannel.Models
                 BossID = zv.BossID,
                 Damage = dbzv.Damage,
                 UserData = zv.UserData,
+                CharacterIDs = zv.CharacterIDs,
+                CharacterConfigIDs = Enumerable.Range(0, 4)
+                    .Select(ii => cclist.Where(g => g.key == ii).Select(g => g.list).ToImmutableArray())
+                    .ToImmutableArray(),
             };
             LastZhouUpdate = TimeZoneHelper.BeijingNow;
         }
@@ -284,6 +300,11 @@ namespace PcrBattleChannel.Models
         public InMemoryZhouVariant GetZhouVariantByIndex(int index)
         {
             return _zhouVariants[index];
+        }
+
+        public IEnumerable<InMemoryZhouVariant> ZhouVariants
+        {
+            get => _zhouVariants.Where(zv => zv is not null);
         }
     }
 }
