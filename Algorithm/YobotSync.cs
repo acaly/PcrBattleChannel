@@ -533,13 +533,13 @@ namespace PcrBattleChannel.Algorithm
             switch (user.Attempts)
             {
             case 1:
-                user.Attempt1ID = v.UserZhouVariantID;
+                user.Attempt1ID = v.ZhouVariantID;
                 break;
             case 2:
-                user.Attempt2ID = v.UserZhouVariantID;
+                user.Attempt2ID = v.ZhouVariantID;
                 break;
             case 3:
-                user.Attempt3ID = v.UserZhouVariantID;
+                user.Attempt3ID = v.ZhouVariantID;
                 break;
             }
 

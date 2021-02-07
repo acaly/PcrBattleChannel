@@ -19,7 +19,7 @@ namespace PcrBattleChannel.Data
         {
             base.OnModelCreating(builder);
 
-            //TODO is one this necessary?
+            //TODO is this one necessary?
             builder.Entity<Guild>()
                 .HasMany(g => g.Members)
                 .WithOne(m => m.Guild)
@@ -29,6 +29,24 @@ namespace PcrBattleChannel.Data
                 .HasOne(c => c.ZhouVariant)
                 .WithMany(v => v.CharacterConfigs)
                 .HasForeignKey(c => c.ZhouVariantID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PcrIdentityUser>()
+                .HasOne(u => u.Attempt1)
+                .WithMany()
+                .HasForeignKey(u => u.Attempt1ID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PcrIdentityUser>()
+                .HasOne(u => u.Attempt2)
+                .WithMany()
+                .HasForeignKey(u => u.Attempt2ID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PcrIdentityUser>()
+                .HasOne(u => u.Attempt3)
+                .WithMany()
+                .HasForeignKey(u => u.Attempt3ID)
                 .OnDelete(DeleteBehavior.Cascade);
 
 #pragma warning disable CS0618 // Type or member is obsolete

@@ -20,7 +20,7 @@
                 }
                 else
                 {
-                    var z = Model.CachedZhouData[Model.AppUser.Attempt1.ZhouVariant.ZhouID];
+                    var z = Model.CachedZhouData[Model.AppUser.Attempt1.ZhouID];
                     <p>
                         @Html.DisplayFor(m => z.Boss.ShortName)
                         (<a asp-page="/Zhous/Details" asp-route-id="@z.ZhouID">
@@ -44,7 +44,7 @@
                 }
                 else
                 {
-                    var z = Model.CachedZhouData[Model.AppUser.Attempt2.ZhouVariant.ZhouID];
+                    var z = Model.CachedZhouData[Model.AppUser.Attempt2.ZhouID];
                     <p>
                         @Html.DisplayFor(m => z.Boss.ShortName)
                         (<a asp-page="/Zhous/Details" asp-route-id="@z.ZhouID">
@@ -68,7 +68,7 @@
                 }
                 else
                 {
-                    var z = Model.CachedZhouData[Model.AppUser.Attempt3.ZhouVariant.ZhouID];
+                    var z = Model.CachedZhouData[Model.AppUser.Attempt3.ZhouID];
                     <p>
                         @Html.DisplayFor(m => z.Boss.ShortName)
                         (<a asp-page="/Zhous/Details" asp-route-id="@z.ZhouID">

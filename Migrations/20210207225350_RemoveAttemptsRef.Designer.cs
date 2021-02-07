@@ -2,15 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PcrBattleChannel.Data;
 
 namespace PcrBattleChannel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210207225350_RemoveAttemptsRef")]
+    partial class RemoveAttemptsRef
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -370,24 +372,6 @@ namespace PcrBattleChannel.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("Attempt1Borrow")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Attempt1ID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Attempt2Borrow")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Attempt2ID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Attempt3Borrow")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Attempt3ID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Attempts")
                         .HasColumnType("INTEGER");
 
@@ -469,12 +453,6 @@ namespace PcrBattleChannel.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Attempt1ID");
-
-                    b.HasIndex("Attempt2ID");
-
-                    b.HasIndex("Attempt3ID");
 
                     b.HasIndex("GuildID");
 
@@ -853,30 +831,9 @@ namespace PcrBattleChannel.Migrations
 
             modelBuilder.Entity("PcrBattleChannel.Models.PcrIdentityUser", b =>
                 {
-                    b.HasOne("PcrBattleChannel.Models.ZhouVariant", "Attempt1")
-                        .WithMany()
-                        .HasForeignKey("Attempt1ID")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("PcrBattleChannel.Models.ZhouVariant", "Attempt2")
-                        .WithMany()
-                        .HasForeignKey("Attempt2ID")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("PcrBattleChannel.Models.ZhouVariant", "Attempt3")
-                        .WithMany()
-                        .HasForeignKey("Attempt3ID")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("PcrBattleChannel.Models.Guild", "Guild")
                         .WithMany("Members")
                         .HasForeignKey("GuildID");
-
-                    b.Navigation("Attempt1");
-
-                    b.Navigation("Attempt2");
-
-                    b.Navigation("Attempt3");
 
                     b.Navigation("Guild");
                 });

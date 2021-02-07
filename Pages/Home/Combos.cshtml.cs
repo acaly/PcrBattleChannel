@@ -77,23 +77,20 @@ namespace PcrBattleChannel.Pages.Home
             if (user.Attempt1ID.HasValue)
             {
                 await _context.Entry(user).Reference(u => u.Attempt1).LoadAsync();
-                await _context.Entry(user.Attempt1).Reference(uv => uv.ZhouVariant).LoadAsync();
-                await _context.Entry(user.Attempt1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                await CacheZhouData(user.Attempt1.ZhouVariant.ZhouID);
+                await _context.Entry(user.Attempt1).Reference(v => v.Zhou).LoadAsync();
+                await CacheZhouData(user.Attempt1.ZhouID);
             }
             if (user.Attempt2ID.HasValue)
             {
                 await _context.Entry(user).Reference(u => u.Attempt2).LoadAsync();
-                await _context.Entry(user.Attempt2).Reference(uv => uv.ZhouVariant).LoadAsync();
-                await _context.Entry(user.Attempt2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                await CacheZhouData(user.Attempt2.ZhouVariant.ZhouID);
+                await _context.Entry(user.Attempt2).Reference(v => v.Zhou).LoadAsync();
+                await CacheZhouData(user.Attempt2.ZhouID);
             }
             if (user.Attempt3ID.HasValue)
             {
                 await _context.Entry(user).Reference(u => u.Attempt3).LoadAsync();
-                await _context.Entry(user.Attempt3).Reference(uv => uv.ZhouVariant).LoadAsync();
-                await _context.Entry(user.Attempt3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                await CacheZhouData(user.Attempt3.ZhouVariant.ZhouID);
+                await _context.Entry(user.Attempt3).Reference(v => v.Zhou).LoadAsync();
+                await CacheZhouData(user.Attempt3.ZhouID);
             }
         }
 
