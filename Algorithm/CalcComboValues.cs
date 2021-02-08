@@ -1266,8 +1266,17 @@ namespace PcrBattleChannel.Algorithm
             var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss) + 2; //estimated lap (middle).
             var searchStep = InitStep;
             int? lastBalance = null;
+
             solver.DamageScale = 1.0f;
-            solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
+            if (staticInfo.Guild.BossDamageRatio >= 0.99f)
+            {
+                firstBossIndex += 1;
+                solver.FirstBossHp = 0;
+            }
+            else
+            {
+                solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
+            }
 
             do
             {
