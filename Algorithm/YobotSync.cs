@@ -145,11 +145,12 @@ namespace PcrBattleChannel.Algorithm
             var allGuilds = await context.DbContext.Guilds.Include(g => g.Members).ToListAsync();
             foreach (var g in allGuilds)
             {
+                var imGuild = await context.GetGuild(g.GuildID);
                 try
                 {
                     //TODO should each guild update use a separate db context?
                     //(this depends on how the website is used)
-                    if (await RunGuildAsync(context, g, bosses))
+                    if (await RunGuildAsync(context, g, imGuild, bosses))
                     {
                         g.LastYobotSync = TimeZoneHelper.BeijingNow;
 
@@ -167,13 +168,13 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task RunSingleAsync(InMemoryStorageContext context, Guild g, bool forceRecalc)
+        public static async Task RunSingleAsync(InMemoryStorageContext context, Guild g, InMemoryGuild imGuild, bool forceRecalc)
         {
             var bosses = await BossIDConverter.Create(context.DbContext);
             var allGuilds = await context.DbContext.Guilds.Include(g => g.Members).ToListAsync();
             try
             {
-                if (await RunGuildAsync(context, g, bosses) || forceRecalc)
+                if (await RunGuildAsync(context, g, imGuild, bosses) || forceRecalc)
                 {
                     g.LastYobotSync = TimeZoneHelper.BeijingNow;
 
@@ -190,7 +191,8 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        private static async Task<bool> RunGuildAsync(InMemoryStorageContext context, Guild guild, BossIDConverter bosses)
+        private static async Task<bool> RunGuildAsync(InMemoryStorageContext context, Guild guild, InMemoryGuild imGuild,
+            BossIDConverter bosses)
         {
             if (string.IsNullOrEmpty(guild.YobotAPI)) return false;
             var data = await _client.GetFromJsonAsync<YobotData>(guild.YobotAPI, _jsonOptions);
@@ -202,17 +204,11 @@ namespace PcrBattleChannel.Algorithm
                 .ToDictionary(c => c.Key, c => ProcessDailyData(c));
 
             var comboCalculator = new FindAllCombos();
-            var imGuild = await context.GetGuild(guild.GuildID);
 
             bool guildChanged = false;
             foreach (var u in guild.Members)
             {
-                if (!imGuild.TryGetUserById(u.Id, out var imUser))
-                {
-                    //Should not happen.
-                    throw new Exception($"User {u.Id} not added to the IMContext");
-                }
-
+                var imUser = imGuild.GetUserById(u.Id);
                 var userChanged = false;
 
                 if (u.QQID != 0 && !u.DisableYobotSync)
@@ -251,6 +247,8 @@ namespace PcrBattleChannel.Algorithm
                     //Don't use else if. ClearUserAttempts will reset u.Attempts.
                     if (u.Attempts < userData.Length)
                     {
+                        //u.Attempts + imUser.ComboZhouCount != 3 is possible when user selected a combo, and
+                        //then manually updated used characters without recalculating combos.
                         if (imUser.SelectedComboIndex == -1 || u.Attempts + imUser.ComboZhouCount != 3)
                         {
                             u.IsIgnored = true;
@@ -308,7 +306,7 @@ namespace PcrBattleChannel.Algorithm
                             //should get from IM context instead of DB context
                             inheritComboInfo = await InheritCombo.GetInheritInfo(context.DbContext, u, userUsedCharacterSet);
                         }
-                        comboCalculator.Run(imUser, userUsedCharacterSet, 3 - u.Attempts, null, u.ComboIncludesDrafts);
+                        comboCalculator.Run(imUser, userUsedCharacterSet, 3 - u.Attempts, inheritComboInfo, u.ComboIncludesDrafts);
                         guildChanged = true;
                     }
                 }

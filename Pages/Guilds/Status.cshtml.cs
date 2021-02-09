@@ -16,11 +16,11 @@ namespace PcrBattleChannel.Pages.Guilds
 {
     public class StatusModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public StatusModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public StatusModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -68,7 +68,7 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 return null;
             }
-            var guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
+            var guild = await _context.DbContext.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
             return guild;
         }
 
@@ -120,14 +120,14 @@ namespace PcrBattleChannel.Pages.Guilds
             }
             Guild = guild;
 
-            var stages = await _context.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
+            var stages = await _context.DbContext.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
             FirstLapForStages = stages.Select(s => s.StartLap).ToArray();
             FirstLapForStagesString = JsonConvert.SerializeObject(FirstLapForStages);
 
             BossNames = new();
             foreach (var s in stages)
             {
-                var bosses = await _context.Bosses
+                var bosses = await _context.DbContext.Bosses
                     .Where(b => b.BattleStageID == s.BattleStageID)
                     .OrderBy(b => b.BossID)
                     .Select(b => b.Name)
@@ -142,7 +142,7 @@ namespace PcrBattleChannel.Pages.Guilds
             CurrentBoss += 1;
             CurrentBossRatio = guild.BossDamageRatio;
 
-            var allPlans = await _context.GuildBossStatuses
+            var allPlans = await _context.DbContext.GuildBossStatuses
                 .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
                 .Select(s => s.DamageRatio)
                 .Distinct()
@@ -161,20 +161,19 @@ namespace PcrBattleChannel.Pages.Guilds
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
                 return RedirectToPage("/Home/Index");
             }
+            var imGuild = await _context.GetGuild(guild.GuildID);
 
             if (PlanRatio.HasValue)
             {
-                await _context.GuildBossStatuses
+                await _context.DbContext.GuildBossStatuses
                     .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
                     .DeleteFromQueryAsync();
-                foreach (var b in _context.Bosses)
+                foreach (var b in _context.DbContext.Bosses)
                 {
                     var s = new GuildBossStatus
                     {
@@ -183,16 +182,16 @@ namespace PcrBattleChannel.Pages.Guilds
                         IsPlan = true,
                         DamageRatio = PlanRatio.Value,
                     };
-                    _context.GuildBossStatuses.Add(s);
+                    _context.DbContext.GuildBossStatuses.Add(s);
                 }
             }
 
-            var stages = await _context.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
+            var stages = await _context.DbContext.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
             FirstLapForStages = stages.Select(s => s.StartLap).ToArray();
             BossNames = new();
             foreach (var s in stages)
             {
-                var bosses = await _context.Bosses
+                var bosses = await _context.DbContext.Bosses
                     .Where(b => b.BattleStageID == s.BattleStageID)
                     .OrderBy(b => b.BossID)
                     .Select(b => b.Name)
@@ -201,7 +200,7 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             //Have to save here to allow calculator to read boss plans.
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
 
             //1. Update guild status.
             var newBossIndex = ConvLap(CurrentLap - 1, CurrentBoss - 1);
@@ -217,41 +216,41 @@ namespace PcrBattleChannel.Pages.Guilds
             guild.BossDamageRatio = CurrentBossRatio;
 
             //2. Refresh users' combo lists.
-            var allUserIDs = await _context.Users
+            var allUserIDs = await _context.DbContext.Users
                 .Where(u => u.GuildID == guild.GuildID)
                 .ToListAsync();
-            var allCombos = new List<UserCombo>();
+            var comboCalculator = new FindAllCombos();
             foreach (var user in allUserIDs)
             {
                 if (user.IsIgnored) continue;
-
-                var uid = user.Id;
-                var lastCalcZhou = await _context.UserCombos
-                    .Where(c => c.UserID == uid)
-                    .FirstOrDefaultAsync();
-                var lastCalcAttemptsCount = 0;
-                if (!(lastCalcZhou?.Zhou3ID).HasValue) lastCalcAttemptsCount += 1;
-                if (!(lastCalcZhou?.Zhou2ID).HasValue) lastCalcAttemptsCount += 1;
-                if (!(lastCalcZhou?.Zhou1ID).HasValue) lastCalcAttemptsCount += 1;
+                var imUser = imGuild.GetUserById(user.Id);
 
                 //Refresh only when needed.
-                var attemptCountChanged = lastCalcAttemptsCount != user.Attempts;
-                var zhouChangedSinceLastUpdate = user.LastComboUpdate <= guild.LastZhouUpdate;
+                var attemptCountChanged = imUser.ComboZhouCount != 3 - user.Attempts;
+                var zhouChangedSinceLastUpdate = imUser.LastComboCalculation <= guild.LastZhouUpdate;
                 if (attemptCountChanged || zhouChangedSinceLastUpdate)
                 {
-                    _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == uid));
-                    await FindAllCombos.RunAsync(_context, user, null, allCombos, inherit: true);
-                }
-                else
-                {
-                    allCombos.AddRange(_context.UserCombos.Where(c => c.UserID == uid));
+                    var userUsedCharacterIDs = await _context.DbContext.UserCharacterStatuses
+                        .Where(s => s.UserID == user.Id)
+                        .Select(s => s.CharacterID)
+                        .ToListAsync();
+
+                    InheritCombo.ComboInheritInfo inheritComboInfo = null;
+                    var userUsedCharacterSet = userUsedCharacterIDs.ToHashSet();
+                    if (imUser.SelectedComboIndex != -1)
+                    {
+                        //should get from IM context instead of DB context
+                        inheritComboInfo = await InheritCombo.GetInheritInfo(_context.DbContext, user, userUsedCharacterSet);
+                    }
+
+                    comboCalculator.Run(imUser, userUsedCharacterSet, 3 - user.Attempts, inheritComboInfo, user.ComboIncludesDrafts);
                 }
             }
 
             //3. Calculate values.
-            await CalcComboValues.RunAllAsync(_context, guild, allCombos);
+            await CalcComboValues.RunAllAsync(_context.DbContext, guild, null);
 
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
 
             return RedirectToPage("/Home/Index");
         }

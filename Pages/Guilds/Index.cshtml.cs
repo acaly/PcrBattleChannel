@@ -14,11 +14,11 @@ namespace PcrBattleChannel.Pages.Guilds
 {
     public class IndexModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public IndexModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public IndexModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -42,7 +42,7 @@ namespace PcrBattleChannel.Pages.Guilds
             }
             IsAdmin = user.IsGuildAdmin;
 
-            Guild = await _context.Guilds
+            Guild = await _context.DbContext.Guilds
                 .Include(g => g.Owner)
                 .Include(g => g.Members)
                 .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
@@ -67,10 +67,12 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var g = await _context.Guilds
+            var g = await _context.DbContext.Guilds
                 .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
+            var imGuild = await _context.GetGuild(g.GuildID);
 
-            await YobotSync.RunSingleAsync(_context, g, forceRecalc: true);
+            await YobotSync.RunSingleAsync(_context, g, imGuild, forceRecalc: true);
+
             return RedirectToPage("/Home/Index");
         }
     }

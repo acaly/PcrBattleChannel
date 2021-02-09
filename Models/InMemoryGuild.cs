@@ -295,6 +295,15 @@ namespace PcrBattleChannel.Models
             return true;
         }
 
+        public InMemoryUser GetUserById(string id)
+        {
+            if (!TryGetUserById(id, out var ret))
+            {
+                throw new Exception($"User {id} has not been included in IM context");
+            }
+            return ret;
+        }
+
         public bool TryGetZhouVariantById(int zvid, out InMemoryZhouVariant result)
         {
             if (!_zhouVariantIndexMap.TryGetValue(zvid, out var index))

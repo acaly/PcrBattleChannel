@@ -15,11 +15,11 @@ namespace PcrBattleChannel.Pages.Home
 {
     public class CombosModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public CombosModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public CombosModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -57,7 +57,7 @@ namespace PcrBattleChannel.Pages.Home
         {
             if (!CachedZhouData.ContainsKey(zid))
             {
-                var z = await _context.Zhous
+                var z = await _context.DbContext.Zhous
                     .Include(z => z.Boss)
                     .Include(z => z.C1)
                     .Include(z => z.C2)
@@ -76,27 +76,27 @@ namespace PcrBattleChannel.Pages.Home
 
             if (user.Attempt1ID.HasValue)
             {
-                await _context.Entry(user).Reference(u => u.Attempt1).LoadAsync();
-                await _context.Entry(user.Attempt1).Reference(v => v.Zhou).LoadAsync();
+                await _context.DbContext.Entry(user).Reference(u => u.Attempt1).LoadAsync();
+                await _context.DbContext.Entry(user.Attempt1).Reference(v => v.Zhou).LoadAsync();
                 await CacheZhouData(user.Attempt1.ZhouID);
             }
             if (user.Attempt2ID.HasValue)
             {
-                await _context.Entry(user).Reference(u => u.Attempt2).LoadAsync();
-                await _context.Entry(user.Attempt2).Reference(v => v.Zhou).LoadAsync();
+                await _context.DbContext.Entry(user).Reference(u => u.Attempt2).LoadAsync();
+                await _context.DbContext.Entry(user.Attempt2).Reference(v => v.Zhou).LoadAsync();
                 await CacheZhouData(user.Attempt2.ZhouID);
             }
             if (user.Attempt3ID.HasValue)
             {
-                await _context.Entry(user).Reference(u => u.Attempt3).LoadAsync();
-                await _context.Entry(user.Attempt3).Reference(v => v.Zhou).LoadAsync();
+                await _context.DbContext.Entry(user).Reference(u => u.Attempt3).LoadAsync();
+                await _context.DbContext.Entry(user.Attempt3).Reference(v => v.Zhou).LoadAsync();
                 await CacheZhouData(user.Attempt3.ZhouID);
             }
         }
 
         private async Task GetAllCharacters(PcrIdentityUser user)
         {
-            var allZhous = _context.Zhous
+            var allZhous = _context.DbContext.Zhous
                 .Where(z => z.GuildID == user.GuildID);
             var cid = new HashSet<int>();
             foreach (var z in allZhous)
@@ -110,13 +110,13 @@ namespace PcrBattleChannel.Pages.Home
             AllCharacters = new();
             foreach (var c in cid)
             {
-                if (!await _context.UserCharacterConfigs
+                if (!await _context.DbContext.UserCharacterConfigs
                     .Include(cc => cc.CharacterConfig)
                     .AnyAsync(cc => cc.UserID == user.Id && cc.CharacterConfig.CharacterID == c))
                 {
                     continue;
                 }
-                AllCharacters.Add(await _context.Characters.FirstOrDefaultAsync(cc => cc.CharacterID == c));
+                AllCharacters.Add(await _context.DbContext.Characters.FirstOrDefaultAsync(cc => cc.CharacterID == c));
             }
             AllCharacters.Sort((c1, c2) => Math.Sign(c1.Range - c2.Range));
         }
@@ -134,7 +134,7 @@ namespace PcrBattleChannel.Pages.Home
             }
             await GetUserInfo(user);
 
-            var rawList = await _context.UserCombos
+            var rawList = await _context.DbContext.UserCombos
                 .Include(u => u.Zhou1)
                 .Include(u => u.Zhou2)
                 .Include(u => u.Zhou3)
@@ -144,22 +144,20 @@ namespace PcrBattleChannel.Pages.Home
             {
                 if (c.Zhou1ID.HasValue)
                 {
-                    await _context.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await CacheZhouData(c.Zhou1.ZhouVariant.ZhouID);
                 }
                 if (c.Zhou2ID.HasValue)
                 {
-                    await _context.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await _context.Entry(c.Zhou2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await CacheZhouData(c.Zhou2.ZhouVariant.ZhouID);
                 }
                 if (c.Zhou3ID.HasValue)
                 {
-                    await _context.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await _context.Entry(c.Zhou3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
                 }
             }
@@ -206,7 +204,7 @@ namespace PcrBattleChannel.Pages.Home
                 .Select(bb => ($"{bb.Key.ShortName} ({bb.Key.Name})", bb.Value))
                 .ToList();
 
-            UsedCharacters = await _context.UserCharacterStatuses
+            UsedCharacters = await _context.DbContext.UserCharacterStatuses
                 .Include(s => s.Character)
                 .Where(s => s.UserID == user.Id && s.IsUsed == true)
                 .ToListAsync();
@@ -230,19 +228,24 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return Redirect("/");
             }
-            var guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
+            var guild = await _context.DbContext.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
             if (guild is null)
             {
                 return Redirect("/");
             }
 
-            //Remove without submitting. This ensures the FindAllCombos.Run can find the combo to inherit.
-            _context.UserCombos.RemoveRange(_context.UserCombos.Where(c => c.UserID == user.Id));
+            var imGuild = await _context.GetGuild(guild.GuildID);
+            var imUser = imGuild.GetUserById(user.Id);
+            var comboCalculator = new FindAllCombos();
 
-            var userCombos = new List<UserCombo>(); //Store unsaved combos.
-            await FindAllCombos.RunAsync(_context, user, null, userCombos, inherit: true);
-            await CalcComboValues.RunSingleAsync(_context, guild, user, userCombos);
-            await _context.SaveChangesAsync();
+            var userUsedCharacterIDs = await _context.DbContext.UserCharacterStatuses
+                .Where(s => s.UserID == user.Id)
+                .Select(s => s.CharacterID)
+                .ToListAsync();
+
+            comboCalculator.Run(imUser, userUsedCharacterIDs.ToHashSet(), 3 - user.Attempts, null, user.ComboIncludesDrafts);
+            await CalcComboValues.RunSingleAsync(_context.DbContext, guild, user, null);
+            await _context.DbContext.SaveChangesAsync();
 
             return RedirectToPage();
         }
@@ -265,12 +268,12 @@ namespace PcrBattleChannel.Pages.Home
                 return StatusCode(400);
             }
 
-            user = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+            user = await _context.DbContext.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
             user.GuessedAttempts = 0;
             user.LastConfirm = TimeZoneHelper.BeijingNow;
 
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
+            _context.DbContext.Users.Update(user);
+            await _context.DbContext.SaveChangesAsync();
 
             return StatusCode(200);
         }
@@ -289,7 +292,7 @@ namespace PcrBattleChannel.Pages.Home
             }
             await GetUserInfo(user);
 
-            await _context.UserCharacterStatuses
+            await _context.DbContext.UserCharacterStatuses
                 .Where(s => s.UserID == user.Id)
                 .DeleteFromQueryAsync();
             UsedCharacters = new();
@@ -303,12 +306,12 @@ namespace PcrBattleChannel.Pages.Home
                     {
                         UserID = user.Id,
                         //Page will need this reference, so load it here.
-                        Character = await _context.Characters.FirstAsync(c => c.CharacterID == cid),
+                        Character = await _context.DbContext.Characters.FirstAsync(c => c.CharacterID == cid),
                         CharacterID = cid,
                         IsUsed = true,
                     };
                     UsedCharacters.Add(s);
-                    _context.UserCharacterStatuses.Add(s);
+                    _context.DbContext.UserCharacterStatuses.Add(s);
                 }
                 user.Attempts = list.Length switch
                 {
@@ -328,7 +331,7 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return StatusCode(400);
             }
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
 
             await GetAllCharacters(user);
 
@@ -356,7 +359,7 @@ namespace PcrBattleChannel.Pages.Home
             }
             await GetUserInfo(user);
 
-            var c = await _context.UserCombos
+            var c = await _context.DbContext.UserCombos
                 .Include(u => u.Zhou1)
                 .Include(u => u.Zhou2)
                 .Include(u => u.Zhou3)
@@ -369,8 +372,8 @@ namespace PcrBattleChannel.Pages.Home
                 if (index != -1)
                 {
                     c.BorrowInfo = borrowLists.Substring(index + 1) + ";" + borrowLists.Substring(0, index);
-                    _context.Update(c);
-                    await _context.SaveChangesAsync();
+                    _context.DbContext.Update(c);
+                    await _context.DbContext.SaveChangesAsync();
                 }
             }
             catch
@@ -386,22 +389,20 @@ namespace PcrBattleChannel.Pages.Home
                 }
                 if (c.Zhou1ID.HasValue)
                 {
-                    await _context.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await CacheZhouData(c.Zhou1.ZhouVariant.ZhouID);
                 }
                 if (c.Zhou2ID.HasValue)
                 {
-                    await _context.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await _context.Entry(c.Zhou2.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await CacheZhouData(c.Zhou2.ZhouVariant.ZhouID);
                 }
                 if (c.Zhou3ID.HasValue)
                 {
-                    await _context.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await _context.Entry(c.Zhou3.ZhouVariant.Zhou).Reference(z => z.Boss).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
+                    await _context.DbContext.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
                     await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
                 }
                 model = CreateSingleModel(c);
@@ -426,7 +427,7 @@ namespace PcrBattleChannel.Pages.Home
                 return StatusCode(400);
             }
 
-            var c = await _context.UserCombos
+            var c = await _context.DbContext.UserCombos
                 .FirstOrDefaultAsync(u => u.UserComboID == combo.Value);
             if (c is null || c.UserID != user.Id)
             {
@@ -448,18 +449,18 @@ namespace PcrBattleChannel.Pages.Home
                 }
             }
 
-            var lastSelected = await _context.UserCombos
+            var lastSelected = await _context.DbContext.UserCombos
                 .Where(c => c.UserID == user.Id && c.SelectedZhou != null)
                 .ToListAsync();
             foreach (var last in lastSelected)
             {
                 last.SelectedZhou = null;
-                _context.UserCombos.Update(last);
+                _context.DbContext.UserCombos.Update(last);
             }
             c.SelectedZhou = zhou == -1 ? null : zhou.Value;
-            _context.UserCombos.Update(c);
+            _context.DbContext.UserCombos.Update(c);
 
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
             return StatusCode(200);
         }
 
@@ -476,7 +477,7 @@ namespace PcrBattleChannel.Pages.Home
             }
 
             user.ComboIncludesDrafts = UserIncludesDrafts;
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
 
             return StatusCode(200);
         }
