@@ -235,14 +235,8 @@ namespace PcrBattleChannel.Pages.Guilds
                         .Select(s => s.CharacterID)
                         .ToListAsync();
 
-                    InheritCombo.ComboInheritInfo inheritComboInfo = null;
                     var userUsedCharacterSet = userUsedCharacterIDs.ToHashSet();
-                    if (imUser.SelectedComboIndex != -1)
-                    {
-                        //should get from IM context instead of DB context
-                        inheritComboInfo = await InheritCombo.GetInheritInfo(_context.DbContext, user, userUsedCharacterSet);
-                    }
-
+                    var inheritComboInfo = InheritCombo.GetInheritInfo(imUser, userUsedCharacterSet);
                     comboCalculator.Run(imUser, userUsedCharacterSet, 3 - user.Attempts, inheritComboInfo, user.ComboIncludesDrafts);
                 }
             }

@@ -19,12 +19,13 @@ namespace PcrBattleChannel.Models
             _borrowIndex[3] = count;
         }
 
-        public readonly int Value => _borrowIndex[0];
+        public readonly int Value => Count == 0 ? -1 : _borrowIndex[0];
         public readonly int Count => _borrowIndex[3];
 
         public readonly InMemoryComboBorrowInfo MakeSwitched()
         {
             var count = _borrowIndex[3];
+            if (count == 0) return this;
             return new InMemoryComboBorrowInfo(_borrowIndex[count - 1], _borrowIndex[0], _borrowIndex[1], count);
         }
     }

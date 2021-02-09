@@ -13,11 +13,13 @@ namespace PcrBattleChannel.Algorithm
         public class ComboInheritInfo
         {
             private readonly List<int> _zhouVariantIDs = new();
-            private readonly List<string> _zhouBorrowIndices = new();
+            private readonly List<int> _zhouBorrowIndices = new();
             private int? _nextZhouVariantID;
 
             public int Count => _zhouVariantIDs.Count;
             public int SelectedZhou => _nextZhouVariantID ?? 0;
+
+            private readonly InMemoryComboBorrowInfo[] _borrowBuffer = new InMemoryComboBorrowInfo[3];
 
             public void Add(int zvid, int borrow, bool isSelected)
             {
@@ -26,12 +28,12 @@ namespace PcrBattleChannel.Algorithm
                     _nextZhouVariantID = _zhouVariantIDs.Count;
                 }
                 _zhouVariantIDs.Add(zvid);
-                _zhouBorrowIndices.Add(borrow.ToString());
+                _zhouBorrowIndices.Add(borrow);
             }
 
             public void AddEnd()
             {
-                _zhouBorrowIndices.Add("-1");
+                _zhouBorrowIndices.Add(-1);
             }
 
             //note: borrow can be modifed in place (if matching)
@@ -51,83 +53,60 @@ namespace PcrBattleChannel.Algorithm
                 }
 
                 //Borrow
-                var newBorrows = borrow.Split(';');
-                int skippedLength = 0;
-                for (int i = 0; i < newBorrows.Length; ++i)
+                Array.Copy(borrow, _borrowBuffer, 3);
+
+                for (int i = 0; i < borrow[0].Count; ++i)
                 {
-                    var borrowCase = newBorrows[i];
-                    var borrowIndices = borrowCase.Split(',');
                     //Compare as string values. (Should be faster than int.Parse.)
-                    if (_zhouBorrowIndices[zv1Match] == borrowIndices[0] &&
-                        _zhouBorrowIndices[zv2Match] == borrowIndices[1] &&
-                        _zhouBorrowIndices[zv3Match] == borrowIndices[2])
+                    if (_zhouBorrowIndices[zv1Match] == _borrowBuffer[0].Value &&
+                        _zhouBorrowIndices[zv2Match] == _borrowBuffer[1].Value &&
+                        _zhouBorrowIndices[zv3Match] == _borrowBuffer[2].Value)
                     {
                         //Adjust borrow list.
-                        borrow = borrow[skippedLength..] +
-                            (skippedLength == 0 ? string.Empty : ";" + borrow[0..(skippedLength - 1)]);
+                        for (int j = 0; j < 3; ++j)
+                        {
+                            borrow[j] = _borrowBuffer[j];
+                        }
                         return true;
                     }
-                    skippedLength += borrowCase.Length + 1;
+                    for (int j = 0; j < 3; ++j)
+                    {
+                        _borrowBuffer[j] = _borrowBuffer[j].MakeSwitched();
+                    }
                 }
                 return false;
             }
         }
 
         //Helpers to inherit selected combo after refreshing.
-        public static async Task<ComboInheritInfo> GetInheritInfo(ApplicationDbContext context, PcrIdentityUser user,
-            HashSet<int> usedCharacterIDs)
+        public static ComboInheritInfo GetInheritInfo(InMemoryUser user, HashSet<int> usedCharacterIDs)
         {
-            var oldCombo = await context.UserCombos
-                .Where(c => c.UserID == user.Id && c.SelectedZhou != null)
-                .FirstOrDefaultAsync();
-
-            if (oldCombo is null)
+            if (user.SelectedComboIndex == -1)
             {
                 return null;
             }
 
+            var oldCombo = user.GetCombo(user.SelectedComboIndex);
             var ret = new ComboInheritInfo();
 
-            var borrowInfo = oldCombo.BorrowInfo.Split(';')[0].Split(',');
-            if (oldCombo.Zhou1ID.HasValue)
+            for (int i = 0; i < user.ComboZhouCount; ++i)
             {
-                await FilterAndAddZhouVariant(context, usedCharacterIDs,
-                    oldCombo.Zhou1ID.Value, int.Parse(borrowInfo[0]), oldCombo.SelectedZhou == 0, ret);
-            }
-            if (oldCombo.Zhou2ID.HasValue)
-            {
-                await FilterAndAddZhouVariant(context, usedCharacterIDs,
-                    oldCombo.Zhou2ID.Value, int.Parse(borrowInfo[1]), oldCombo.SelectedZhou == 1, ret);
-            }
-            if (oldCombo.Zhou3ID.HasValue)
-            {
-                await FilterAndAddZhouVariant(context, usedCharacterIDs,
-                    oldCombo.Zhou3ID.Value, int.Parse(borrowInfo[2]), oldCombo.SelectedZhou == 2, ret);
+                FilterAndAddZhouVariant(usedCharacterIDs, oldCombo.GetZhouVariant(i), oldCombo.GetZhouBorrow(i).Value,
+                    user.SelectedComboZhouIndex == i, ret);
             }
             ret.AddEnd();
 
             return ret;
         }
 
-        private static async Task FilterAndAddZhouVariant(ApplicationDbContext context, HashSet<int> usedCharacterIDs,
-            int uzvID, int borrow, bool selected, ComboInheritInfo output)
+        private static void FilterAndAddZhouVariant(HashSet<int> usedCharacterIDs,
+            InMemoryZhouVariant zv, int borrow, bool selected, ComboInheritInfo output)
         {
-            var zvid = await context.UserZhouVariants
-                .Where(uzv => uzv.UserZhouVariantID == uzvID)
-                .Select(uzv => uzv.ZhouVariantID)
-                .FirstOrDefaultAsync();
-            var zhou = await context.ZhouVariants
-                .Include(zv => zv.Zhou)
-                .Where(zv => zv.ZhouVariantID == zvid)
-                .Select(zv => zv.Zhou)
-                .FirstOrDefaultAsync();
-
-            if (borrow != 0 && zhou.C1ID.HasValue && usedCharacterIDs.Contains(zhou.C1ID.Value)) return;
-            if (borrow != 1 && zhou.C2ID.HasValue && usedCharacterIDs.Contains(zhou.C2ID.Value)) return;
-            if (borrow != 2 && zhou.C3ID.HasValue && usedCharacterIDs.Contains(zhou.C3ID.Value)) return;
-            if (borrow != 3 && zhou.C4ID.HasValue && usedCharacterIDs.Contains(zhou.C4ID.Value)) return;
-            if (borrow != 4 && zhou.C5ID.HasValue && usedCharacterIDs.Contains(zhou.C5ID.Value)) return;
-            output.Add(zvid, borrow, selected);
+            for (int i = 0; i < 5; ++i)
+            {
+                if (borrow != i && usedCharacterIDs.Contains(zv.CharacterIDs[i])) return;
+            }
+            output.Add(zv.ZhouVariantID, borrow, selected);
         }
     }
 }

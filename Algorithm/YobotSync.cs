@@ -299,13 +299,8 @@ namespace PcrBattleChannel.Algorithm
                     if (userChanged)
                     {
                         //If we reach here, userUsedCharacterList must not be null.
-                        InheritCombo.ComboInheritInfo inheritComboInfo = null;
                         var userUsedCharacterSet = userUsedCharacterList.Select(cs => cs.CharacterID).ToHashSet();
-                        if (imUser.SelectedComboIndex != -1)
-                        {
-                            //should get from IM context instead of DB context
-                            inheritComboInfo = await InheritCombo.GetInheritInfo(context.DbContext, u, userUsedCharacterSet);
-                        }
+                        var inheritComboInfo = InheritCombo.GetInheritInfo(imUser, userUsedCharacterSet);
                         comboCalculator.Run(imUser, userUsedCharacterSet, 3 - u.Attempts, inheritComboInfo, u.ComboIncludesDrafts);
                         guildChanged = true;
                     }
