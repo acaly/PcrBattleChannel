@@ -242,7 +242,7 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             //3. Calculate values.
-            await CalcComboValues.RunAllAsync(_context.DbContext, guild, null);
+            await CalcComboValues.RunAllAsync(_context.DbContext, guild, imGuild);
 
             await _context.DbContext.SaveChangesAsync();
 

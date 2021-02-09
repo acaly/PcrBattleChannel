@@ -244,7 +244,7 @@ namespace PcrBattleChannel.Pages.Home
                 .ToListAsync();
 
             comboCalculator.Run(imUser, userUsedCharacterIDs.ToHashSet(), 3 - user.Attempts, null, user.ComboIncludesDrafts);
-            await CalcComboValues.RunSingleAsync(_context.DbContext, guild, user, null);
+            await CalcComboValues.RunSingleAsync(_context.DbContext, guild, imGuild, user);
             await _context.DbContext.SaveChangesAsync();
 
             return RedirectToPage();

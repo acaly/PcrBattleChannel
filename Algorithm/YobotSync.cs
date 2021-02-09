@@ -155,7 +155,7 @@ namespace PcrBattleChannel.Algorithm
                         g.LastYobotSync = TimeZoneHelper.BeijingNow;
 
                         //Update values for all combos (in the list).
-                        await CalcComboValues.RunAllAsync(context.DbContext, g, null);
+                        await CalcComboValues.RunAllAsync(context.DbContext, g, imGuild);
 
                         //Ensure each guild is saved separately.
                         await context.DbContext.SaveChangesAsync();
@@ -179,7 +179,7 @@ namespace PcrBattleChannel.Algorithm
                     g.LastYobotSync = TimeZoneHelper.BeijingNow;
 
                     //Update values for all combos (in the list).
-                    await CalcComboValues.RunAllAsync(context.DbContext, g, null);
+                    await CalcComboValues.RunAllAsync(context.DbContext, g, imGuild);
 
                     //Ensure each guild is saved separately.
                     await context.DbContext.SaveChangesAsync();

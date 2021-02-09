@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -9,14 +10,18 @@ namespace PcrBattleChannel.Models
 {
     public unsafe struct InMemoryComboBorrowInfo
     {
-        private fixed byte _borrowIndex[4];
+        private fixed sbyte _borrowIndex[4];
 
-        private InMemoryComboBorrowInfo(byte a, byte b, byte c, byte count)
+        private InMemoryComboBorrowInfo(sbyte a, sbyte b, sbyte c, sbyte count)
         {
             _borrowIndex[0] = a;
             _borrowIndex[1] = b;
             _borrowIndex[2] = c;
             _borrowIndex[3] = count;
+        }
+
+        public InMemoryComboBorrowInfo(int a) : this((sbyte)a, 0, 0, 1)
+        {
         }
 
         public readonly int Value => Count == 0 ? -1 : _borrowIndex[0];
@@ -27,6 +32,11 @@ namespace PcrBattleChannel.Models
             var count = _borrowIndex[3];
             if (count == 0) return this;
             return new InMemoryComboBorrowInfo(_borrowIndex[count - 1], _borrowIndex[0], _borrowIndex[1], count);
+        }
+
+        public readonly InMemoryComboBorrowInfo MakeAppend(int a)
+        {
+            return new InMemoryComboBorrowInfo((sbyte)a, _borrowIndex[0], _borrowIndex[1], (sbyte)(Count + 1));
         }
     }
 
@@ -90,11 +100,16 @@ namespace PcrBattleChannel.Models
             };
         }
 
-        public int GetComboGroupCount => _comboGroups.Count - 1;
+        public int ComboGroupCount => _comboGroups.Count - 1;
 
         public int GetComboCountInGroup(int index)
         {
             return _comboGroups[index + 1].StartIndex - _comboGroups[index].StartIndex;
+        }
+
+        public IEnumerable<Combo> AllCombos
+        {
+            get => Enumerable.Range(0, TotalComboCount).Select(i => GetCombo(i));
         }
 
         public void RemoveZhouVariant(int index)
@@ -247,6 +262,28 @@ namespace PcrBattleChannel.Models
 
             public int ZhouCount => User.ComboZhouCount;
 
+            public float CurrentValue
+            {
+                get => User._comboValues[Index].current;
+                set
+                {
+                    var update = User._comboValues[Index];
+                    update.current = value;
+                    User._comboValues[Index] = update;
+                }
+            }
+
+            public float TotalValue
+            {
+                get => User._comboValues[Index].total;
+                set
+                {
+                    var update = User._comboValues[Index];
+                    update.total = value;
+                    User._comboValues[Index] = update;
+                }
+            }
+
             public InMemoryZhouVariant GetZhouVariant(int index)
             {
                 return User.Guild.GetZhouVariantByIndex(User._comboList[Index * ZhouCount + index].zhou);
@@ -255,6 +292,16 @@ namespace PcrBattleChannel.Models
             public InMemoryComboBorrowInfo GetZhouBorrow(int index)
             {
                 return User._comboList[Index * ZhouCount + index].borrow;
+            }
+
+            public (int, int, int) BossIDTuple
+            {
+                get => (GetZhouVariant(0)?.BossID ?? 0, GetZhouVariant(1)?.BossID ?? 0, GetZhouVariant(2)?.BossID ?? 0);
+            }
+
+            public Vector3 DamageVector
+            {
+                get => new(GetZhouVariant(0)?.Damage ?? 0, GetZhouVariant(1)?.Damage ?? 0, GetZhouVariant(2)?.Damage ?? 0);
             }
 
             public int GetBorrowCaseCount()

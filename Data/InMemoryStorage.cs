@@ -20,6 +20,11 @@ namespace PcrBattleChannel.Data
             return ret;
         }
 
+        public static void RemoveGuild(int guildID)
+        {
+            _guilds.TryRemove(guildID, out _);
+        }
+
         private static InMemoryGuild CreateFromDb(int guildID, ApplicationDbContext dbContext)
         {
             var ret = new InMemoryGuild
@@ -76,6 +81,12 @@ namespace PcrBattleChannel.Data
                 _guilds.Add(guildID, ret);
             }
             return ret;
+        }
+
+        public async Task RemoveGuild(int guildID)
+        {
+            await GetGuild(guildID); //Obtain the lock.
+            InMemoryStorage.RemoveGuild(guildID);
         }
 
         public void Dispose()

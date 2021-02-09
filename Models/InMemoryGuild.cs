@@ -324,5 +324,10 @@ namespace PcrBattleChannel.Models
         {
             get => _zhouVariants.Where(zv => zv is not null);
         }
+
+        public IEnumerable<InMemoryUser> Members
+        {
+            get => _members.Where(u => u is not null);
+        }
     }
 }

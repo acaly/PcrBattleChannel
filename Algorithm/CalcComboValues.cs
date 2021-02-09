@@ -44,7 +44,7 @@ namespace PcrBattleChannel.Algorithm
             public List<int> FirstLapForStages { get; init; }
             public List<List<GuildBossStatus>> Bosses { get; init; }
             public Dictionary<int, float> BossPlanRatios { get; init; } //BossID -> plan ratio
-            public UserCombo[][] Users { get; set; } //with .ZhouX loaded
+            public InMemoryUser[] Users { get; set; } //with .ZhouX loaded
 
             public BossIndexInfo ConvertBossIndex(int bossIndex)
             {
@@ -273,13 +273,13 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Same as Run, but with one single combo as input.
-            public void RunSingle(int userIndex, int comboIndex, UserCombo input, List<SpreadInfo> mappingOutput)
+            public void RunSingle(int userIndex, int comboIndex, InMemoryUser.Combo combo, List<SpreadInfo> mappingOutput)
             {
                 _resultCount = 0;
                 BossIndexDict.Clear();
 
-                var boss = (input.Boss1, input.Boss2, input.Boss3);
-                var dmg = new Vector3(input.Damage1, input.Damage2, input.Damage3);
+                var boss = combo.BossIDTuple;
+                var dmg = combo.DamageVector;
                 BossIndexDict.Add(boss, 0);
                 _resultBuffer[_resultCount++] = new MergedComboGroup(boss, dmg, 1);
                 mappingOutput.Add(new SpreadInfo
@@ -292,7 +292,7 @@ namespace PcrBattleChannel.Algorithm
                 //Leave the only group's RelativeWeightInChain as 1.
             }
 
-            public void Run(int userIndex, UserCombo[] input, List<float> comboInitValueBuffer,
+            public void Run(int userIndex, InMemoryUser input, List<float> comboInitValueBuffer,
                 List<SpreadInfo> mappingOutput)
             {
                 _resultCount = 0;
@@ -301,11 +301,11 @@ namespace PcrBattleChannel.Algorithm
                 var firstOutput = mappingOutput.Count;
 
                 //First pass: make groups.
-                for (int comboIndex = 0; comboIndex < input.Length; ++comboIndex)
+                for (int comboIndex = 0; comboIndex < input.TotalComboCount; ++comboIndex)
                 {
-                    var combo = input[comboIndex];
-                    var boss = (combo.Boss1, combo.Boss2, combo.Boss3);
-                    var dmg = new Vector3(combo.Damage1, combo.Damage2, combo.Damage3);
+                    var combo = input.GetCombo(comboIndex);
+                    var boss = combo.BossIDTuple;
+                    var dmg = combo.DamageVector;
 
                     //Use 0 if not provided. Will be corrected later.
                     var initValue = comboInitValueBuffer?[comboIndex] ?? 0;
@@ -356,11 +356,12 @@ namespace PcrBattleChannel.Algorithm
                 }
 
                 //Second pass: calculate weight of each combo relative to its combo group.
-                for (int i = 0; i < input.Length; ++i)
+                for (int i = 0; i < input.TotalComboCount; ++i)
                 {
-                    var combo = input[i];
-
-                    var comboTotalDamage = combo.Damage1 + combo.Damage2 + combo.Damage3;
+                    var combo = input.GetCombo(i);
+                    var comboTotalDamage = combo.GetZhouVariant(0).Damage +
+                        combo.GetZhouVariant(1).Damage +
+                        combo.GetZhouVariant(2).Damage;
                     var outputElement = mappingOutput[firstOutput + i];
                     ref var g = ref _resultBuffer[outputElement.ComboGroupIndex];
                     var groupTotalDamage = g.AverageTotalDamage * g.Count;
@@ -566,11 +567,11 @@ namespace PcrBattleChannel.Algorithm
                     _valueInitBuffer.Clear();
                     bool useInitValue = initValues?.Invoke(StaticInfo, userIndex, _valueInitBuffer) ?? false;
 
-                    int selected;
-                    if (FixSelectedCombo && (selected = Array.FindIndex(user, c => c.SelectedZhou.HasValue)) != -1)
+                    if (FixSelectedCombo && user.SelectedComboIndex != -1)
                     {
                         //Make a group containing one combo.
-                        _comboMerger.RunSingle(userIndex, selected, user[selected], _comboGroupSpreadInfoList);
+                        _comboMerger.RunSingle(userIndex, user.SelectedComboIndex,
+                            user.GetCombo(user.SelectedComboIndex), _comboGroupSpreadInfoList);
                     }
                     else
                     {
@@ -964,7 +965,7 @@ namespace PcrBattleChannel.Algorithm
             {
                 return (StaticInfo staticInfo, int userIndex, List<float> buffer) =>
                 {
-                    var newCount = staticInfo.Users[userIndex].Length;
+                    var newCount = staticInfo.Users[userIndex].TotalComboCount;
                     if (result.ComboValues.ContainsKey((userIndex, newCount - 1)) &&
                         !result.ComboValues.ContainsKey((userIndex, newCount)))
                     {
@@ -981,28 +982,28 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Get init values from combo.Value, except for the combos of the last user.
-            public static bool InitValues_FromComboValuesExceptLast(StaticInfo staticInfo, int userIndex,
+            public static bool InitValues_FromComboCurrentValuesExceptLast(StaticInfo staticInfo, int userIndex,
                 List<float> buffer)
             {
                 if (userIndex != staticInfo.Users.Length - 1)
                 {
-                    foreach (var c in staticInfo.Users[userIndex])
+                    foreach (var c in staticInfo.Users[userIndex].AllCombos)
                     {
-                        buffer.Add(c.Value);
+                        buffer.Add(c.CurrentValue);
                     }
                     return true;
                 }
                 return false;
             }
 
-            public static bool InitValues_FromComboNetValuesExceptLast(StaticInfo staticInfo, int userIndex,
+            public static bool InitValues_FromComboTotalValuesExceptLast(StaticInfo staticInfo, int userIndex,
                 List<float> buffer)
             {
                 if (userIndex != staticInfo.Users.Length - 1)
                 {
-                    foreach (var c in staticInfo.Users[userIndex])
+                    foreach (var c in staticInfo.Users[userIndex].AllCombos)
                     {
-                        buffer.Add(c.NetValue);
+                        buffer.Add(c.TotalValue);
                     }
                     return true;
                 }
@@ -1011,20 +1012,13 @@ namespace PcrBattleChannel.Algorithm
         }
 
         //Run for all users in the guild.
-        public static async Task RunAllAsync(ApplicationDbContext context, Guild guild, IEnumerable<UserCombo> allCombos)
+        public static async Task RunAllAsync(ApplicationDbContext context, Guild guild, InMemoryGuild imGuild)
         {
             await context.GuildBossStatuses
                 .Where(s => s.GuildID == guild.GuildID && s.IsPlan == false)
                 .DeleteFromQueryAsync();
 
-            allCombos ??= await context.UserCombos
-                .Include(c => c.User)
-                .Where(c => c.GuildID == guild.GuildID && !c.User.IsIgnored)
-                .ToListAsync();
-            var allUsers = allCombos
-                .GroupBy(c => c.UserID)
-                .Select(g => g.ToArray())
-                .ToArray();
+            var allUsers = imGuild.Members.ToArray();
 
             var stages = await context.BattleStages
                 .OrderBy(s => s.StartLap)
@@ -1064,7 +1058,7 @@ namespace PcrBattleChannel.Algorithm
             };
 
             //Accurate.
-            var nonselectedResult = Run(staticInfo, true);
+            var currentResult = Run(staticInfo, true);
 
             //TODO approximate
             //copy from accurate: all non-fixed
@@ -1079,29 +1073,29 @@ namespace PcrBattleChannel.Algorithm
             for (int userIndex = 0; userIndex < allUsers.Length; ++userIndex)
             {
                 var user = allUsers[userIndex];
-                for (int comboIndex = 0; comboIndex < user.Length; ++ comboIndex)
+                for (int comboIndex = 0; comboIndex < user.TotalComboCount; ++ comboIndex)
                 {
                     var comboID = (userIndex, comboIndex);
-                    var c = user[comboIndex];
-                    if (totalResult.ComboValues.TryGetValue(comboID, out var netValue))
+                    var c = user.GetCombo(comboIndex);
+                    if (totalResult.ComboValues.TryGetValue(comboID, out var totalValue))
                     {
-                        c.NetValue = netValue;
+                        c.TotalValue = totalValue;
                     }
                     else
                     {
-                        c.NetValue = 0;
+                        c.TotalValue = 0;
                     }
-                    if (nonselectedResult.ComboValues.TryGetValue(comboID, out var value))
+                    if (currentResult.ComboValues.TryGetValue(comboID, out var value))
                     {
-                        c.Value = value;
+                        c.CurrentValue = value;
                     }
                     else
                     {
-                        c.Value = 0;
+                        c.CurrentValue = 0;
                     }
                 }
             }
-            foreach (var (bossID, value) in nonselectedResult.BossValues)
+            foreach (var (bossID, value) in currentResult.BossValues)
             {
                 var newStatus = new GuildBossStatus
                 {
@@ -1113,8 +1107,8 @@ namespace PcrBattleChannel.Algorithm
                 };
                 context.GuildBossStatuses.Add(newStatus);
             }
-            guild.PredictBossIndex = nonselectedResult.EndBossIndex;
-            guild.PredictBossDamageRatio = nonselectedResult.EndBossDamage;
+            guild.PredictBossIndex = currentResult.EndBossIndex;
+            guild.PredictBossDamageRatio = currentResult.EndBossDamage;
             guild.LastCalculation = TimeZoneHelper.BeijingNow;
 
             await context.Users
@@ -1124,18 +1118,13 @@ namespace PcrBattleChannel.Algorithm
 
         //Run for a single user and get approximate results. This is useful to show some number quickly after
         //the user refreshes the combo list.
-        public static async Task RunSingleAsync(ApplicationDbContext context, Guild guild,
-            PcrIdentityUser user, List<UserCombo> userCombos)
+        public static async Task RunSingleAsync(ApplicationDbContext context, Guild guild, InMemoryGuild imGuild,
+            PcrIdentityUser user)
         {
-            var allCombosExcludeOne = await context.UserCombos
-                .Include(c => c.User)
-                .Where(c => c.GuildID == guild.GuildID && c.User.Id != user.Id)
-                .ToListAsync();
-
-            var allUsers = allCombosExcludeOne
-                .GroupBy(c => c.UserID)
-                .Select(g => g.ToArray())
-                .Concat(Enumerable.Repeat(userCombos.ToArray(), 1)) //Put the calculated user last.
+            var imUser = imGuild.GetUserById(user.Id);
+            var allUsers = imGuild.Members
+                .Where(u => u.UserID != user.Id)
+                .Concat(Enumerable.Repeat(imUser, 1)) //Put the user last.
                 .ToArray();
 
             var stages = await context.BattleStages
@@ -1181,28 +1170,28 @@ namespace PcrBattleChannel.Algorithm
                 Guild = guild,
             };
 
-            var nonselectedResult = RunApproximate(staticInfo, true, guild, Solver.InitValues_FromComboValuesExceptLast);
-            var totalResult = RunApproximate(staticInfo, false, guild, Solver.InitValues_FromComboNetValuesExceptLast);
+            var currentResult = RunApproximate(staticInfo, true, guild, Solver.InitValues_FromComboCurrentValuesExceptLast);
+            var totalResult = RunApproximate(staticInfo, false, guild, Solver.InitValues_FromComboTotalValuesExceptLast);
 
-            for (int comboIndex = 0; comboIndex < userCombos.Count; ++comboIndex)
+            for (int comboIndex = 0; comboIndex < imUser.TotalComboCount; ++comboIndex)
             {
                 var comboID = (allUsers.Length - 1, comboIndex);
-                var c = userCombos[comboIndex];
-                if (totalResult.ComboValues.TryGetValue(comboID, out var netValue))
+                var c = imUser.GetCombo(comboIndex);
+                if (totalResult.ComboValues.TryGetValue(comboID, out var totalValue))
                 {
-                    c.NetValue = netValue;
+                    c.TotalValue = totalValue;
                 }
                 else
                 {
-                    c.NetValue = 0;
+                    c.TotalValue = 0;
                 }
-                if (nonselectedResult.ComboValues.TryGetValue(comboID, out var value))
+                if (currentResult.ComboValues.TryGetValue(comboID, out var value))
                 {
-                    c.Value = value;
+                    c.CurrentValue = value;
                 }
                 else
                 {
-                    c.Value = 0;
+                    c.CurrentValue = 0;
                 }
             }
 

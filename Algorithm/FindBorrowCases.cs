@@ -32,24 +32,30 @@ namespace PcrBattleChannel.Algorithm
                 {
                     if (b is null)
                     {
-                        return $"{(fixedA ?? -1)},-1,-1";
+                        SetSingle(fixedA ?? -1, -1, -1);
                     }
-                    return Run3(a, b, _dummyC, fixedA, fixedB, null);
+                    Run3(a, b, _dummyC, fixedA, fixedB, null);
                 }
-                return Run3(a, b, c, fixedA, fixedB, fixedC);
+                Run3(a, b, c, fixedA, fixedB, fixedC);
             }
             catch
             {
                 //This should not happen, but the field is required. Let's give it some value anyway.
-                return "-1,-1,-1";
+                SetSingle(-1, -1, -1);
             }
+        }
+
+        private void SetSingle(int a, int b, int c)
+        {
+            Result[0] = new(a);
+            Result[1] = new(b);
+            Result[2] = new(c);
         }
 
         private readonly List<(int key, int count)> _abc = new();
         private readonly (int oldIndex, int[] data)[] _zmatrix = new[] { (0, new int[3]), (0, new int[3]), (0, new int[3]) };
         private readonly List<(int, int, int)> _results = new();
         private readonly HashSet<(int, int, int)> _fixedResults = new();
-        private readonly StringBuilder _str = new();
 
         private static int ZMatrixRowComparison((int oldIndex, int[] data) a, (int oldIndex, int[] data) b)
         {
@@ -75,7 +81,7 @@ namespace PcrBattleChannel.Algorithm
             return 0;
         }
 
-        private string Run3(ImmutableDictionary<int, int> z1, ImmutableDictionary<int, int> z2, ImmutableDictionary<int, int> z3,
+        private void Run3(ImmutableDictionary<int, int> z1, ImmutableDictionary<int, int> z2, ImmutableDictionary<int, int> z3,
             int? fixedA, int? fixedB, int? fixedC)
         {
             tempSet.Clear();
@@ -244,21 +250,13 @@ namespace PcrBattleChannel.Algorithm
                 _fixedResults.Add((exchangeBuffer[0], exchangeBuffer[1], exchangeBuffer[2]));
             }
 
-            _str.Clear();
+            Result[0] = Result[1] = Result[2] = default;
             foreach (var (i, j, k) in _fixedResults)
             {
-                if (_str.Length != 0)
-                {
-                    _str.Append(';');
-                }
-                _str.Append(i);
-                _str.Append(',');
-                _str.Append(j);
-                _str.Append(',');
-                _str.Append(k);
+                Result[0] = Result[0].MakeAppend(i);
+                Result[1] = Result[1].MakeAppend(j);
+                Result[2] = Result[2].MakeAppend(k);
             }
-
-            return _str.ToString();
         }
     }
 }

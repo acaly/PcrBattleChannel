@@ -15,11 +15,11 @@ namespace PcrBattleChannel.Pages.Guilds
 {
     public class EditModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public EditModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public EditModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -49,7 +49,7 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 return null;
             }
-            var guild = await _context.Guilds
+            var guild = await _context.DbContext.Guilds
                 .Include(g => g.Owner)
                 .Include(g => g.Members)
                 .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
@@ -87,8 +87,8 @@ namespace PcrBattleChannel.Pages.Guilds
             guild.Description = Guild.Description;
             guild.YobotAPI = Guild.YobotAPI;
 
-            _context.Guilds.Update(guild);
-            await _context.SaveChangesAsync();
+            _context.DbContext.Guilds.Update(guild);
+            await _context.DbContext.SaveChangesAsync();
 
             StatusMessage = "公会信息已更新。";
             return RedirectToPage();
@@ -102,7 +102,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == InviteMemberEmail);
+            var user = await _context.DbContext.Users.FirstOrDefaultAsync(u => u.Email == InviteMemberEmail);
             if (user is null)
             {
                 StatusMessage = "错误：用户不存在。";
@@ -113,11 +113,13 @@ namespace PcrBattleChannel.Pages.Guilds
                 StatusMessage = "错误：用户已经所属其他公会。";
                 return RedirectToPage();
             }
+            var imGuild = await _context.GetGuild(guild.GuildID);
 
             user.GuildID = guild.GuildID;
             user.IsGuildAdmin = false;
-            _context.Update(user);
-            await _context.SaveChangesAsync();
+            _context.DbContext.Update(user);
+            await _context.DbContext.SaveChangesAsync();
+            imGuild.AddUser(user.Id, 0, null);
 
             return RedirectToPage();
         }
@@ -130,7 +132,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.DbContext.Users.FindAsync(id);
             if (user is null || user.GuildID != guild.GuildID)
             {
                 StatusMessage = "错误：用户不存在。";
@@ -138,8 +140,8 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             user.IsGuildAdmin = !user.IsGuildAdmin;
-            _context.Update(user);
-            await _context.SaveChangesAsync();
+            _context.DbContext.Update(user);
+            await _context.DbContext.SaveChangesAsync();
 
             return RedirectToPage();
         }
@@ -152,12 +154,13 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.DbContext.Users.FindAsync(id);
             if (user is null || user.GuildID != guild.GuildID)
             {
                 StatusMessage = "错误：用户不存在。";
                 return RedirectToPage();
             }
+            var imGuild = await _context.GetGuild(guild.GuildID);
 
             user.GuildID = null;
             user.IsGuildAdmin = false;
@@ -168,20 +171,19 @@ namespace PcrBattleChannel.Pages.Guilds
             user.Attempt1Borrow = user.Attempt2Borrow = user.Attempt3Borrow = null;
             user.IsIgnored = false;
 
-            _context.Users.Update(user);
+            _context.DbContext.Users.Update(user);
 
-            await _context.UserCombos.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
-            await _context.UserZhouVariants.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
-            await _context.UserCharacterConfigs.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
-            await _context.UserCharacterStatuses.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
+            await _context.DbContext.UserCharacterConfigs.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
+            await _context.DbContext.UserCharacterStatuses.Where(c => c.UserID == user.Id).DeleteFromQueryAsync();
 
             if (user.Email is null)
             {
                 //Cloned user has no email.
-                _context.Users.Remove(user);
+                _context.DbContext.Users.Remove(user);
             }
 
-            await _context.SaveChangesAsync();
+            imGuild.DeleteUser(user.Id);
+            await _context.DbContext.SaveChangesAsync();
 
             StatusMessage = "用户已移出公会。";
             return RedirectToPage();
@@ -195,7 +197,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.DbContext.Users.FindAsync(id);
             if (user is null || user.GuildID != guild.GuildID)
             {
                 StatusMessage = "错误：用户不存在。";

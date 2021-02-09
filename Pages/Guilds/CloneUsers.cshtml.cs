@@ -15,11 +15,11 @@ namespace PcrBattleChannel.Pages.Guilds
 {
     public class CloneUsersModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public CloneUsersModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public CloneUsersModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -58,7 +58,7 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 return null;
             }
-            var guild = await _context.Guilds
+            var guild = await _context.DbContext.Guilds
                 .Include(g => g.Owner)
                 .Include(g => g.Members)
                 .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
@@ -88,7 +88,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var currentCount = await _context.Users
+            var currentCount = await _context.DbContext.Users
                 .Where(u => u.GuildID == guild.GuildID)
                 .CountAsync();
 
@@ -103,7 +103,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return Page();
             }
 
-            var templateUser = await _context.Users
+            var templateUser = await _context.DbContext.Users
                 .FirstOrDefaultAsync(u => u.Email == TemplateUserEmail);
             if (templateUser is null)
             {
@@ -116,20 +116,21 @@ namespace PcrBattleChannel.Pages.Guilds
                 return Page();
             }
 
-            var templateUserConfigs = await _context.UserCharacterConfigs
+            var templateUserConfigs = await _context.DbContext.UserCharacterConfigs
                 .Where(cc => cc.UserID == templateUser.Id).ToListAsync();
-            var templateUserVariants = await _context.UserZhouVariants
-                .Where(v => v.UserID == templateUser.Id).ToListAsync();
 
             for (int i = 0; i < CloneCount; ++i)
             {
                 var email = string.Format(EmailFormat, i + 1).ToUpperInvariant();
-                if (await _context.Users.AnyAsync(u => u.NormalizedEmail == email))
+                if (await _context.DbContext.Users.AnyAsync(u => u.NormalizedEmail == email))
                 {
                     StatusMessage2 = $"错误：用户{string.Format(EmailFormat, i + 1)}已存在。";
                     return Page();
                 }
             }
+
+            var imGuild = await _context.GetGuild(guild.GuildID);
+            var newUserList = new List<PcrIdentityUser>();
 
             for (int i = 0; i < CloneCount; ++i)
             {
@@ -143,32 +144,27 @@ namespace PcrBattleChannel.Pages.Guilds
                     GuildID = guild.GuildID,
                 };
 
-                _context.Users.Add(user);
+                _context.DbContext.Users.Add(user);
                 {
                     //Clone configs.
                     foreach (var cc in templateUserConfigs)
                     {
-                        _context.UserCharacterConfigs.Add(new()
+                        _context.DbContext.UserCharacterConfigs.Add(new()
                         {
                             User = user,
                             CharacterConfigID = cc.CharacterConfigID,
                         });
                     }
-
-                    //Clone variants.
-                    foreach (var v in templateUserVariants)
-                    {
-                        _context.UserZhouVariants.Add(new()
-                        {
-                            User = user,
-                            ZhouVariantID = v.ZhouVariantID,
-                            Borrow = v.Borrow,
-                        });
-                    }
                 }
+                newUserList.Add(user);
             }
 
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
+
+            foreach (var user in newUserList)
+            {
+                imGuild.AddUser(user.Id, 0, templateUser.Id);
+            }
 
             StatusMessage = "克隆完成。";
             return RedirectToPage("/Guilds/Edit");
