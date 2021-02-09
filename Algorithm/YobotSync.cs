@@ -209,8 +209,6 @@ namespace PcrBattleChannel.Algorithm
             bool guildChanged = false;
             foreach (var u in guild.Members)
             {
-                if (u.IsIgnored) continue;
-
                 //Collect all combos
                 var userCombos = await context.UserCombos
                     .Include(c => c.Zhou1)
