@@ -75,6 +75,10 @@ namespace PcrBattleChannel.Data
                 ret = await InMemoryStorage.GetAndLockGuild(DbContext, guildID);
                 _guilds.Add(guildID, ret);
             }
+            else
+            {
+                await ret.GuildLock.WaitAsync();
+            }
             return ret;
         }
 

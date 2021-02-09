@@ -21,11 +21,13 @@ namespace PcrBattleChannel.Models
         public int Index { get; init; }
         public int ZhouID { get; init; }
         public int ZhouVariantID { get; init; }
+        public bool IsDraft { get; init; }
 
         public int BossID { get; init; }
         public int Damage { get; init; }
 
         public ImmutableArray<int> CharacterIDs { get; init; }
+        public ImmutableDictionary<int, int> CharacterIndexMap { get; init; } //Used in borrow case calculation.
 
         //character index -> group index -> ccid[]
         public ImmutableArray<ImmutableArray<ImmutableArray<int>>> CharacterConfigIDs { get; init; }

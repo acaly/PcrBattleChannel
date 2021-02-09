@@ -17,6 +17,7 @@ namespace PcrBattleChannel.Algorithm
             private int? _nextZhouVariantID;
 
             public int Count => _zhouVariantIDs.Count;
+            public int SelectedZhou => _nextZhouVariantID ?? 0;
 
             public void Add(int zvid, int borrow, bool isSelected)
             {
@@ -33,7 +34,8 @@ namespace PcrBattleChannel.Algorithm
                 _zhouBorrowIndices.Add("-1");
             }
 
-            public bool Match(int? zvid1, int? zvid2, int? zvid3, ref string borrow)
+            //note: borrow can be modifed in place (if matching)
+            public bool Match(int? zvid1, int? zvid2, int? zvid3, ref InMemoryComboBorrowInfo[] borrow)
             {
                 //Count has been confirmed by FindAllCombos. We only need to check
                 //in one direction.
@@ -68,11 +70,6 @@ namespace PcrBattleChannel.Algorithm
                     skippedLength += borrowCase.Length + 1;
                 }
                 return false;
-            }
-
-            public void Setup(UserCombo combo)
-            {
-                combo.SelectedZhou = _nextZhouVariantID ?? 0;
             }
         }
 

@@ -1,5 +1,7 @@
-﻿using System;
+﻿using PcrBattleChannel.Models;
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,16 +12,18 @@ namespace PcrBattleChannel.Algorithm
     {
         private readonly HashSet<int> tempSet = new();
         private readonly List<int> tempList = new();
-        private static readonly Dictionary<int, int> _dummyC = new()
+        private static readonly ImmutableDictionary<int, int> _dummyC = new Dictionary<int, int>()
         {
             { -2, 0 },
             { -3, 1 },
             { -4, 2 },
             { -5, 3 },
             { -6, 4 },
-        };
+        }.ToImmutableDictionary();
 
-        public string Run(Dictionary<int, int> a, Dictionary<int, int> b, Dictionary<int, int> c,
+        public InMemoryComboBorrowInfo[] Result { get; } = new InMemoryComboBorrowInfo[3];
+
+        public void Run(ImmutableDictionary<int, int> a, ImmutableDictionary<int, int> b, ImmutableDictionary<int, int> c,
             int? fixedA, int? fixedB, int? fixedC)
         {
             try
@@ -41,11 +45,11 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        private List<(int key, int count)> _abc = new();
-        private (int oldIndex, int[] data)[] _zmatrix = new[] { (0, new int[3]), (0, new int[3]), (0, new int[3]) };
-        private List<(int, int, int)> _results = new();
-        private HashSet<(int, int, int)> _fixedResults = new();
-        private StringBuilder _str = new();
+        private readonly List<(int key, int count)> _abc = new();
+        private readonly (int oldIndex, int[] data)[] _zmatrix = new[] { (0, new int[3]), (0, new int[3]), (0, new int[3]) };
+        private readonly List<(int, int, int)> _results = new();
+        private readonly HashSet<(int, int, int)> _fixedResults = new();
+        private readonly StringBuilder _str = new();
 
         private static int ZMatrixRowComparison((int oldIndex, int[] data) a, (int oldIndex, int[] data) b)
         {
@@ -71,7 +75,7 @@ namespace PcrBattleChannel.Algorithm
             return 0;
         }
 
-        private string Run3(Dictionary<int, int> z1, Dictionary<int, int> z2, Dictionary<int, int> z3,
+        private string Run3(ImmutableDictionary<int, int> z1, ImmutableDictionary<int, int> z2, ImmutableDictionary<int, int> z3,
             int? fixedA, int? fixedB, int? fixedC)
         {
             tempSet.Clear();

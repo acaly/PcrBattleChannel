@@ -8,48 +8,34 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Algorithm
 {
-    internal static class FindAllCombos
+    internal class FindAllCombos
     {
         private class ZVWrapper
         {
             public static readonly ZVWrapper Null = new();
 
-            public UserZhouVariant UV { get; }
-            public int? UVID { get; }
-            public Dictionary<int, int> CharactersNoBorrow { get; } // CharacterID -> character index in Zhou
-            public Dictionary<int, int> Characters { get; }
+            public InMemoryZhouVariant ZV { get; }
+            public Dictionary<int, int> CharactersNoBorrow { get; } //TODO check whether this can be simplified
             public int? ActualBorrowIndex { get; set; }
-            public int BossID => UV?.ZhouVariant.Zhou.BossID ?? int.MaxValue;
+            public int BossID => ZV?.BossID ?? int.MaxValue;
 
             private ZVWrapper() { }
 
-            public ZVWrapper(ApplicationDbContext context, UserZhouVariant uv)
+            public ZVWrapper(InMemoryUser user, InMemoryZhouVariant zv)
             {
-                UV = uv;
-                UVID = uv.UserZhouVariantID;
+                ZV = zv;
 
-                //Load Zhou (to access characters).
-                context.Entry(uv.ZhouVariant).Reference(vv => vv.Zhou).Load();
+                CharactersNoBorrow = new(ZV.CharacterIndexMap);
 
-                //Calculate the hash set.
-                Characters = new();
-                var z = uv.ZhouVariant.Zhou;
-                if (z.C1ID.HasValue) Characters.Add(z.C1ID.Value, 0);
-                if (z.C2ID.HasValue) Characters.Add(z.C2ID.Value, 1);
-                if (z.C3ID.HasValue) Characters.Add(z.C3ID.Value, 2);
-                if (z.C4ID.HasValue) Characters.Add(z.C4ID.Value, 3);
-                if (z.C5ID.HasValue) Characters.Add(z.C5ID.Value, 4);
-
-                CharactersNoBorrow = new(Characters);
-                if (uv.Borrow == 0) CharactersNoBorrow.Remove(z.C1ID.Value);
-                if (uv.Borrow == 1) CharactersNoBorrow.Remove(z.C2ID.Value);
-                if (uv.Borrow == 2) CharactersNoBorrow.Remove(z.C3ID.Value);
-                if (uv.Borrow == 3) CharactersNoBorrow.Remove(z.C4ID.Value);
-                if (uv.Borrow == 4) CharactersNoBorrow.Remove(z.C5ID.Value);
-
-                ActualBorrowIndex = uv.Borrow;
+                var borrow = zv.UserData[user.Index].BorrowPlusOne - 1;
+                if (borrow < 5)
+                {
+                    CharactersNoBorrow.Remove(zv.CharacterIDs[borrow]);
+                    ActualBorrowIndex = borrow;
+                }
             }
 
+            //TODO this check should be done before creating this wrapper
             public bool ApplyUsedCharacterList(HashSet<int> usedCharacters, HashSet<int> test)
             {
                 test.Clear();
@@ -69,52 +55,21 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public static async Task RunAsync(ApplicationDbContext context, PcrIdentityUser user, List<UserCharacterStatus> overrideStatus,
-            List<UserCombo> results, bool inherit)
+        private readonly InMemoryComboListBuilder _comboListBuilder = new();
+
+        public void Run(InMemoryUser user, HashSet<int> usedCharacters, int newComboSize,
+            InheritCombo.ComboInheritInfo inheritComboInfo, bool includeDraft)
         {
             HashSet<int> test = new();
             var borrowCalculator = new FindBorrowCases();
 
-            //Collect all variants.
-            List<UserZhouVariant> allVariants;
-            if (user.ComboIncludesDrafts)
-            {
-                allVariants = await context.UserZhouVariants
-                    .Include(v => v.ZhouVariant)
-                    .Where(v => v.UserID == user.Id)
-                    .ToListAsync();
-            }
-            else
-            {
-                allVariants = await context.UserZhouVariants
-                    .Include(v => v.ZhouVariant)
-                    .Where(v => v.UserID == user.Id && !v.ZhouVariant.IsDraft)
-                    .ToListAsync();
-            }
-
-            //Get all used characters.
-            var allUsedCharacterList = overrideStatus?.Select(s => s.CharacterID).ToList() ?? 
-                await context.UserCharacterStatuses
-                    .Where(s => s.UserID == user.Id && s.IsUsed == true)
-                    .Select(s => s.CharacterID)
-                    .ToListAsync();
-            var allUsedCharacterSet = allUsedCharacterList.ToHashSet();
-
-            InheritCombo.ComboInheritInfo inheritComboInfo = null;
-            if (inherit)
-            {
-                inheritComboInfo = await InheritCombo.GetInheritInfo(context, user, allUsedCharacterSet);
-                if (inheritComboInfo is not null && inheritComboInfo.Count != 3 - user.Attempts)
-                {
-                    //Number of zhous must be the same.
-                    inheritComboInfo = null;
-                }
-            }
-
+            var filteredVariants = user.Guild.ZhouVariants
+                .Where(zv => (includeDraft || !zv.IsDraft) && zv.UserData[user.Index].BorrowPlusOne != 0)
+                .Select(zv => new ZVWrapper(user, zv));
             var wrappedVariants = new List<ZVWrapper>();
-            foreach (var v in allVariants.Select(v => new ZVWrapper(context, v)))
+            foreach (var v in filteredVariants)
             {
-                if (v.ApplyUsedCharacterList(allUsedCharacterSet, test))
+                if (v.ApplyUsedCharacterList(usedCharacters, test))
                 {
                     wrappedVariants.Add(v);
                 }
@@ -122,27 +77,25 @@ namespace PcrBattleChannel.Algorithm
 
             //Merge by Zhou+BorrowIndex, select highest.
             var highestVariants = wrappedVariants
-                .GroupBy(v => (v.UV.ZhouVariant.ZhouID, v.ActualBorrowIndex))
-                .Select(g => g.OrderByDescending(v => v.UV.ZhouVariant.Damage).First())
+                .GroupBy(v => (v.ZV.ZhouID, v.ActualBorrowIndex))
+                .Select(g => g.OrderByDescending(v => v.ZV.Damage).First())
                 .ToList();
 
             //Calculate most-used 4 characters.
             int[] mostUsedCharacters;
             {
-                Dictionary<int, int> characterCount = new();
-                void AddC(int? i)
+                Dictionary<int, int> characterCount = new(); //CharacterID -> count
+                void AddC(int cid)
                 {
-                    if (!i.HasValue) return;
-                    characterCount.TryGetValue(i.Value, out var old); //Give 0 if not found.
-                    characterCount[i.Value] = old + 1;
+                    characterCount.TryGetValue(cid, out var old); //Give 0 if not found.
+                    characterCount[cid] = old + 1;
                 }
                 foreach (var v in highestVariants)
                 {
-                    AddC(v.UV.ZhouVariant.Zhou.C1ID);
-                    AddC(v.UV.ZhouVariant.Zhou.C2ID);
-                    AddC(v.UV.ZhouVariant.Zhou.C3ID);
-                    AddC(v.UV.ZhouVariant.Zhou.C4ID);
-                    AddC(v.UV.ZhouVariant.Zhou.C5ID);
+                    for (int i = 0; i < 5; ++i)
+                    {
+                        AddC(v.ZV.CharacterIDs[i]);
+                    }
                 }
                 mostUsedCharacters = characterCount
                     .OrderByDescending(p => p.Value)
@@ -154,11 +107,9 @@ namespace PcrBattleChannel.Algorithm
             //Group variants into special groups depending on their use of most-used characters.
             List<ZVWrapper> groupA = new(), groupB = new(), groupC = new();
             {
-                static bool HasOne(ZVWrapper uv, int i)
+                static bool HasOne(ZVWrapper uv, int cid)
                 {
-                    var z = uv.UV.ZhouVariant.Zhou;
-                    return z.C1ID == i || z.C2ID == i ||
-                        z.C3ID == i || z.C4ID == i || z.C5ID == i;
+                    return uv.ZV.CharacterIndexMap.ContainsKey(cid);
                 }
                 bool IsA(ZVWrapper uv)
                 {
@@ -190,7 +141,9 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Helper functions.
-            UserCombo inheritedNewCombo = null;
+            int[] inheritedNewComboData = null;
+            InMemoryComboBorrowInfo[] inheritedNewComboBorrow = null;
+
             bool IsCompatible2(ZVWrapper uv1, ZVWrapper uv2)
             {
                 test.Clear();
@@ -221,44 +174,33 @@ namespace PcrBattleChannel.Algorithm
                 {
                     (uv1, uv2) = (uv2, uv1);
                 }
-                var borrow = borrowCalculator.Run(uv1.Characters, uv2.Characters, uv3.Characters,
+                borrowCalculator.Run(uv1.ZV?.CharacterIndexMap, uv2.ZV?.CharacterIndexMap, uv3.ZV?.CharacterIndexMap,
                         uv1.ActualBorrowIndex, uv2.ActualBorrowIndex, uv3.ActualBorrowIndex);
-                var combo = new UserCombo
+                var borrow = borrowCalculator.Result;
+                _comboListBuilder.AddCombo(uv1.ZV?.Index ?? -1, uv2.ZV?.Index ?? -1, uv3.ZV?.Index ?? -1, borrow);
+
+                if (inheritComboInfo?.Match(uv1.ZV?.ZhouVariantID, uv2.ZV?.ZhouVariantID, uv3.ZV?.ZhouVariantID, ref borrow) ?? false)
                 {
-                    UserID = user.Id,
-                    GuildID = user.GuildID.Value,
-                    Zhou1ID = uv1.UVID,
-                    Zhou2ID = uv2.UVID,
-                    Zhou3ID = uv3.UVID,
-                    Boss1 = uv1.UV?.ZhouVariant.Zhou.BossID ?? 0,
-                    Boss2 = uv2.UV?.ZhouVariant.Zhou.BossID ?? 0,
-                    Boss3 = uv3.UV?.ZhouVariant.Zhou.BossID ?? 0,
-                    Damage1 = uv1.UV?.ZhouVariant.Damage ?? 0,
-                    Damage2 = uv2.UV?.ZhouVariant.Damage ?? 0,
-                    Damage3 = uv3.UV?.ZhouVariant.Damage ?? 0,
-                    BorrowInfo = borrow,
-                };
-                if (inheritComboInfo?.Match(uv1.UV?.ZhouVariantID, uv2.UV?.ZhouVariantID, uv3.UV?.ZhouVariantID, ref borrow) ?? false)
-                {
-                    if (inheritedNewCombo is not null)
+                    if (inheritedNewComboData is not null)
                     {
                         //More than one combo. Don't check any more.
                         inheritComboInfo = null;
                     }
                     else
                     {
-                        inheritedNewCombo = combo;
-                        combo.BorrowInfo = borrow;
+                        inheritedNewComboData = new[] { uv1.ZV?.Index ?? -1, uv2.ZV?.Index ?? -1, uv3.ZV?.Index ?? -1 };
+                        inheritedNewComboBorrow = borrow;
                     }
                 }
-                context.UserCombos.Add(combo);
-                results?.Add(combo);
             }
+
+            //Initialize builder.
+            _comboListBuilder.Reset(newComboSize);
 
             //Iterate and generate results (3 cases).
 
             //Combo with 3 Zhous.
-            if (user.Attempts == 0)
+            if (newComboSize == 3)
             {
                 //A (1) + B (1) + C (1)
                 foreach (var x in groupA)
@@ -327,7 +269,7 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
             }
-            else if (user.Attempts == 1)
+            else if (newComboSize == 2)
             {
                 //A (1) + B (1)
                 foreach (var x in groupA)
@@ -371,7 +313,7 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
             }
-            else
+            else if (newComboSize == 1)
             {
                 foreach (var x in highestVariants)
                 {
@@ -379,13 +321,16 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
-            if (inheritedNewCombo is not null)
+            user.WriteComboList(_comboListBuilder);
+
+            //Two null check is necessary. If user modified zhou borrow info, inheritedNewComboData
+            //might be null while inheritComboInfo is not.
+            if (inheritedNewComboData is not null && inheritComboInfo is not null)
             {
-                //It's possible, e.g., when user modifies the UserZhouVariant.
-                inheritComboInfo?.Setup(inheritedNewCombo);
+                user.InheritSelectedCombo(inheritedNewComboData, inheritedNewComboBorrow, inheritComboInfo.SelectedZhou);
             }
 
-            user.LastComboUpdate = TimeZoneHelper.BeijingNow;
+            user.LastComboCalculation = TimeZoneHelper.BeijingNow;
         }
     }
 }

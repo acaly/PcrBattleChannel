@@ -32,6 +32,11 @@ namespace PcrBattleChannel.Models
     //Track a PcrIdentityUser entry in database.
     public class InMemoryUser
     {
+        private struct ComboGroupData
+        {
+            public int StartIndex;
+        }
+
         public InMemoryGuild Guild { get; init; }
         public string UserID { get; init; }
         public int Index { get; init; } //Index of a user is fixed once created.
@@ -43,15 +48,15 @@ namespace PcrBattleChannel.Models
         //considers not only boss, but also damage.
         //startIndex is the index of ComboValues, not ComboList. They differ by a factor of ComboZhouCount.
         //The last element marks the total combo count.
-        private readonly List<(string name, int startIndex)> _comboGroups = new() { (null, 0) };
+        private readonly List<ComboGroupData> _comboGroups = new() { new() { StartIndex = 0 } };
 
         private readonly List<(float current, float total)> _comboValues = new();
         private readonly List<(int zhou, InMemoryComboBorrowInfo borrow)> _comboList = new(); //zhou: Index of ZhouVariant in guild.
 
         public int SelectedComboIndex { get; set; }
-        public int SelectedComboZhouIndex { get; set; }
+        public int SelectedComboZhouIndex { get; set; } //0,1,2
 
-        public int TotalComboCount => _comboGroups[^1].startIndex;
+        public int TotalComboCount => _comboGroups[^1].StartIndex;
 
         public void ClearComboList(int? comboZhouCount)
         {
@@ -66,9 +71,18 @@ namespace PcrBattleChannel.Models
             LastComboCalculation = default;
         }
 
-        public InMemoryComboGroupReference GetComboGroup(int index)
+        public ComboGroup GetComboGroup(int index)
         {
-            return new InMemoryComboGroupReference
+            return new ComboGroup
+            {
+                User = this,
+                Index = index,
+            };
+        }
+
+        public Combo GetCombo(int index)
+        {
+            return new Combo
             {
                 User = this,
                 Index = index,
@@ -79,7 +93,7 @@ namespace PcrBattleChannel.Models
 
         public int GetComboCountInGroup(int index)
         {
-            return _comboGroups[index + 1].startIndex - _comboGroups[index].startIndex;
+            return _comboGroups[index + 1].StartIndex - _comboGroups[index].StartIndex;
         }
 
         public void RemoveZhouVariant(int index)
@@ -96,13 +110,13 @@ namespace PcrBattleChannel.Models
             int removedCount = 0;
             for (int groupIndex = 0; groupIndex < _comboGroups.Count - 1; ++groupIndex) //Exclude last.
             {
-                var nextGroupStart = _comboGroups[groupIndex + 1].startIndex;
+                var nextGroupStart = _comboGroups[groupIndex + 1].StartIndex;
 
                 var g = _comboGroups[groupIndex];
-                var oldIndex = g.startIndex;
+                var oldIndex = g.StartIndex;
                 var newIndex = oldIndex - removedCount;
 
-                g.startIndex = newIndex;
+                g.StartIndex = newIndex;
                 _comboGroups[groupIndex] = g;
 
                 for (int comboIndexInUser = oldIndex; comboIndexInUser < nextGroupStart; ++comboIndexInUser)
@@ -129,7 +143,7 @@ namespace PcrBattleChannel.Models
             }
             _comboList.RemoveRange(_comboList.Count - removedCount * ComboZhouCount, removedCount * ComboZhouCount);
             _comboValues.RemoveRange(_comboValues.Count - removedCount, removedCount);
-            _comboGroups[^1] = (null, _comboValues.Count);
+            _comboGroups[^1] = new() { StartIndex = _comboValues.Count };
         }
 
         public void MatchAllZhouVariants(HashSet<int> userAllCharacterIDs, HashSet<int> userAllConfigIDs)
@@ -163,25 +177,69 @@ namespace PcrBattleChannel.Models
             }
         }
 
-        public readonly struct InMemoryComboGroupReference
+        internal void WriteComboList(InMemoryComboListBuilder builder)
+        {
+            ComboZhouCount = builder.ZhouCount;
+            _comboGroups.Clear();
+            _comboValues.Clear();
+            _comboList.Clear();
+            SelectedComboIndex = SelectedComboZhouIndex = -1;
+
+            for (int i = 0; i < builder.GroupCount; ++i)
+            {
+                _comboGroups.Add(new() { StartIndex = _comboValues.Count });
+                _comboList.AddRange(builder.GetGroup(i));
+            }
+            _comboGroups.Add(new() { StartIndex = _comboValues.Count });
+        }
+
+        //Called after WriteComboList.
+        internal void InheritSelectedCombo(int[] zhouIndices, InMemoryComboBorrowInfo[] borrowInfo, int selectedZhou)
+        {
+            for (int i = 0; i < _comboList.Count; i += ComboZhouCount)
+            {
+                bool match = true;
+                for (int j = 0; j < ComboZhouCount; ++j)
+                {
+                    if (_comboList[i + j].zhou != zhouIndices[j])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    SelectedComboIndex = i;
+                    SelectedComboZhouIndex = selectedZhou;
+                    for (int j = 0; j < ComboZhouCount; ++j)
+                    {
+                        var updateData = _comboList[i + j];
+                        updateData.borrow = borrowInfo[j];
+                        _comboList[i + j] = updateData;
+                    }
+                    return;
+                }
+            }
+        }
+
+        public readonly struct ComboGroup
         {
             public InMemoryUser User { get; init; }
             public int Index { get; init; }
 
-            public string Name => User._comboGroups[Index].name;
             public int Count => User.GetComboCountInGroup(Index);
 
-            public InMemoryComboReference GetCombo(int index)
+            public Combo GetCombo(int index)
             {
-                return new InMemoryComboReference
+                return new Combo
                 {
                     User = User,
-                    Index = User._comboGroups[Index].startIndex + index * User.ComboZhouCount,
+                    Index = User._comboGroups[Index].StartIndex + index * User.ComboZhouCount,
                 };
             }
         }
 
-        public readonly struct InMemoryComboReference
+        public readonly struct Combo
         {
             public InMemoryUser User { get; init; }
             public int Index { get; init; }

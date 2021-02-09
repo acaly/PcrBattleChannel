@@ -202,6 +202,11 @@ namespace PcrBattleChannel.Models
             var cclist = variant.CharacterConfigs
                 .GroupBy(cc => (character: cc.CharacterIndex, group: cc.OrGroupIndex))
                 .Select(g => (key: g.Key.character, list: g.Select(cc => cc.CharacterConfigID ?? 0).ToImmutableArray()));
+
+            //Note that we no longer allow characters to be null.
+            var characterIDs = ImmutableArray.Create(zhou.C1ID.Value, zhou.C2ID.Value, zhou.C3ID.Value, zhou.C4ID.Value, zhou.C5ID.Value);
+            var characterIndexMap = Enumerable.Range(0, 4).ToImmutableDictionary(i => characterIDs[i], i => i);
+            
             var ret = new InMemoryZhouVariant
             {
                 Owner = this,
@@ -210,8 +215,10 @@ namespace PcrBattleChannel.Models
                 ZhouVariantID = variant.ZhouVariantID,
                 BossID = zhou.BossID,
                 Damage = variant.Damage,
+                IsDraft = variant.IsDraft,
                 UserData = userData,
-                CharacterIDs = ImmutableArray.Create(zhou.C1ID ?? 0, zhou.C2ID ?? 0, zhou.C3ID ?? 0, zhou.C4ID ?? 0, zhou.C5ID ?? 0),
+                CharacterIDs = characterIDs,
+                CharacterIndexMap = characterIndexMap,
                 CharacterConfigIDs = Enumerable.Range(0, 4)
                     .Select(ii => cclist.Where(g => g.key == ii).Select(g => g.list).ToImmutableArray())
                     .ToImmutableArray(),
@@ -246,7 +253,7 @@ namespace PcrBattleChannel.Models
             }
         }
 
-        //Update damage and character configs. Other fields will not be modified.
+        //Update isdraft, damage and character configs. Other fields will not be modified.
         //Note that user selection (borrow index) will also remain unchanged.
         public void UpdateZhouVariant(ZhouVariant dbzv)
         {
@@ -263,9 +270,11 @@ namespace PcrBattleChannel.Models
             {
                 ZhouID = zv.ZhouID,
                 ZhouVariantID = zv.ZhouVariantID,
+                CharacterIndexMap = zv.CharacterIndexMap,
                 Owner = zv.Owner,
                 BossID = zv.BossID,
                 Damage = dbzv.Damage,
+                IsDraft = dbzv.IsDraft,
                 UserData = zv.UserData,
                 CharacterIDs = zv.CharacterIDs,
                 CharacterConfigIDs = Enumerable.Range(0, 4)
