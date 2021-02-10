@@ -402,24 +402,6 @@ namespace PcrBattleChannel.Algorithm
 
         private class Solver
         {
-            private unsafe struct SplitComboInfo
-            {
-                //We process on non-saved combo entities, so we can't rely on
-                //primary key.
-                public (int user, int group) ComboID;
-                private fixed int _boss[3];
-                private fixed float _damage[3];
-
-                public Span<int> Boss => MemoryMarshal.CreateSpan(ref _boss[0], 3);
-                public Span<float> Damage => MemoryMarshal.CreateSpan(ref _damage[0], 3);
-
-                public (int boss, float damage) this[int index]
-                {
-                    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                    get => (_boss[index], _damage[index]);
-                }
-            }
-
             public float AdjustmentCoefficient { get; set; } = 0.1f;
 
             public StaticInfo StaticInfo { get; set; }
@@ -438,8 +420,18 @@ namespace PcrBattleChannel.Algorithm
             private readonly List<List<int>> _splitBossTable = new();
             private readonly Dictionary<int, int> _splitBossTableIndex = new();
 
-            private readonly List<SplitComboInfo> _splitCombos = new();
             private readonly List<int> _userFirstSplitComboIndex = new();
+            //This list contains the SplitZV index (pointing to elements in _splitZVBoss and _splitZVDamage)
+            //for each combo. Each combo has 3 items in this list.
+            private readonly List<int> _splitCombos = new(); //TODO array
+            //Other info of the split combos. Because these are not used in the inner loop of calculation,
+            //they are separated from the _splitCombos.
+            private readonly List<(int user, int comboGroup)> _splitComboInfo = new();
+            private readonly List<float> _splitZVDamage = new();
+            private readonly List<int> _splitZVBoss = new();
+            //Used to store intermediate results for each split ZV during the calculation.
+            private readonly List<float> _splitZVBuffer = new(); //TODO array
+            private readonly Dictionary<(int, int), int> _splitZVMap = new(); //(split boss index, damage) -> split ZV index
 
             private readonly List<float> _values = new();
             private readonly List<float> _bossBuffer = new(); //for both damage ratio and correction factor.
@@ -508,8 +500,11 @@ namespace PcrBattleChannel.Algorithm
 
             private void SplitCombosAndInitValues(InitValuesDelegate initValues)
             {
-                SplitComboInfo buffer = default;
-                void SplitCombo(ref SplitComboInfo buffer, ref ComboMerger.MergedComboGroup comboGroup,
+                (int user, int comboGroup) currentCombo = default;
+                (int a, int b, int c) splitBuffer = default;
+                Span<int> splitBufferSpan = MemoryMarshal.CreateSpan(ref splitBuffer.a, 3);
+
+                void SplitCombo(Span<int> buffer, ref ComboMerger.MergedComboGroup comboGroup,
                     Vector3 damage, float bossHpProduct, int index)
                 {
                     (int boss, int damage)? zvinfo = index switch
@@ -521,12 +516,11 @@ namespace PcrBattleChannel.Algorithm
                     };
                     if (!zvinfo.HasValue)
                     {
-                        for (int i = index; i < 3; ++i)
+                        for (int i = 0; i < 3; ++i)
                         {
-                            buffer.Boss[i] = 0;
-                            buffer.Damage[i] = 0;
+                            _splitCombos.Add(i < index ? buffer[i] : 0);
                         }
-                        _splitCombos.Add(buffer);
+                        _splitComboInfo.Add(currentCombo);
                         _userAdjustmentBuffer.Add(0);
                         _valueInitBuffer.Add(bossHpProduct); //Here the list is used to store per group info.
                         //_values will be added later.
@@ -535,32 +529,49 @@ namespace PcrBattleChannel.Algorithm
                     if (!_splitBossTableIndex.TryGetValue(zvinfo.Value.boss, out var splitBossTableIndex))
                     {
                         //The boss is not included in calculation. Skip.
-                        buffer.Boss[index] = 0;
-                        buffer.Damage[index] = 0;
-                        SplitCombo(ref buffer, ref comboGroup, damage, bossHpProduct, index + 1);
+                        buffer[index] = 0;
+                        SplitCombo(buffer, ref comboGroup, damage, bossHpProduct, index + 1);
                     }
                     else
                     {
                         foreach (var splitBossID in _splitBossTable[splitBossTableIndex])
                         {
-                            buffer.Boss[index] = splitBossID;
-                            buffer.Damage[index] = zvinfo.Value.damage / _bossTotalHp[splitBossID];
-                            SplitCombo(ref buffer, ref comboGroup, damage,
+                            //Note that the split ZV does not distinguish ZVs with same damage on same
+                            //boss. This including the merged ZVs (whose damages have been averaged and 
+                            //converted to int).
+                            if (!_splitZVMap.TryGetValue(zvinfo.Value, out var splitZVIndex))
+                            {
+                                splitZVIndex = _splitZVBoss.Count;
+                                _splitZVBoss.Add(splitBossID);
+                                _splitZVDamage.Add(zvinfo.Value.damage / _bossTotalHp[splitBossID]);
+                                _splitZVMap[zvinfo.Value] = splitZVIndex;
+                            }
+                            buffer[index] = splitZVIndex;
+                            SplitCombo(buffer, ref comboGroup, damage,
                                 bossHpProduct * _bossTotalHp[splitBossID] / 1_000_000f,
                                 index + 1);
                         }
                     }
                 }
 
+                _splitZVMap.Clear();
                 _splitCombos.Clear();
+                _splitComboInfo.Clear();
+                _splitZVDamage.Clear();
+                _splitZVBoss.Clear();
                 _userFirstSplitComboIndex.Clear();
                 _userAdjustmentBuffer.Clear();
                 _comboGroupSpreadInfoList.Clear();
                 _values.Clear();
+
+                //Add an empty splitZV at index 0.
+                _splitZVBoss.Add(0);
+                _splitZVDamage.Add(0);
+
                 for (int userIndex = 0; userIndex < StaticInfo.Users.Length; ++userIndex)
                 {
                     var user = StaticInfo.Users[userIndex];
-                    _userFirstSplitComboIndex.Add(_splitCombos.Count);
+                    _userFirstSplitComboIndex.Add(_splitComboInfo.Count);
 
                     //Get init value if provided.
                     //Here _valueInitBuffer is used to store initial values of each combo of the user.
@@ -591,11 +602,11 @@ namespace PcrBattleChannel.Algorithm
                         do
                         {
                             ref var group = ref _comboMerger.Results[groupIndex];
-                            buffer.ComboID = (userIndex, groupIndex);
+                            currentCombo = (userIndex, groupIndex);
 
-                            var splitStartIndex = _splitCombos.Count;
+                            var splitStartIndex = _splitComboInfo.Count;
                             _valueInitBuffer.Clear();
-                            SplitCombo(ref buffer, ref group, group.WeightedAverageDamage, 1f, 0);
+                            SplitCombo(splitBufferSpan, ref group, group.WeightedAverageDamage, 1f, 0);
 
                             //Calculate normalization coefficient from boss hp product.
                             var sumBossHpProduct = 0f;
@@ -627,7 +638,7 @@ namespace PcrBattleChannel.Algorithm
                         } while (groupIndex != 0);
                     }
                 }
-                _userFirstSplitComboIndex.Add(_splitCombos.Count);
+                _userFirstSplitComboIndex.Add(_splitComboInfo.Count);
 
                 //Init boss buffer.
                 while (_bossBuffer.Count < _bosses.Count)
@@ -660,7 +671,10 @@ namespace PcrBattleChannel.Algorithm
                         if (_values[j] > removeThreshold)
                         {
                             _values[compressPointer] = _values[j];
-                            _splitCombos[compressPointer] = _splitCombos[j];
+                            for (int k = 0; k < 3; ++k)
+                            {
+                                _splitCombos[compressPointer * 3 + k] = _splitCombos[j * 3 + k];
+                            }
                             //No need to move _userAdjustmentBuffer because it's updated in each step.
 
                             compressPointer += 1;
@@ -672,7 +686,7 @@ namespace PcrBattleChannel.Algorithm
                 _userFirstSplitComboIndex[^1] = compressPointer;
 
                 _values.RemoveRange(compressPointer, _values.Count - compressPointer);
-                _splitCombos.RemoveRange(compressPointer, _splitCombos.Count - compressPointer);
+                _splitCombos.RemoveRange(compressPointer * 3, _splitCombos.Count - compressPointer * 3);
                 _userAdjustmentBuffer.RemoveRange(compressPointer, _userAdjustmentBuffer.Count - compressPointer);
             }
 
@@ -686,11 +700,10 @@ namespace PcrBattleChannel.Algorithm
                 for (int i = 0; i < _values.Count; ++i)
                 {
                     var value = _values[i];
-                    var combo = _splitCombos[i];
                     for (int j = 0; j < 3; ++j)
                     {
-                        var (b, d) = combo[j];
-                        _bossBuffer[b] += d * value;
+                        var splitZVIndex = _splitCombos[i * 3 + j];
+                        _bossBuffer[_splitZVBoss[splitZVIndex]] += _splitZVDamage[splitZVIndex] * value;
                     }
                 }
                 bool allPositive = true, allNegative = true;
@@ -735,11 +748,10 @@ namespace PcrBattleChannel.Algorithm
                     for (int j = begin; j < end; ++j)
                     {
                         var comboAdjustment = 0f;
-                        var combo = _splitCombos[j];
                         for (int k = 0; k < 3; ++k)
                         {
-                            var (b, d) = combo[k];
-                            comboAdjustment += _bossBuffer[b] * d;
+                            var splitZVIndex = _splitCombos[j * 3 + k];
+                            comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex]] * _splitZVDamage[splitZVIndex];
                         }
                         _values[j] -= comboAdjustment;
                         if (_values[j] < 0)
@@ -798,11 +810,10 @@ namespace PcrBattleChannel.Algorithm
                     for (int j = begin; j < end; ++j)
                     {
                         var comboAdjustment = 0f;
-                        var combo = _splitCombos[j];
                         for (int k = 0; k < 3; ++k)
                         {
-                            var (b, d) = combo[k];
-                            comboAdjustment += _bossBuffer[b] * d;
+                            var splitZVIndex = _splitCombos[j * 3 + k];
+                            comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex]] * _splitZVDamage[splitZVIndex];
                         }
                         comboAdjustment *= deltaRatio;
                         userTotalDec += comboAdjustment * _values[j];
@@ -862,9 +873,9 @@ namespace PcrBattleChannel.Algorithm
                 _valueMergeIntermediate.Clear();
                 for (int i = 0; i < _values.Count; ++i)
                 {
-                    var c = _splitCombos[i];
-                    _valueMergeIntermediate.TryGetValue(c.ComboID, out var oldValue);
-                    _valueMergeIntermediate[c.ComboID] = oldValue + _values[i];
+                    var c = _splitComboInfo[i];
+                    _valueMergeIntermediate.TryGetValue(c, out var oldValue);
+                    _valueMergeIntermediate[c] = oldValue + _values[i];
                 }
 
                 //Split values of each group into combos.
