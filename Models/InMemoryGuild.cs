@@ -253,6 +253,19 @@ namespace PcrBattleChannel.Models
             }
         }
 
+        public void DeleteAllZhous()
+        {
+            for (int i = 0; i < _members.Length; ++i)
+            {
+                _members[i]?.ClearComboList(null);
+            }
+            for (int i = _zhouVariants.Count - 1; i >= 0; --i)
+            {
+                DeleteZhouVariantInternal(i);
+            }
+            LastZhouUpdate = TimeZoneHelper.BeijingNow;
+        }
+
         //Update isdraft, damage and character configs. Other fields will not be modified.
         //Note that user selection (borrow index) will also remain unchanged.
         public void UpdateZhouVariant(ZhouVariant dbzv)
@@ -315,9 +328,18 @@ namespace PcrBattleChannel.Models
             return true;
         }
 
+        public InMemoryZhouVariant GetZhouVariantById(int id)
+        {
+            if (!TryGetZhouVariantById(id, out var ret))
+            {
+                throw new Exception($"ZhouVariant {id} has not been included in IM context");
+            }
+            return ret;
+        }
+
         public InMemoryZhouVariant GetZhouVariantByIndex(int index)
         {
-            return _zhouVariants[index];
+            return index == -1 ? null : _zhouVariants[index];
         }
 
         public IEnumerable<InMemoryZhouVariant> ZhouVariants

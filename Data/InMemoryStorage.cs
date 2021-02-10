@@ -73,7 +73,7 @@ namespace PcrBattleChannel.Data
             DbContext = dbContext;
         }
 
-        public async Task<InMemoryGuild> GetGuild(int guildID)
+        public async Task<InMemoryGuild> GetGuildAsync(int guildID)
         {
             if (!_guilds.TryGetValue(guildID, out var ret))
             {
@@ -83,9 +83,9 @@ namespace PcrBattleChannel.Data
             return ret;
         }
 
-        public async Task RemoveGuild(int guildID)
+        public async Task RemoveGuildAsync(int guildID)
         {
-            await GetGuild(guildID); //Obtain the lock.
+            await GetGuildAsync(guildID); //Obtain the lock.
             InMemoryStorage.RemoveGuild(guildID);
         }
 

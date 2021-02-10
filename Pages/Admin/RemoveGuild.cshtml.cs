@@ -43,7 +43,7 @@ namespace PcrBattleChannel.Pages.Admin
                 StatusMessage = "错误：未找到该公会。";
                 return RedirectToPage();
             }
-            await _context.RemoveGuild(id); //Obtain the lock before doing any other work.
+            await _context.RemoveGuildAsync(id); //Obtain the lock before doing any other work.
 
             foreach (var member in guild.Members)
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -27,12 +28,13 @@ namespace PcrBattleChannel.Pages.Home
             _userManager = userManager;
         }
 
-        public List<(string name, List<UserCombo> list, float value, float netValue)> UserCombo { get; set; }
-        public PcrIdentityUser AppUser { get; set; }
-        public List<UserCharacterStatus> UsedCharacters { get; set; }
-        public HashSet<int> UsedCharacterIds { get; set; }
+        public List<(string name, List<InMemoryUser.Combo> list, float currentValue, float totalValue)> UserCombo { get; private set; }
+        public PcrIdentityUser AppUser { get; private set; }
+        public bool IsUserValueApproximate { get; private set; }
+        public List<UserCharacterStatus> UsedCharacters { get; private set; }
+        public HashSet<int> UsedCharacterIds { get; private set; }
 
-        public List<Character> AllCharacters { get; set; }
+        public List<Character> AllCharacters { get; private set; }
 
         [BindProperty]
         [Display(Name = "选择已用角色（不含助战）")]
@@ -41,17 +43,16 @@ namespace PcrBattleChannel.Pages.Home
         [BindProperty]
         public bool UserIncludesDrafts { get; set; }
 
-        public Dictionary<int, Zhou> CachedZhouData { get; set; } = new();
-
-        public List<(string, float)> BossValues { get; set; } = new();
+        public Dictionary<int, Zhou> CachedZhouData { get; } = new();
+        public List<(string, float)> BossValues { get; private set; }
 
         public class SingleComboModel
         {
-            public UserCombo Item { get; init; }
+            public InMemoryUser.Combo Item { get; init; }
             public CombosModel Parent { get; init; }
         }
 
-        public SingleComboModel CreateSingleModel(UserCombo c) => new() { Item = c, Parent = this };
+        public SingleComboModel CreateSingleModel(InMemoryUser.Combo c) => new() { Item = c, Parent = this };
 
         private async Task CacheZhouData(int zid)
         {
@@ -132,73 +133,67 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return Redirect("/");
             }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+            IsUserValueApproximate = imUser.IsValueApproximate;
+
             await GetUserInfo(user);
-
-            var rawList = await _context.DbContext.UserCombos
-                .Include(u => u.Zhou1)
-                .Include(u => u.Zhou2)
-                .Include(u => u.Zhou3)
-                .Where(u => u.UserID == user.Id)
-                .ToListAsync();
-            foreach (var c in rawList)
-            {
-                if (c.Zhou1ID.HasValue)
-                {
-                    await _context.DbContext.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.DbContext.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await CacheZhouData(c.Zhou1.ZhouVariant.ZhouID);
-                }
-                if (c.Zhou2ID.HasValue)
-                {
-                    await _context.DbContext.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.DbContext.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await CacheZhouData(c.Zhou2.ZhouVariant.ZhouID);
-                }
-                if (c.Zhou3ID.HasValue)
-                {
-                    await _context.DbContext.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.DbContext.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
-                }
-            }
-
-            static string GetComboGroupedName(UserCombo c)
-            {
-                var b1 = c.Zhou1?.ZhouVariant.Zhou.Boss;
-                var b2 = c.Zhou2?.ZhouVariant.Zhou.Boss;
-                var b3 = c.Zhou3?.ZhouVariant.Zhou.Boss;
-                if (b1 is null) return "空";
-                if (b2 is null) return $"{b1.ShortName}";
-                if (b3 is null) return $"{b1.ShortName} + {b2.ShortName}";
-                return $"{b1?.ShortName} + {b2.ShortName} + {b3.ShortName}";
-            }
-            UserCombo = rawList
-                .GroupBy(GetComboGroupedName)
-                .Select(g =>
-                {
-                    var groupList = g.ToList();
-                    groupList.Sort((c1, c2) => MathF.Sign(c2.Value - c1.Value));
-                    var sumValue = groupList.Sum(c => c.Value);
-                    var sumNetValue = groupList.Sum(c => c.NetValue);
-                    return (g.Key, groupList, sumValue, sumNetValue);
-                })
-                .ToList();
-            UserCombo.Sort((a, b) => MathF.Sign(b.value - a.value));
-
+            var allBosses = (await _context.DbContext.Bosses.ToListAsync()).ToDictionary(b => b.BossID);
             var bossDict = new Dictionary<Boss, float>();
-            void AddBoss(UserZhouVariant uzv, float value)
+            void AddBoss(int bossID, float value)
             {
-                var b = uzv?.ZhouVariant.Zhou.Boss;
-                if (b is null) return;
-                bossDict.TryGetValue(b, out var oldVal);
-                bossDict[b] = oldVal + value;
+                if (bossID == 0) return;
+                var boss = allBosses[bossID];
+                bossDict.TryGetValue(boss, out var oldVal);
+                bossDict[boss] = oldVal + value;
             }
-            foreach (var c in rawList)
+
+            UserCombo = new();
+            var comboNameBuilder = new StringBuilder();
+            for (int i = 0; i < imUser.ComboGroupCount; ++i)
             {
-                AddBoss(c.Zhou1, c.Value);
-                AddBoss(c.Zhou2, c.Value);
-                AddBoss(c.Zhou3, c.Value);
+                var g = imUser.GetComboGroup(i);
+                if (g.Count == 0) continue;
+
+                var list = new List<InMemoryUser.Combo>();
+                float currentValue = 0, totalValue = 0;
+                for (int j = 0; j < g.Count; ++j)
+                {
+                    var c = g.GetCombo(j);
+                    list.Add(c);
+                    currentValue += c.CurrentValue;
+                    totalValue += c.TotalValue;
+                    for (int k = 0; k < c.ZhouCount; ++k)
+                    {
+                        await CacheZhouData(c.GetZhouVariant(k).ZhouID);
+                    }
+                }
+                list.Sort((c1, c2) => MathF.Sign(c2.CurrentValue - c1.CurrentValue));
+
+                comboNameBuilder.Clear();
+                var (b1, b2, b3) = g.GetCombo(0).BossIDTuple;
+                if (b1 != 0)
+                {
+                    comboNameBuilder.Append(allBosses[b1].ShortName);
+                    AddBoss(b1, currentValue);
+                }
+                if (b2 != 0)
+                {
+                    comboNameBuilder.Append(" + ");
+                    comboNameBuilder.Append(allBosses[b2].ShortName);
+                    AddBoss(b2, currentValue);
+                }
+                if (b3 != 0)
+                {
+                    comboNameBuilder.Append(" + ");
+                    comboNameBuilder.Append(allBosses[b3].ShortName);
+                    AddBoss(b3, currentValue);
+                }
+                UserCombo.Add((comboNameBuilder.ToString(), list, currentValue, totalValue));
             }
+
+            UserCombo.Sort((a, b) => MathF.Sign(b.currentValue - a.currentValue));
+
             BossValues = bossDict
                 .OrderBy(bb => bb.Key.BossID)
                 .Select(bb => ($"{bb.Key.ShortName} ({bb.Key.Name})", bb.Value))
@@ -234,7 +229,7 @@ namespace PcrBattleChannel.Pages.Home
                 return Redirect("/");
             }
 
-            var imGuild = await _context.GetGuild(guild.GuildID);
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
             var imUser = imGuild.GetUserById(user.Id);
             var comboCalculator = new FindAllCombos();
 
@@ -290,6 +285,8 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return StatusCode(400);
             }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
             await GetUserInfo(user);
 
             await _context.DbContext.UserCharacterStatuses
@@ -325,7 +322,7 @@ namespace PcrBattleChannel.Pages.Home
                 user.GuessedAttempts = 0;
                 user.IsIgnored = false;
                 user.LastConfirm = TimeZoneHelper.BeijingNow;
-                user.LastComboUpdate = default;
+                imUser.LastComboCalculation = default;
             }
             catch
             {
@@ -342,7 +339,7 @@ namespace PcrBattleChannel.Pages.Home
         }
 
         //Ajax
-        public async Task<IActionResult> OnPostBorrowSwapAsync(int? id)
+        public async Task<IActionResult> OnPostBorrowSwapAsync(long time, int? id)
         {
             if (!id.HasValue)
             {
@@ -357,61 +354,24 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return StatusCode(400);
             }
-            await GetUserInfo(user);
-
-            var c = await _context.DbContext.UserCombos
-                .Include(u => u.Zhou1)
-                .Include(u => u.Zhou2)
-                .Include(u => u.Zhou3)
-                .FirstOrDefaultAsync(u => u.UserComboID == id.Value);
-
-            try
-            {
-                var borrowLists = c.BorrowInfo;
-                var index = borrowLists.IndexOf(';');
-                if (index != -1)
-                {
-                    c.BorrowInfo = borrowLists.Substring(index + 1) + ";" + borrowLists.Substring(0, index);
-                    _context.DbContext.Update(c);
-                    await _context.DbContext.SaveChangesAsync();
-                }
-            }
-            catch
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+            if (time == 0 || time != imUser.LastComboCalculation.Ticks ||
+                id.Value < 0 || id.Value >= imUser.TotalComboCount)
             {
                 return StatusCode(400);
             }
+            await GetUserInfo(user);
 
-            SingleComboModel model;
-            {
-                if (c is null || c.UserID != user.Id)
-                {
-                    return StatusCode(400);
-                }
-                if (c.Zhou1ID.HasValue)
-                {
-                    await _context.DbContext.Entry(c.Zhou1).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.DbContext.Entry(c.Zhou1.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await CacheZhouData(c.Zhou1.ZhouVariant.ZhouID);
-                }
-                if (c.Zhou2ID.HasValue)
-                {
-                    await _context.DbContext.Entry(c.Zhou2).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.DbContext.Entry(c.Zhou2.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await CacheZhouData(c.Zhou2.ZhouVariant.ZhouID);
-                }
-                if (c.Zhou3ID.HasValue)
-                {
-                    await _context.DbContext.Entry(c.Zhou3).Reference(z => z.ZhouVariant).LoadAsync();
-                    await _context.DbContext.Entry(c.Zhou3.ZhouVariant).Reference(v => v.Zhou).LoadAsync();
-                    await CacheZhouData(c.Zhou3.ZhouVariant.ZhouID);
-                }
-                model = CreateSingleModel(c);
-            }
+            var c = imUser.GetCombo(id.Value);
+            c.SwitchBorrow();
+
+            SingleComboModel model = CreateSingleModel(c);
 
             return Partial("_Combo_ComboPartial", model);
         }
 
-        public async Task<IActionResult> OnPostSelectAsync(int? combo, int? zhou)
+        public async Task<IActionResult> OnPostSelectAsync(long time, int? combo, int? zhou)
         {
             if (!combo.HasValue || !zhou.HasValue || zhou.Value < -1 || zhou.Value > 2)
             {
@@ -426,41 +386,24 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return StatusCode(400);
             }
-
-            var c = await _context.DbContext.UserCombos
-                .FirstOrDefaultAsync(u => u.UserComboID == combo.Value);
-            if (c is null || c.UserID != user.Id)
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+            if (time == 0 || time != imUser.LastComboCalculation.Ticks ||
+                combo.Value < 0 || combo.Value >= imUser.TotalComboCount)
             {
                 return StatusCode(400);
             }
 
-            if (zhou != -1)
+            if (zhou == -1)
             {
-                var zhouid = zhou.Value switch
-                {
-                    0 => c.Zhou1ID,
-                    1 => c.Zhou2ID,
-                    2 => c.Zhou3ID,
-                    _ => null,
-                };
-                if (!zhouid.HasValue)
-                {
-                    return StatusCode(400);
-                }
+                imUser.SelectedComboIndex = imUser.SelectedComboZhouIndex = -1;
+            }
+            else
+            {
+                imUser.SelectedComboIndex = combo.Value;
+                imUser.SelectedComboZhouIndex = zhou.Value;
             }
 
-            var lastSelected = await _context.DbContext.UserCombos
-                .Where(c => c.UserID == user.Id && c.SelectedZhou != null)
-                .ToListAsync();
-            foreach (var last in lastSelected)
-            {
-                last.SelectedZhou = null;
-                _context.DbContext.UserCombos.Update(last);
-            }
-            c.SelectedZhou = zhou == -1 ? null : zhou.Value;
-            _context.DbContext.UserCombos.Update(c);
-
-            await _context.DbContext.SaveChangesAsync();
             return StatusCode(200);
         }
 

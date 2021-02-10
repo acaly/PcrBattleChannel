@@ -113,7 +113,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 StatusMessage = "错误：用户已经所属其他公会。";
                 return RedirectToPage();
             }
-            var imGuild = await _context.GetGuild(guild.GuildID);
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
 
             user.GuildID = guild.GuildID;
             user.IsGuildAdmin = false;
@@ -160,7 +160,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 StatusMessage = "错误：用户不存在。";
                 return RedirectToPage();
             }
-            var imGuild = await _context.GetGuild(guild.GuildID);
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
 
             user.GuildID = null;
             user.IsGuildAdmin = false;

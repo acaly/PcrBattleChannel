@@ -38,6 +38,7 @@ namespace PcrBattleChannel.Models
         public DateTime LastCalculation { get; set; }
 
         [DataType(DataType.DateTime)]
+        [Obsolete("Use memory storage")]
         public DateTime LastZhouUpdate { get; set; }
 
         [Display(Name = "Yobot API地址")]

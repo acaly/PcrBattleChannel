@@ -33,6 +33,8 @@ namespace PcrBattleChannel.Models
         public bool IsIgnored { get; set; }
 
         public bool ComboIncludesDrafts { get; set; }
+
+        [Obsolete("Use memory storage")]
         public bool IsValueApproximate { get; set; }
 
         //Attempts

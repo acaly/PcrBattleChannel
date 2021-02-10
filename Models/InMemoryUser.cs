@@ -53,6 +53,8 @@ namespace PcrBattleChannel.Models
         public int Index { get; init; } //Index of a user is fixed once created.
         public DateTime LastComboCalculation;
 
+        public bool IsValueApproximate;
+
         public int ComboZhouCount { get; private set; } //How many zhous per combo.
 
         //Note that these groups are different from the combo group in value calculation, which
@@ -77,6 +79,7 @@ namespace PcrBattleChannel.Models
             }
             SelectedComboIndex = SelectedComboZhouIndex = -1;
             _comboGroups.Clear();
+            _comboGroups.Add(new() { StartIndex = 0 });
             _comboList.Clear();
             _comboValues.Clear();
             LastComboCalculation = default;

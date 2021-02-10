@@ -1,21 +1,20 @@
 ﻿@model PcrBattleChannel.Pages.Home.CombosModel.SingleComboModel
 @{
-    var allBorrowLists = Model.Item.BorrowInfo.Split(';');
-    var borrowList = allBorrowLists[0].Split(',').Select(x => int.Parse(x)).ToArray();
+    var borrowList = Enumerable.Range(0, 3).Select(i => Model.Item.GetZhouBorrow(i).Value).ToArray();
     string SelectNextDivStyle(int z, bool state)
     {
-        return (Model.Item.SelectedZhou == z) == state ? "" : "display:none";
+        return (Model.Item.User.SelectedComboIndex == Model.Item.Index && Model.Item.User.SelectedComboZhouIndex == z) == state ?
+                "" : "display:none";
     }
-    //TODO hide empty zhous
-    var zhouCount = Model.Item.Zhou3ID.HasValue ? 3 : Model.Item.Zhou2ID.HasValue ? 2 : Model.Item.Zhou1ID.HasValue ? 1 : 0;
+    var time = Model.Item.User.LastComboCalculation.Ticks;
 }
 
 <div class="row py-2 border-bottom">
     @for (int i = 0; i < 3; ++i)
     {
-        var uzv = i switch { 0 => Model.Item.Zhou1, 1 => Model.Item.Zhou2, _ => Model.Item.Zhou3 };
+        var uzv = Model.Item.GetZhouVariant(i);
         if (uzv is null) break;
-        var z = Model.Parent.CachedZhouData[uzv.ZhouVariant.ZhouID];
+        var z = Model.Parent.CachedZhouData[uzv.ZhouID];
         <div class="col-xl-6 col-lg-7 col-md-6 col-sm-12 py-1">
             <div class="row">
                 <div class="col pr-1 text-center">
@@ -78,26 +77,26 @@
             （@z.Boss.ShortName）
         </div>
         <div>
-            <form id="cancel-next-form-@Model.Item.UserComboID-@i" method="post"
-                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="-1"
+            <form id="cancel-next-form-@Model.Item.Index-@i" method="post"
+                  asp-page-handler="select" asp-route-time="@time" asp-route-combo="@Model.Item.Index" asp-route-zhou="-1"
                   data-ajax="true" data-ajax-method="post"
                   data-ajax-success="combo_select_success"
                   data-ajax-failure="combo_select_failure">
             </form>
-            <form id="select-next-form-@Model.Item.UserComboID-@i" method="post"
-                  asp-page-handler="select" asp-route-combo="@Model.Item.UserComboID" asp-route-zhou="@i"
+            <form id="select-next-form-@Model.Item.Index-@i" method="post"
+                  asp-page-handler="select" asp-route-time="@time" asp-route-combo="@Model.Item.Index" asp-route-zhou="@i"
                   data-ajax="true" data-ajax-method="post"
                   data-ajax-success="combo_select_success"
                   data-ajax-failure="combo_select_failure"
-                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.UserComboID-@i">
+                  data-select-combo-toggle=".select-next-div-toggle-@Model.Item.Index-@i">
             </form>
         </div>
         <div class="col-xl-1 col-4 d-block d-md-none d-xl-block py-1">
-            <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-@i" style="@SelectNextDivStyle(i, true)">
-                <a href="javascript:void(0);" onclick="$('#cancel-next-form-@Model.Item.UserComboID-@i').submit()">取消</a>
+            <div class="select-next-div-selected select-next-div-toggle-@Model.Item.Index-@i" style="@SelectNextDivStyle(i, true)">
+                <a href="javascript:void(0);" onclick="$('#cancel-next-form-@Model.Item.Index-@i').submit()">取消</a>
             </div>
-            <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-@i" style="@SelectNextDivStyle(i, false)">
-                <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-@i').submit()">预约</a>
+            <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.Index-@i" style="@SelectNextDivStyle(i, false)">
+                <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.Index-@i').submit()">预约</a>
             </div>
         </div>
         <div class="col-lg-2 col-md-2 d-none d-md-block d-xl-none py-1">
@@ -107,36 +106,35 @@
                     查看
                 </a>
             </div>
-            <div class="select-next-div-selected select-next-div-toggle-@Model.Item.UserComboID-@i" style="@SelectNextDivStyle(i, true)">
-                <a href="javascript:void(0);" onclick="$('#cancel-next-form-@Model.Item.UserComboID-@i').submit()">取消</a>
+            <div class="select-next-div-selected select-next-div-toggle-@Model.Item.Index-@i" style="@SelectNextDivStyle(i, true)">
+                <a href="javascript:void(0);" onclick="$('#cancel-next-form-@Model.Item.Index-@i').submit()">取消</a>
             </div>
-            <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.UserComboID-@i" style="@SelectNextDivStyle(i, false)">
-                <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.UserComboID-@i').submit()">预约</a>
+            <div class="select-next-div-unselected select-next-div-toggle-@Model.Item.Index-@i" style="@SelectNextDivStyle(i, false)">
+                <a href="javascript:void(0);" onclick="$('#select-next-form-@Model.Item.Index-@i').submit()">预约</a>
             </div>
         </div>
         @if (i == 0)
         {
             <div class="col-xl-2 col-lg-3 col-md-4 d-none d-md-block py-1">
-                @Html.DisplayFor(m => m.Item.Value) / @Html.DisplayFor(m => m.Item.NetValue)
+                @Html.DisplayFor(m => m.Item.CurrentValue) / @Html.DisplayFor(m => m.Item.TotalValue)
             </div>
         }
         <div class="w-100 @(i == 2 ? "pb-1" : "pb-1")"></div>
     }
     <div class="d-block d-md-none col-8 py-1">
-        推荐度（当前/初始）：@Html.DisplayFor(m => m.Item.Value) / @Html.DisplayFor(m => m.Item.NetValue)
+        推荐度（当前/初始）：@Html.DisplayFor(m => m.Item.CurrentValue) / @Html.DisplayFor(m => m.Item.TotalValue)
     </div>
-    @if (allBorrowLists.Length > 1)
+    @if (Model.Item.GetBorrowCaseCount() > 1)
     {
         <div class="col-4 py-1">
-            <form method="post" asp-page-handler="borrowswap" asp-route-id="@Model.Item.UserComboID"
+            <form method="post" asp-page-handler="borrowswap" asp-route-time="@time" asp-route-id="@Model.Item.Index"
                   data-ajax="true" data-ajax-method="post"
                   data-ajax-mode="replace"
-                  data-ajax-update="#combo-@Model.Item.UserComboID"
+                  data-ajax-update="#combo-@Model.Item.Index"
                   data-ajax-failure="combo_borrow_swap_failure"
-                  data-combo-id="@Model.Item.UserComboID"
-                  id="swap-borrow-form-@Model.Item.UserComboID">
-                <a href="javascript:void(0)" onclick="$('#swap-borrow-form-@Model.Item.UserComboID').submit()">
-                    切换助战 (@allBorrowLists.Length)
+                  id="swap-borrow-form-@Model.Item.Index">
+                <a href="javascript:void(0)" onclick="$('#swap-borrow-form-@Model.Item.Index').submit()">
+                    切换助战 (@Model.Item.GetBorrowCaseCount())
                 </a>
             </form>
         </div>

@@ -145,7 +145,7 @@ namespace PcrBattleChannel.Algorithm
             var allGuilds = await context.DbContext.Guilds.Include(g => g.Members).ToListAsync();
             foreach (var g in allGuilds)
             {
-                var imGuild = await context.GetGuild(g.GuildID);
+                var imGuild = await context.GetGuildAsync(g.GuildID);
                 try
                 {
                     //TODO should each guild update use a separate db context?

@@ -166,7 +166,7 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 return RedirectToPage("/Home/Index");
             }
-            var imGuild = await _context.GetGuild(guild.GuildID);
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
 
             if (PlanRatio.HasValue)
             {
@@ -227,7 +227,7 @@ namespace PcrBattleChannel.Pages.Guilds
 
                 //Refresh only when needed.
                 var attemptCountChanged = imUser.ComboZhouCount != 3 - user.Attempts;
-                var zhouChangedSinceLastUpdate = imUser.LastComboCalculation <= guild.LastZhouUpdate;
+                var zhouChangedSinceLastUpdate = imUser.LastComboCalculation <= imGuild.LastZhouUpdate;
                 if (attemptCountChanged || zhouChangedSinceLastUpdate)
                 {
                     var userUsedCharacterIDs = await _context.DbContext.UserCharacterStatuses

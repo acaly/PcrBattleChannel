@@ -34,7 +34,7 @@
     <span style="vertical-align:top">
         @Html.HelpMessage("Boss推荐度表示的是当前状态下应当对每个Boss出刀的数量的比例。数值由下面的当前阵容推荐度加和得到。")
     </span>
-    @if (Model.AppUser.IsValueApproximate)
+    @if (Model.IsUserValueApproximate)
     {
         <div>
             <span class="text-danger">
@@ -67,7 +67,7 @@
             "其中当前推荐度考虑了当前已预约的公会成员将会按照预约来出刀进行计算的，该套餐在剩余人中的推荐度，反映当前状态下每个套餐的优先度。" +
             "整体推荐度则忽略所有人的预约，反映的是每个套餐在全公会范围内的优先程度。")
     </span>
-    @if (Model.AppUser.IsValueApproximate)
+    @if (Model.IsUserValueApproximate)
     {
         <div>
             <span class="text-danger">
@@ -89,7 +89,7 @@
 @for (int i = 0; i < Model.UserCombo.Count; ++i)
 {
     var group = Model.UserCombo[i];
-    var containsSelected = group.list.Any(c => c.SelectedZhou.HasValue);
+    var containsSelected = group.list.Any(c => c.Index == c.User.SelectedComboIndex);
     <div class="row align-bottom py-2 border-bottom">
         <div class="col-xl-10 col-lg-9 col-8">
             <a href="javascript:void(0)" onclick="$('#toggle-combo-group-@i').toggle()">
@@ -98,13 +98,13 @@
             @(containsSelected ? " - 已预约" : "")
         </div>
         <div class="col-xl-2 col-lg-3 col-4">
-            <span>@group.value.ToString("P1") / @group.netValue.ToString("P1")</span>
+            <span>@group.totalValue.ToString("P1") / @group.currentValue.ToString("P1")</span>
         </div>
     </div>
     <div id="toggle-combo-group-@i" style="display:none">
         @foreach (var item in group.list)
         {
-            <div id="combo-@item.UserComboID">
+            <div id="combo-@item.Index">
                 <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
             </div>
         }

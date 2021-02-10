@@ -16,11 +16,11 @@ namespace PcrBattleChannel.Pages.Zhous
 {
     public class EditModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public EditModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public EditModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -69,7 +69,7 @@ namespace PcrBattleChannel.Pages.Zhous
         };
         public async Task<EditPartialModel> VariantModel(ZhouVariant v)
         {
-            await _context.Entry(v).Collection(vv => vv.CharacterConfigs).LoadAsync();
+            await _context.DbContext.Entry(v).Collection(vv => vv.CharacterConfigs).LoadAsync();
             var ids = v.CharacterConfigs
                 .Where(cc => cc.CharacterConfigID.HasValue)
                 .Select(cc => cc.CharacterConfigID.Value).ToHashSet();
@@ -100,7 +100,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 Dictionary<CharacterConfigKind, List<CharacterConfig>> dict = new();
                 foreach (var ccid in selectedIds)
                 {
-                    var cc = await _context.CharacterConfigs.FirstOrDefaultAsync(cc => cc.CharacterConfigID == ccid);
+                    var cc = await _context.DbContext.CharacterConfigs.FirstOrDefaultAsync(cc => cc.CharacterConfigID == ccid);
                     if (!dict.TryGetValue(cc.Kind, out var list))
                     {
                         list = new();
@@ -131,14 +131,14 @@ namespace PcrBattleChannel.Pages.Zhous
                 //Remove old configs.
                 if (v.ZhouVariantID != 0)
                 {
-                    await _context.Entry(v).Collection(v => v.CharacterConfigs).LoadAsync();
+                    await _context.DbContext.Entry(v).Collection(v => v.CharacterConfigs).LoadAsync();
                     v.CharacterConfigs.Clear();
                 }
 
                 //Add new configs.
                 foreach (var info in newInfoList)
                 {
-                    _context.ZhouVariantCharacterConfigs.Add(info);
+                    _context.DbContext.ZhouVariantCharacterConfigs.Add(info);
                 }
 
                 return newInfoList;
@@ -160,7 +160,7 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return null;
             }
-            user = await _context.Users
+            user = await _context.DbContext.Users
                 .Include(u => u.Guild)
                 .FirstOrDefaultAsync(uu => uu.Id == user.Id);
             if (user.Guild is null)
@@ -172,7 +172,7 @@ namespace PcrBattleChannel.Pages.Zhous
 
         private async Task<CharacterConfig[][]> GetConfigForCharacter(int guildID, int characterID)
         {
-            var allConfigs = await _context.CharacterConfigs
+            var allConfigs = await _context.DbContext.CharacterConfigs
                 .Where(cc => cc.GuildID == guildID && cc.CharacterID == characterID)
                 .ToListAsync();
             return allConfigs.GroupBy(c => c.Kind).Select(g => g.ToArray()).ToArray();
@@ -222,7 +222,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
 
-            Zhou = await _context.Zhous
+            Zhou = await _context.DbContext.Zhous
                 .Include(z => z.Boss)
                 .Include(z => z.C1)
                 .Include(z => z.C2)
@@ -240,7 +240,6 @@ namespace PcrBattleChannel.Pages.Zhous
 
             ViewData["allConfigs"] = await InitCharacterConfigs(user.GuildID.Value);
 
-            ViewData["BossID"] = new SelectList(_context.Bosses, "BossID", "ShortName");
             return Page();
         }
 
@@ -257,7 +256,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage();
             }
 
-            var zhou = await _context.Zhous.FirstOrDefaultAsync(z => z.ZhouID == Zhou.ZhouID);
+            var zhou = await _context.DbContext.Zhous.FirstOrDefaultAsync(z => z.ZhouID == Zhou.ZhouID);
             if (zhou is null || zhou.GuildID != user.GuildID)
             {
                 return NotFound();
@@ -265,12 +264,10 @@ namespace PcrBattleChannel.Pages.Zhous
 
             zhou.Name = Zhou_Name;
             zhou.Description = Zhou.Description;
-            zhou.BossID = Zhou.BossID;
 
-            _context.Update(zhou);
-            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
+            _context.DbContext.Update(zhou);
 
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
             return RedirectToPage("./Details", new { id = Zhou.ZhouID });
         }
 
@@ -285,176 +282,30 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return RedirectToPage("./Index");
             }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
 
             //Remove zhou variants.
             //If these are loaded through zhou.Variants, the db refuses to delete them.
             //Not sure what causes this, but here removing them without loading from zhou works fine.
-            foreach (var v in await _context.ZhouVariants.Where(zv => zv.ZhouID == id.Value).ToListAsync())
+            foreach (var v in await _context.DbContext.ZhouVariants.Where(zv => zv.ZhouID == id.Value).ToListAsync())
             {
-                await CheckAndRemoveUserVariantsAsync(_context, v.ZhouVariantID);
-                _context.ZhouVariants.Remove(v);
+                _context.DbContext.ZhouVariants.Remove(v);
             }
 
             //Then remove the zhou.
-            var zhou = await _context.Zhous
+            var zhou = await _context.DbContext.Zhous
                 .FirstOrDefaultAsync(z => z.ZhouID == id);
             if (zhou is null || zhou.GuildID != user.GuildID)
             {
                 return RedirectToPage("./Index");
             }
 
-            _context.Zhous.Remove(zhou);
+            _context.DbContext.Zhous.Remove(zhou);
 
-            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
+            imGuild.DeleteZhou(zhou.ZhouID);
 
             return RedirectToPage("./Index");
-        }
-
-        //This method is also used by ImportModel.
-        //There is an in-memory version of this method in class InMemoryStorage.
-        public static async Task CheckAndAddUserVariants(ApplicationDbContext context, int guildID,
-            Zhou zhou, ZhouVariant variant, IEnumerable<ZhouVariantCharacterConfig> configs, List<UserCharacterConfig> newUserConfigs)
-        {
-            var availableUsers = new HashSet<string>();
-            var tempSet = new HashSet<string>();
-            var userBorrow = new Dictionary<string, int>();
-            var deleteList = new List<string>();
-
-            void Merge(IEnumerable<string> list, int borrow)
-            {
-                HashSet<string> mergeSet;
-                if (list is HashSet<string> s)
-                {
-                    mergeSet = s;
-                }
-                else
-                {
-                    tempSet.Clear();
-                    tempSet.UnionWith(list);
-                    mergeSet = tempSet;
-                }
-
-                deleteList.Clear();
-                foreach (var (u, b) in userBorrow)
-                {
-                    if (b != borrow && !mergeSet.Contains(u))
-                    {
-                        deleteList.Add(u);
-                    }
-                }
-                foreach (var u in deleteList)
-                {
-                    userBorrow.Remove(u);
-                }
-
-                deleteList.Clear();
-                foreach (var u in availableUsers)
-                {
-                    if (!mergeSet.Contains(u))
-                    {
-                        userBorrow.Add(u, borrow);
-                        deleteList.Add(u);
-                    }
-                }
-                foreach (var u in deleteList)
-                {
-                    availableUsers.Remove(u);
-                }
-            }
-
-            //Mark all users as available.
-            availableUsers.UnionWith(await context.Users
-                .Where(u => u.GuildID == guildID)
-                .Select(u => u.Id)
-                .ToListAsync());
-
-            //Check characters (default config).
-            async Task<List<string>> FilterCharacter(int? characterID)
-            {
-                if (!characterID.HasValue) return new();
-                var defaultConfig = await context.CharacterConfigs
-                    .FirstOrDefaultAsync(c => c.GuildID == guildID && c.CharacterID == characterID && c.Kind == default);
-                if (defaultConfig is null)
-                {
-                    availableUsers.Clear();
-                    return new();
-                }
-                return await context.UserCharacterConfigs
-                    .Where(c => c.CharacterConfigID == defaultConfig.CharacterConfigID)
-                    .Select(c => c.UserID)
-                    .ToListAsync();
-            }
-            Merge(await FilterCharacter(zhou.C1ID), 0);
-            Merge(await FilterCharacter(zhou.C2ID), 1);
-            Merge(await FilterCharacter(zhou.C3ID), 2);
-            Merge(await FilterCharacter(zhou.C4ID), 3);
-            Merge(await FilterCharacter(zhou.C5ID), 4);
-
-            //Check additional configs.
-            var orGroupUsers = new HashSet<string>();
-            foreach (var configGroup in configs.GroupBy(c => (c.CharacterIndex, c.OrGroupIndex)))
-            {
-                foreach (var c in configGroup)
-                {
-                    if (c.CharacterConfigID.HasValue)
-                    {
-                        orGroupUsers.UnionWith(await context.UserCharacterConfigs
-                            .Where(cc => cc.CharacterConfigID == c.CharacterConfigID)
-                            .Select(u => u.UserID)
-                            .ToListAsync());
-                    }
-                    else
-                    {
-                        orGroupUsers.UnionWith(newUserConfigs
-                            .Where(cc => cc.CharacterConfig == c.CharacterConfig)
-                            .Select(u => u.UserID));
-                    }
-                }
-                Merge(orGroupUsers, configGroup.Key.CharacterIndex);
-            }
-
-            //Add the variant to available users.
-            foreach (var uid in availableUsers)
-            {
-                context.UserZhouVariants.Add(new UserZhouVariant
-                {
-                    UserID = uid,
-                    ZhouVariant = variant,
-                    Borrow = null,
-                });
-            }
-            foreach (var (uid, borrow) in userBorrow)
-            {
-                context.UserZhouVariants.Add(new UserZhouVariant
-                {
-                    UserID = uid,
-                    ZhouVariant = variant,
-                    Borrow = borrow,
-                });
-            }
-        }
-
-        public static async Task CheckAndRemoveUserVariantsAsync(ApplicationDbContext context, int zhouVariantID)
-        {
-            var uzvs = await context.UserZhouVariants
-                .Where(uzv => uzv.ZhouVariantID == zhouVariantID)
-                .ToListAsync();
-            foreach (var uzv in uzvs)
-            {
-                context.UserCombos.RemoveRange(context.UserCombos
-                    .Where(c =>
-                        c.Zhou1ID == uzv.UserZhouVariantID ||
-                        c.Zhou2ID == uzv.UserZhouVariantID ||
-                        c.Zhou3ID == uzv.UserZhouVariantID));
-                context.UserZhouVariants.Remove(uzv);
-            }
-        }
-
-        public static void CheckAndRemoveAll(ApplicationDbContext context, int guildID)
-        {
-            context.UserCombos.RemoveRange(context.UserCombos.Where(c => c.GuildID == guildID));
-            context.Zhous.RemoveRange(context.Zhous.Where(z => z.GuildID == guildID));
         }
 
         //Ajax
@@ -465,9 +316,10 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return StatusCode(400);
             }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
 
             //Need info of Zhou to render partial view.
-            Zhou = await _context.Zhous
+            Zhou = await _context.DbContext.Zhous
                 .Include(z => z.Boss)
                 .Include(z => z.C1)
                 .Include(z => z.C2)
@@ -489,15 +341,18 @@ namespace PcrBattleChannel.Pages.Zhous
                 IsDraft = EditVariant.IsDraft,
                 Damage = EditVariant.Damage,
             };
+            var allUserConfigs = await _context.DbContext.UserCharacterConfigs
+                .Include(ucc => ucc.CharacterConfig)
+                .Where(ucc => ucc.CharacterConfig.GuildID == user.GuildID.Value)
+                .ToListAsync();
 
-            _context.ZhouVariants.Add(variant);
+            _context.DbContext.ZhouVariants.Add(variant);
             var configs = await ApplyConfigString(Zhou, variant, EditVariantConfigs);
 
             //Setup user variants.
-            await CheckAndAddUserVariants(_context, user.GuildID.Value, Zhou, variant, configs, null);
-            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
+            imGuild.AddZhouVariant(allUserConfigs, variant, Zhou, configs);
 
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
 
             ViewData["allConfigs"] = await InitCharacterConfigs(user.GuildID.Value);
             return Partial("_Edit_VariantPartial", await VariantModel(variant));
@@ -512,7 +367,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return StatusCode(400);
             }
 
-            var v = await _context.ZhouVariants
+            var v = await _context.DbContext.ZhouVariants
                 .Include(v => v.Zhou)
                 .FirstOrDefaultAsync(v => v.ZhouVariantID == id.Value);
             if (v is null)
@@ -523,12 +378,12 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return StatusCode(400);
             }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
 
-            await CheckAndRemoveUserVariantsAsync(_context, id.Value);
-            _context.ZhouVariants.Remove(v);
+            _context.DbContext.ZhouVariants.Remove(v);
 
-            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
+            imGuild.DeleteZhouVariant(v.ZhouVariantID);
 
             return StatusCode(200);
         }
@@ -542,7 +397,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return StatusCode(400);
             }
 
-            var v = await _context.ZhouVariants
+            var v = await _context.DbContext.ZhouVariants
                 .Include(v => v.Zhou)
                 .FirstOrDefaultAsync(v => v.ZhouVariantID == id);
             if (v is null)
@@ -553,9 +408,10 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return StatusCode(400);
             }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
 
             //Need info of Zhou to render partial view.
-            Zhou = await _context.Zhous
+            Zhou = await _context.DbContext.Zhous
                 .Include(z => z.Boss)
                 .Include(z => z.C1)
                 .Include(z => z.C2)
@@ -574,11 +430,11 @@ namespace PcrBattleChannel.Pages.Zhous
             v.IsDraft = EditVariant.IsDraft;
             v.Damage = EditVariant.Damage;
 
-            _context.Update(v);
+            _context.DbContext.Update(v);
             await ApplyConfigString(Zhou, v, EditVariantConfigs);
 
-            user.Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
+            imGuild.UpdateZhouVariant(v);
 
             ViewData["allConfigs"] = await InitCharacterConfigs(user.GuildID.Value);
             return Partial("_Edit_VariantPartial", await VariantModel(v));

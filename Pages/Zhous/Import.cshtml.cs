@@ -17,12 +17,12 @@ namespace PcrBattleChannel.Pages.Zhous
 {
     public class ImportModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
         private readonly ZhouParserFactory _parserFactory;
 
-        public ImportModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public ImportModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager, ZhouParserFactory parserFactory)
         {
             _context = context;
@@ -102,6 +102,7 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return RedirectToPage("/Guild/Index");
             }
+            var imGuild = await _context.GetGuildAsync(guildID.Value);
 
             if (string.IsNullOrEmpty(Input))
             {
@@ -109,7 +110,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return Page();
             }
 
-            var parser = _parserFactory.GetParser(_context, guildID.Value);
+            var parser = _parserFactory.GetParser(_context.DbContext, guildID.Value);
             await parser.ReadDatabase();
 
             var list = new List<Zhou>();
@@ -160,14 +161,19 @@ namespace PcrBattleChannel.Pages.Zhous
 
             var unsavedMergeCheck = new List<Zhou>();
             var unsavedDupCheck = new List<ZhouVariant>();
-            var newUserConfigs = new List<UserCharacterConfig>();
             var returnInputContent = new StringBuilder();
             var updatedZV = new HashSet<ZhouVariant>(); //Each zv can only be updated once. Use this to check.
             var dupUpdateCount = 0;
 
+            var allUserConfigs = await _context.DbContext.UserCharacterConfigs
+                .Include(ucc => ucc.CharacterConfig)
+                .Where(ucc => ucc.CharacterConfig.GuildID == guildID)
+                .ToListAsync();
+            var pendingIMAdd = new List<(Zhou, ZhouVariant)>();
+
             foreach (var cc in newConfigList)
             {
-                await Guilds.ConfigsModel.CheckAndAddRankConfigAsync(_context, cc, newUserConfigs);
+                await Guilds.ConfigsModel.CheckAndAddRankConfigAsync(_context.DbContext, cc, allUserConfigs);
             }
 
             for (int i = 0; i < list.Count; ++i)
@@ -180,7 +186,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 Zhou existingSameZhou = null;
                 if (Merge || DuplicateCheckBehavior != ZhouParserDuplicateCheckBehavior.Ignore)
                 {
-                    existingSameZhou = await _context.Zhous
+                    existingSameZhou = await _context.DbContext.Zhous
                         .FirstOrDefaultAsync(zz =>
                             zz.GuildID == guildID.Value &&
                             zz.BossID == z.BossID &&
@@ -210,7 +216,7 @@ namespace PcrBattleChannel.Pages.Zhous
                         //Check configs.
                         if (existingSameZhou.ZhouID != 0)
                         {
-                            await _context.Entry(existingSameZhou).Collection(zz => zz.Variants).LoadAsync();
+                            await _context.DbContext.Entry(existingSameZhou).Collection(zz => zz.Variants).LoadAsync();
                         }
 
                         bool dupCheckResult = true;
@@ -218,7 +224,7 @@ namespace PcrBattleChannel.Pages.Zhous
                         {
                             if (existingV.ZhouVariantID != 0)
                             {
-                                await _context.Entry(existingV).Collection(vv => vv.CharacterConfigs).LoadAsync();
+                                await _context.DbContext.Entry(existingV).Collection(vv => vv.CharacterConfigs).LoadAsync();
                             }
 
                             if (existingV.CharacterConfigs.Count != v.CharacterConfigs.Count)
@@ -311,13 +317,13 @@ namespace PcrBattleChannel.Pages.Zhous
                 {
                     v.ZhouID = mergedInto.ZhouID;
                     v.Zhou = mergedInto;
-                    _context.ZhouVariants.Add(v);
-                    await EditModel.CheckAndAddUserVariants(_context, guildID.Value, mergedInto, v, v.CharacterConfigs, newUserConfigs);
+                    _context.DbContext.ZhouVariants.Add(v);
+                    pendingIMAdd.Add((mergedInto, v));
                 }
                 else
                 {
-                    _context.Zhous.Add(z);
-                    await EditModel.CheckAndAddUserVariants(_context, guildID.Value, z, v, v.CharacterConfigs, newUserConfigs);
+                    _context.DbContext.Zhous.Add(z);
+                    pendingIMAdd.Add((z, v));
                     unsavedMergeCheck.Add(z);
                 }
             }
@@ -331,8 +337,17 @@ namespace PcrBattleChannel.Pages.Zhous
                 return Page();
             }
 
-            (await _context.Guilds.FirstAsync(g => g.GuildID == guildID)).LastZhouUpdate = TimeZoneHelper.BeijingNow;
-            await _context.SaveChangesAsync();
+            await _context.DbContext.SaveChangesAsync();
+
+            //Update IM context only after saving of DB context succeeded.
+            foreach (var (z, v) in pendingIMAdd)
+            {
+                imGuild.AddZhouVariant(allUserConfigs, v, z, v.CharacterConfigs);
+            }
+            foreach (var v in updatedZV)
+            {
+                imGuild.UpdateZhouVariant(v);
+            }
 
             if (DuplicateCheckBehavior == ZhouParserDuplicateCheckBehavior.Return)
             {

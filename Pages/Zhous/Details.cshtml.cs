@@ -13,11 +13,11 @@ namespace PcrBattleChannel.Pages.Zhous
 {
     public class DetailsModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public DetailsModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public DetailsModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -34,23 +34,25 @@ namespace PcrBattleChannel.Pages.Zhous
 
         public async Task<(bool enabled, int? borrow)> GetBorrowSetting(ZhouVariant v)
         {
-            var setting = await _context.UserZhouVariants
-                .FirstOrDefaultAsync(uv => uv.UserID == UserID && uv.ZhouVariantID == v.ZhouVariantID);
-            if (setting is null)
+            var imGuild = await _context.GetGuildAsync(v.Zhou.GuildID);
+            var imUser = imGuild.GetUserById(UserID);
+            var borrowPlusOne = imGuild.GetZhouVariantById(v.ZhouVariantID).UserData[imUser.Index].BorrowPlusOne;
+            return borrowPlusOne switch
             {
-                return (false, null);
-            }
-            return (true, setting.Borrow);
+                >= 1 and <= 5 => (true, borrowPlusOne - 1),
+                6 => (true, null),
+                _ => (false, null),
+            };
         }
 
         public async Task<(Character, ZhouVariantCharacterConfig[][])[]> GetConfigs(ZhouVariant v)
         {
             //Load necessary entries.
-            await _context.Entry(v).Collection(v => v.CharacterConfigs).LoadAsync();
+            await _context.DbContext.Entry(v).Collection(v => v.CharacterConfigs).LoadAsync();
             foreach (var cc in v.CharacterConfigs)
             {
-                await _context.Entry(cc).Reference(cc => cc.CharacterConfig).LoadAsync();
-                await _context.Entry(cc.CharacterConfig).Reference(c => c.Character).LoadAsync();
+                await _context.DbContext.Entry(cc).Reference(cc => cc.CharacterConfig).LoadAsync();
+                await _context.DbContext.Entry(cc.CharacterConfig).Reference(c => c.Character).LoadAsync();
             }
 
             //Group.
@@ -95,7 +97,7 @@ namespace PcrBattleChannel.Pages.Zhous
             UserID = user.Id;
             IsAdmin = user.IsGuildAdmin;
 
-            Zhou = await _context.Zhous
+            Zhou = await _context.DbContext.Zhous
                 .Include(z => z.Boss)
                 .Include(z => z.C1)
                 .Include(z => z.C2)
@@ -130,7 +132,7 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
 
-            var v = await _context.ZhouVariants
+            var v = await _context.DbContext.ZhouVariants
                 .Include(v => v.Zhou)
                 .FirstOrDefaultAsync(v => v.ZhouVariantID == vid);
             if (v is null || v.Zhou.GuildID != user.GuildID)
@@ -138,47 +140,19 @@ namespace PcrBattleChannel.Pages.Zhous
                 return NotFound();
             }
 
-            var setting = await _context.UserZhouVariants
-                .FirstOrDefaultAsync(uv => uv.UserID == user.Id && uv.ZhouVariantID == vid);
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+            var imZV = imGuild.GetZhouVariantById(vid.Value);
 
-            //There is one case we don't need to remove.
-            if (BorrowIndex.HasValue)
+            imZV.UserData[imUser.Index].BorrowPlusOne = BorrowIndex switch
             {
-                _context.UserCombos.RemoveRange(_context.UserCombos
-                    .Where(c =>
-                        c.Zhou1ID == setting.UserZhouVariantID ||
-                        c.Zhou2ID == setting.UserZhouVariantID ||
-                        c.Zhou3ID == setting.UserZhouVariantID));
-            }
+                null => 6,
+                >= 0 and <= 4 => (byte)(BorrowIndex.Value + 1),
+                _ => 0,
+            };
 
-            if (BorrowIndex == -1)
-            {
-                if (setting is not null)
-                {
-                    _context.UserZhouVariants.Remove(setting);
-                }
-            }
-            else
-            {
-                if (setting is null)
-                {
-                    setting = new UserZhouVariant
-                    {
-                        Borrow = BorrowIndex,
-                        UserID = user.Id,
-                        ZhouVariantID = vid.Value,
-                    };
-                    _context.UserZhouVariants.Add(setting);
-                }
-                else if (setting.Borrow != BorrowIndex)
-                {
-                    setting.Borrow = BorrowIndex;
-                    _context.UserZhouVariants.Update(setting);
-                }
-            }
-
-            user.LastComboUpdate = default; //Force recalculation.
-            await _context.SaveChangesAsync();
+            imUser.LastComboCalculation = default; //Force recalculation.
+            //No need to save db context.
 
             return StatusCode(200);
         }

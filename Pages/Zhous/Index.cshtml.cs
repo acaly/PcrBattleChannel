@@ -13,11 +13,11 @@ namespace PcrBattleChannel.Pages.Zhous
 {
     public class IndexModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public IndexModel(ApplicationDbContext context, SignInManager<PcrIdentityUser> signInManager,
+        public IndexModel(InMemoryStorageContext context, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
             _context = context;
@@ -42,7 +42,7 @@ namespace PcrBattleChannel.Pages.Zhous
             {
                 return null;
             }
-            Guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID);
+            Guild = await _context.DbContext.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID);
             if (Guild is null)
             {
                 return null;
@@ -59,9 +59,11 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage("/Index");
             }
             IsAdmin = user.IsGuildAdmin;
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
 
             //Are we using too many includes?
-            Zhou = await _context.Zhous
+            Zhou = await _context.DbContext.Zhous
                 .Include(z => z.Boss)
                 .Include(z => z.C1)
                 .Include(z => z.C2)
@@ -74,13 +76,10 @@ namespace PcrBattleChannel.Pages.Zhous
                 .OrderBy(z => z.BossID)
                 .ToListAsync();
 
-            var allSettings = await _context.UserZhouVariants
-                .Include(uv => uv.ZhouVariant)
-                .Where(uv => uv.UserID == user.Id)
-                .ToListAsync();
-            UserZhouSettings = allSettings
-                .GroupBy(uv => uv.ZhouVariant.ZhouID)
-                .Select(g => g.Key).ToHashSet();
+            UserZhouSettings = imGuild.ZhouVariants
+                .Where(zv => zv.UserData[imUser.Index].BorrowPlusOne != 0)
+                .Select(zv => zv.ZhouID)
+                .ToHashSet();
 
             return Page();
         }
@@ -93,21 +92,10 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage("/Index");
             }
 
-            foreach (var uzv in _context.UserZhouVariants)
-            {
-                _context.UserCombos.RemoveRange(_context.UserCombos
-                    .Where(c =>
-                        c.Zhou1ID == uzv.UserZhouVariantID ||
-                        c.Zhou2ID == uzv.UserZhouVariantID ||
-                        c.Zhou3ID == uzv.UserZhouVariantID));
-            }
-            _context.UserZhouVariants.RemoveRange(_context.UserZhouVariants
-                .Where(v => v.UserID == user.Id));
-            var allZhous = _context.ZhouVariants
-                .Include(z => z.Zhou)
-                .Include(z => z.CharacterConfigs)
-                .Where(z => z.Zhou.GuildID == user.GuildID);
-            var userAllConfigs = await _context.UserCharacterConfigs
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+
+            var userAllConfigs = await _context.DbContext.UserCharacterConfigs
                 .Include(c => c.CharacterConfig)
                 .Where(c => c.UserID == user.Id)
                 .ToListAsync();
@@ -115,48 +103,9 @@ namespace PcrBattleChannel.Pages.Zhous
                 .Where(c => c.CharacterConfig.Kind == default)
                 .Select(c => c.CharacterConfig.CharacterID)
                 .ToHashSet();
-            var userAllConfigIds = userAllConfigs
-                .Select(c => c.CharacterConfigID)
-                .ToHashSet();
 
-            await allZhous.ForEachAsync(z =>
-            {
-                int? borrowId = null;
-                void SetBorrow(int index)
-                {
-                    borrowId = borrowId.HasValue ? -1 : index;
-                }
-                bool CheckCharacterConfig(int index)
-                {
-                    var groups = z.CharacterConfigs
-                        .Where(c => c.CharacterIndex == index)
-                        .GroupBy(c => c.OrGroupIndex);
-                    foreach (var g in groups)
-                    {
-                        if (!g.Any(c => userAllConfigIds.Contains(c.CharacterConfigID ?? 0)))
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-                if (!userCharacters.Contains(z.Zhou.C1ID.Value) || !CheckCharacterConfig(0)) SetBorrow(0);
-                if (!userCharacters.Contains(z.Zhou.C2ID.Value) || !CheckCharacterConfig(1)) SetBorrow(1);
-                if (!userCharacters.Contains(z.Zhou.C3ID.Value) || !CheckCharacterConfig(2)) SetBorrow(2);
-                if (!userCharacters.Contains(z.Zhou.C4ID.Value) || !CheckCharacterConfig(3)) SetBorrow(3);
-                if (!userCharacters.Contains(z.Zhou.C5ID.Value) || !CheckCharacterConfig(4)) SetBorrow(4);
-                if (borrowId != -1)
-                {
-                    _context.UserZhouVariants.Add(new UserZhouVariant
-                    {
-                        Borrow = borrowId,
-                        UserID = user.Id,
-                        ZhouVariantID = z.ZhouVariantID,
-                    });
-                }
-            });
-            user.LastComboUpdate = default;
-            await _context.SaveChangesAsync();
+            imUser.MatchAllZhouVariants(userCharacters, userAllConfigs.Select(c => c.CharacterConfigID).ToHashSet());
+            imUser.LastComboCalculation = default;
 
             return RedirectToPage();
         }
@@ -169,9 +118,12 @@ namespace PcrBattleChannel.Pages.Zhous
                 return RedirectToPage("/Index");
             }
 
-            EditModel.CheckAndRemoveAll(_context, user.GuildID.Value);
-            Guild.LastZhouUpdate = TimeZoneHelper.BeijingNow;
-            await _context.SaveChangesAsync();
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+            imGuild.DeleteAllZhous();
+
+            _context.DbContext.Zhous.RemoveRange(_context.DbContext.Zhous.Where(z => z.GuildID == user.GuildID.Value));
+            await _context.DbContext.SaveChangesAsync();
 
             return RedirectToPage();
         }

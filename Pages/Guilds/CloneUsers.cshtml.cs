@@ -129,7 +129,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 }
             }
 
-            var imGuild = await _context.GetGuild(guild.GuildID);
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
             var newUserList = new List<PcrIdentityUser>();
 
             for (int i = 0; i < CloneCount; ++i)

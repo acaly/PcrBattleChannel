@@ -35,19 +35,19 @@ namespace PcrBattleChannel.Data
                 .HasOne(u => u.Attempt1)
                 .WithMany()
                 .HasForeignKey(u => u.Attempt1ID)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             builder.Entity<PcrIdentityUser>()
                 .HasOne(u => u.Attempt2)
                 .WithMany()
                 .HasForeignKey(u => u.Attempt2ID)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             builder.Entity<PcrIdentityUser>()
                 .HasOne(u => u.Attempt3)
                 .WithMany()
                 .HasForeignKey(u => u.Attempt3ID)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
 #pragma warning disable CS0618 // Type or member is obsolete
             builder.Entity<UserZhouVariant>()

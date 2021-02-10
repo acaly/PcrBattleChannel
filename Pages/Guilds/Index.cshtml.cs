@@ -69,7 +69,7 @@ namespace PcrBattleChannel.Pages.Guilds
 
             var g = await _context.DbContext.Guilds
                 .FirstOrDefaultAsync(m => m.GuildID == user.GuildID.Value);
-            var imGuild = await _context.GetGuild(g.GuildID);
+            var imGuild = await _context.GetGuildAsync(g.GuildID);
 
             await YobotSync.RunSingleAsync(_context, g, imGuild, forceRecalc: true);
 
