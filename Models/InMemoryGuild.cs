@@ -205,7 +205,7 @@ namespace PcrBattleChannel.Models
 
             //Note that we no longer allow characters to be null.
             var characterIDs = ImmutableArray.Create(zhou.C1ID.Value, zhou.C2ID.Value, zhou.C3ID.Value, zhou.C4ID.Value, zhou.C5ID.Value);
-            var characterIndexMap = Enumerable.Range(0, 4).ToImmutableDictionary(i => characterIDs[i], i => i);
+            var characterIndexMap = Enumerable.Range(0, 5).ToImmutableDictionary(i => characterIDs[i], i => i);
             
             var ret = new InMemoryZhouVariant
             {
@@ -219,7 +219,7 @@ namespace PcrBattleChannel.Models
                 UserData = userData,
                 CharacterIDs = characterIDs,
                 CharacterIndexMap = characterIndexMap,
-                CharacterConfigIDs = Enumerable.Range(0, 4)
+                CharacterConfigIDs = Enumerable.Range(0, 5)
                     .Select(ii => cclist.Where(g => g.key == ii).Select(g => g.list).ToImmutableArray())
                     .ToImmutableArray(),
             };
@@ -290,7 +290,7 @@ namespace PcrBattleChannel.Models
                 IsDraft = dbzv.IsDraft,
                 UserData = zv.UserData,
                 CharacterIDs = zv.CharacterIDs,
-                CharacterConfigIDs = Enumerable.Range(0, 4)
+                CharacterConfigIDs = Enumerable.Range(0, 5)
                     .Select(ii => cclist.Where(g => g.key == ii).Select(g => g.list).ToImmutableArray())
                     .ToImmutableArray(),
             };

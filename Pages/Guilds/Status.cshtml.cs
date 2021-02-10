@@ -161,11 +161,13 @@ namespace PcrBattleChannel.Pages.Guilds
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             var guild = await CheckUserPrivilege();
             if (guild is null)
             {
                 return RedirectToPage("/Home/Index");
             }
+            Console.WriteLine($"validate {timer.ElapsedMilliseconds} ms");
             var imGuild = await _context.GetGuildAsync(guild.GuildID);
 
             if (PlanRatio.HasValue)
@@ -202,6 +204,8 @@ namespace PcrBattleChannel.Pages.Guilds
             //Have to save here to allow calculator to read boss plans.
             await _context.DbContext.SaveChangesAsync();
 
+            Console.WriteLine($"boss status update {timer.ElapsedMilliseconds} ms");
+
             //1. Update guild status.
             var newBossIndex = ConvLap(CurrentLap - 1, CurrentBoss - 1);
             if (!newBossIndex.HasValue)
@@ -214,6 +218,8 @@ namespace PcrBattleChannel.Pages.Guilds
             }
             guild.BossIndex = newBossIndex.Value;
             guild.BossDamageRatio = CurrentBossRatio;
+
+            Console.WriteLine($"guild progress update {timer.ElapsedMilliseconds} ms");
 
             //2. Refresh users' combo lists.
             var allUserIDs = await _context.DbContext.Users
@@ -241,10 +247,16 @@ namespace PcrBattleChannel.Pages.Guilds
                 }
             }
 
+            Console.WriteLine($"user combo refresh {timer.ElapsedMilliseconds} ms");
+
             //3. Calculate values.
             await CalcComboValues.RunAllAsync(_context.DbContext, guild, imGuild);
 
+            Console.WriteLine($"value calculation {timer.ElapsedMilliseconds} ms");
+
             await _context.DbContext.SaveChangesAsync();
+
+            Console.WriteLine($"save {timer.ElapsedMilliseconds} ms");
 
             return RedirectToPage("/Home/Index");
         }

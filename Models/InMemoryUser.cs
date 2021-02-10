@@ -208,6 +208,10 @@ namespace PcrBattleChannel.Models
             {
                 _comboGroups.Add(new() { StartIndex = _comboValues.Count });
                 _comboList.AddRange(builder.GetGroup(i));
+                while (_comboValues.Count * ComboZhouCount < _comboList.Count)
+                {
+                    _comboValues.Add((0f, 0f));
+                }
             }
             _comboGroups.Add(new() { StartIndex = _comboValues.Count });
         }

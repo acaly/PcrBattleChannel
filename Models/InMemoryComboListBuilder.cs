@@ -36,15 +36,15 @@ namespace PcrBattleChannel.Models
             var bossID = (z1, z2, z3);
             if (!_bossMap.TryGetValue(bossID, out var index))
             {
-                index = ++_comboDataCount;
+                index = _comboDataCount++;
                 if (_comboData.Count == index)
                 {
                     _comboData.Add(new());
                 }
             }
-            if (GroupCount > 0) _comboData[index].Add((z1, borrowInfo[0]));
-            if (GroupCount > 1) _comboData[index].Add((z2, borrowInfo[1]));
-            if (GroupCount > 2) _comboData[index].Add((z3, borrowInfo[2]));
+            if (ZhouCount > 0) _comboData[index].Add((z1, borrowInfo[0]));
+            if (ZhouCount > 1) _comboData[index].Add((z2, borrowInfo[1]));
+            if (ZhouCount > 2) _comboData[index].Add((z3, borrowInfo[2]));
         }
     }
 }

@@ -214,6 +214,7 @@ namespace PcrBattleChannel.Pages.Home
 
         public async Task<IActionResult> OnPostRefreshAsync()
         {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             if (!_signInManager.IsSignedIn(User))
             {
                 return Redirect("/");
@@ -228,7 +229,7 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return Redirect("/");
             }
-
+            Console.WriteLine($"validate {timer.ElapsedMilliseconds} ms");
             var imGuild = await _context.GetGuildAsync(guild.GuildID);
             var imUser = imGuild.GetUserById(user.Id);
             var comboCalculator = new FindAllCombos();
@@ -238,9 +239,17 @@ namespace PcrBattleChannel.Pages.Home
                 .Select(s => s.CharacterID)
                 .ToListAsync();
 
+            Console.WriteLine($"prepare {timer.ElapsedMilliseconds} ms");
             comboCalculator.Run(imUser, userUsedCharacterIDs.ToHashSet(), 3 - user.Attempts, null, user.ComboIncludesDrafts);
+            Console.WriteLine($"combo {timer.ElapsedMilliseconds} ms");
             await CalcComboValues.RunSingleAsync(_context.DbContext, guild, imGuild, user);
+            Console.WriteLine($"value {timer.ElapsedMilliseconds} ms");
             await _context.DbContext.SaveChangesAsync();
+            Console.WriteLine($"save {timer.ElapsedMilliseconds} ms");
+
+            Console.WriteLine($"total variants: {imGuild.ZhouVariants.Count()}");
+            Console.WriteLine($"total combos: {imUser.TotalComboCount}");
+            System.Diagnostics.Debugger.Break();
 
             return RedirectToPage();
         }
