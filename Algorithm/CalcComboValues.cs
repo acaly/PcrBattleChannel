@@ -411,6 +411,7 @@ namespace PcrBattleChannel.Algorithm
                     _splitCombos1.Dispose();
                     _splitCombos2.Dispose();
                     _splitCombos3.Dispose();
+                    _splitComboRevMap.Dispose();
                     _splitZVBuffer.Dispose();
                     _values.Dispose();
                     _bossBuffer.Dispose();
@@ -440,11 +441,16 @@ namespace PcrBattleChannel.Algorithm
             private readonly Dictionary<int, int> _splitBossTableIndex = new();
 
             private readonly List<(int begin, int end)> _userSplitComboRange = new();
+
             //This list contains the SplitZV index (pointing to elements in _splitZVBoss and _splitZVDamage)
             //for each combo. Each combo has 3 items in this list.
             private FastArrayList<int> _splitCombos1 = default;
             private FastArrayList<int> _splitCombos2 = default;
             private FastArrayList<int> _splitCombos3 = default;
+
+            private readonly List<(int begin, int end)> _splitComboRevMapRange = new(); //(user * _splitZVBoss.Count + splitZVIndex) -> map index
+            private FastArrayList<int> _splitComboRevMap = default; //map index -> combo index counting from the first of the user
+
             //Other info of the split combos. Because these are not used in the inner loop of calculation,
             //they are separated from the _splitCombos.
             private readonly List<(int user, int comboGroup)> _splitComboInfo = new();
@@ -688,6 +694,9 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
 
+                //Refresh rev map.
+                MakeSplitComboRevMap();
+
                 //Init boss buffer.
                 while (_bossBuffer.Count < _bosses.Count)
                 {
@@ -739,6 +748,70 @@ namespace PcrBattleChannel.Algorithm
                 _splitCombos2.Truncate(compressPointer);
                 _splitCombos3.Truncate(compressPointer);
                 _userAdjustmentBuffer.Truncate(compressPointer);
+
+                //Refresh rev map.
+                MakeSplitComboRevMap();
+            }
+
+            //Calculate _splitComboRevMap based on _splitCombosN
+            private void MakeSplitComboRevMap()
+            {
+                _splitComboRevMap.Clear();
+                _splitComboRevMapRange.Clear();
+
+                //Count combos for each (user, splitzv) tuple.
+                //For this stage, _splitComboRevMapRange is used to store (count, 0).
+                for (int i = 0; i < _userSplitComboRange.Count * _splitZVBoss.Count; ++i)
+                {
+                    _splitComboRevMapRange.Add((0, 0));
+                }
+                void AddCount(int u, int szv)
+                {
+                    if (szv == 0) return; //The first szv is the empty element with no damage.
+                    var index = u * _splitZVBoss.Count + szv;
+                    _splitComboRevMapRange[index] = (_splitComboRevMapRange[index].begin + 1, 0);
+                }
+                for (int i = 0; i < _userSplitComboRange.Count; ++i)
+                {
+                    var (begin, end) = _userSplitComboRange[i];
+                    for (int j = begin; j < end; ++j)
+                    {
+                        AddCount(i, _splitCombos1[j]);
+                        AddCount(i, _splitCombos2[j]);
+                        AddCount(i, _splitCombos3[j]);
+                    }
+                }
+
+                //Arrange each (user, splitzv) tuple.
+                int next = 0;
+                for (int i = 0; i < _splitComboRevMapRange.Count; ++i)
+                {
+                    var c = _splitComboRevMapRange[i].begin;
+                    _splitComboRevMapRange[i] = (next, next);
+                    next += c;
+                    next = (next + 7) & ~7;
+                }
+                _splitComboRevMap.EnsureSize(next, updateCount: true);
+
+                //Write data (use end of each entry as pointer).
+                void WriteData(int u, int c, int szv)
+                {
+                    if (szv == 0) return; //The first szv is the empty element with no damage.
+                    var mapIndex = u * _splitZVBoss.Count + szv;
+                    var (begin, end) = _splitComboRevMapRange[mapIndex];
+                    _splitComboRevMap[end] = c;
+                    _splitComboRevMapRange[mapIndex] = (begin, end + 1);
+                }
+                for (int i = 0; i < _userSplitComboRange.Count; ++i)
+                {
+                    var (begin, end) = _userSplitComboRange[i];
+                    for (int j = begin; j < end; ++j)
+                    {
+                        WriteData(i, j - begin, _splitCombos1[j]);
+                        WriteData(i, j - begin, _splitCombos2[j]);
+                        WriteData(i, j - begin, _splitCombos3[j]);
+                    }
+                }
             }
 
             private unsafe int CalculateDamage()
@@ -763,14 +836,18 @@ namespace PcrBattleChannel.Algorithm
                             }
 
                             //Merge SplitZV values.
-                            //TODO SIMD (need a reverse matrix of splitComboPtr)
-                            var (begin, end) = _userSplitComboRange[i];
-                            for (int j = begin; j < end; ++j)
+                            var (comboBegin, _) = _userSplitComboRange[i];
+                            fixed (int* splitComboRevMapPtr = &_splitComboRevMap.DataRef)
                             {
-                                var v = _values[j];
-                                splitZVBufferPtr[splitComboPtr1[j]] += v;
-                                splitZVBufferPtr[splitComboPtr2[j]] += v;
-                                splitZVBufferPtr[splitComboPtr3[j]] += v;
+                                fixed (float* valuePtr = &_values.DataRef)
+                                {
+                                    for (int j = 0; j < _splitZVBoss.Count; ++j)
+                                    {
+                                        var (begin, end) = _splitComboRevMapRange[i * _splitZVBoss.Count + j];
+                                        splitZVBufferPtr[j] = SimdHelper.CollectSum(&valuePtr[comboBegin],
+                                            &splitComboRevMapPtr[begin], end - begin);
+                                    }
+                                }
                             }
 
                             //Calculate user's damage in _userBossBuffer (we need these values in adjustment step).

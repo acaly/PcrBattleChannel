@@ -89,7 +89,7 @@ namespace PcrBattleChannel.Algorithm
         {
             int i = 0;
 
-            if (Enabled && Avx2.IsSupported)
+            if (Enabled && Avx.IsSupported)
             {
                 int simdCount = count & ~7;
                 var valueVector = Vector256.Create(value);
@@ -105,6 +105,31 @@ namespace PcrBattleChannel.Algorithm
             {
                 buffer[i] *= value;
             }
+        }
+
+        public static float CollectSum(float* values, int* indices, int count)
+        {
+            int i = 0;
+            float sum = 0f;
+
+            if (Enabled && Avx2.IsSupported)
+            {
+                int simdCount = count & ~7;
+                var sumVector = Vector256.Create(0f);
+                for (; i < simdCount; i += 8)
+                {
+                    var indiceVector = Avx.LoadAlignedVector256(&indices[i]);
+                    var loaded = Avx2.GatherVector256(values, indiceVector, 4);
+                    sumVector = Avx.Add(sumVector, loaded);
+                }
+                sum = SumVector256(sumVector);
+            }
+
+            for (; i < count; ++i)
+            {
+                sum += values[indices[i]];
+            }
+            return sum;
         }
     }
 }
