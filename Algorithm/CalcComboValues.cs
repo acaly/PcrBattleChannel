@@ -423,23 +423,23 @@ namespace PcrBattleChannel.Algorithm
             private readonly List<int> _userFirstSplitComboIndex = new();
             //This list contains the SplitZV index (pointing to elements in _splitZVBoss and _splitZVDamage)
             //for each combo. Each combo has 3 items in this list.
-            private readonly List<int> _splitCombos = new(); //TODO array
+            private FastArrayList<int> _splitCombos = default;
             //Other info of the split combos. Because these are not used in the inner loop of calculation,
             //they are separated from the _splitCombos.
             private readonly List<(int user, int comboGroup)> _splitComboInfo = new();
             private readonly List<float> _splitZVDamage = new();
             private readonly List<int> _splitZVBoss = new();
             //Used to store intermediate results for each split ZV during the calculation.
-            private readonly List<float> _splitZVBuffer = new(); //TODO array
+            private FastArrayList<float> _splitZVBuffer = new();
             private readonly Dictionary<(int, int), int> _splitZVMap = new(); //(split boss index, damage) -> split ZV index
 
-            private readonly List<float> _values = new();
+            private FastArrayList<float> _values = default;
             private readonly List<float> _bossBuffer = new(); //for both damage ratio and correction factor.
             private readonly List<float> _valueInitBuffer = new();
 
             private readonly Dictionary<int, float> _mergeBossHp = new();
 
-            private readonly List<float> _userAdjustmentBuffer = new();
+            private FastArrayList<float> _userAdjustmentBuffer = new();
 
             private readonly ComboMerger _comboMerger = new();
             private readonly List<ComboMerger.SpreadInfo> _comboGroupSpreadInfoList = new();
@@ -544,6 +544,7 @@ namespace PcrBattleChannel.Algorithm
                                 splitZVIndex = _splitZVBoss.Count;
                                 _splitZVBoss.Add(splitBossID);
                                 _splitZVDamage.Add(zvinfo.Value.damage / _bossTotalHp[splitBossID]);
+                                _splitZVBuffer.Add(0);
                                 _splitZVMap[zvinfo.Value] = splitZVIndex;
                             }
                             buffer[index] = splitZVIndex;
@@ -559,6 +560,7 @@ namespace PcrBattleChannel.Algorithm
                 _splitComboInfo.Clear();
                 _splitZVDamage.Clear();
                 _splitZVBoss.Clear();
+                _splitZVBuffer.Clear();
                 _userFirstSplitComboIndex.Clear();
                 _userAdjustmentBuffer.Clear();
                 _comboGroupSpreadInfoList.Clear();
@@ -567,6 +569,7 @@ namespace PcrBattleChannel.Algorithm
                 //Add an empty splitZV at index 0.
                 _splitZVBoss.Add(0);
                 _splitZVDamage.Add(0);
+                _splitZVBuffer.Add(0);
 
                 for (int userIndex = 0; userIndex < StaticInfo.Users.Length; ++userIndex)
                 {
@@ -685,27 +688,38 @@ namespace PcrBattleChannel.Algorithm
                 }
                 _userFirstSplitComboIndex[^1] = compressPointer;
 
-                _values.RemoveRange(compressPointer, _values.Count - compressPointer);
-                _splitCombos.RemoveRange(compressPointer * 3, _splitCombos.Count - compressPointer * 3);
-                _userAdjustmentBuffer.RemoveRange(compressPointer, _userAdjustmentBuffer.Count - compressPointer);
+                _values.Truncate(compressPointer);
+                _splitCombos.Truncate(compressPointer * 3);
+                _userAdjustmentBuffer.Truncate(compressPointer);
             }
 
-            private int CalculateDamage()
+            private unsafe int CalculateDamage()
             {
                 //_bossBuffer used as damage ratio.
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
                     _bossBuffer[i] = 0;
                 }
-                for (int i = 0; i < _values.Count; ++i)
+                //Merge SplitZV values.
+                for (int i = 0; i < _splitZVBoss.Count; ++i)
                 {
-                    var value = _values[i];
-                    for (int j = 0; j < 3; ++j)
+                    _splitZVBuffer[i] = 0;
+                }
+                fixed (int* splitComboRef = &_splitCombos[0])
+                {
+                    for (int i = 0; i < _values.Count; ++i)
                     {
-                        var splitZVIndex = _splitCombos[i * 3 + j];
-                        _bossBuffer[_splitZVBoss[splitZVIndex]] += _splitZVDamage[splitZVIndex] * value;
+                        var v = _values[i];
+                        _splitZVBuffer[splitComboRef[i * 3 + 0]] += v;
+                        _splitZVBuffer[splitComboRef[i * 3 + 1]] += v;
+                        _splitZVBuffer[splitComboRef[i * 3 + 2]] += v;
                     }
                 }
+                for (int i = 0; i < _splitZVBoss.Count; ++i)
+                {
+                    _bossBuffer[_splitZVBoss[i]] += _splitZVDamage[i] * _splitZVBuffer[i];
+                }
+
                 bool allPositive = true, allNegative = true;
                 for (int i = 0; i < _bosses.Count; ++i)
                 {
@@ -781,7 +795,7 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
-            private void AdjustGradient(float learningRate)
+            private unsafe void AdjustGradient(float learningRate)
             {
                 const float GradientLastBoss = 0.02f;
                 const float GradientOverKilledBoss1 = 0.01f;
@@ -801,50 +815,55 @@ namespace PcrBattleChannel.Algorithm
                         };
                 }
 
-                for (int i = 0; i < _userFirstSplitComboIndex.Count - 1; ++i) //User
+                //Adjustment coefficient for each SplitZV.
+                for (int i = 0; i < _splitZVBoss.Count; ++i)
                 {
-                    var userTotalDec = 0f;
-
-                    var begin = _userFirstSplitComboIndex[i];
-                    var end = _userFirstSplitComboIndex[i + 1];
-                    for (int j = begin; j < end; ++j)
+                    _splitZVBuffer[i] = deltaRatio * _bossBuffer[_splitZVBoss[i]] * _splitZVDamage[i];
+                }
+                
+                fixed (float* adjustmentBufferPtr = &_userAdjustmentBuffer[0],
+                    splitZVBufferPtr = &_splitZVBuffer[0], valuePtr = &_values[0])
+                {
+                    fixed (int* splitCombosPtr = &_splitCombos[0])
                     {
-                        var comboAdjustment = 0f;
-                        for (int k = 0; k < 3; ++k)
+                        for (int i = 0; i < _userFirstSplitComboIndex.Count - 1; ++i) //User
                         {
-                            var splitZVIndex = _splitCombos[j * 3 + k];
-                            comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex]] * _splitZVDamage[splitZVIndex];
-                        }
-                        comboAdjustment *= deltaRatio;
-                        userTotalDec += comboAdjustment * _values[j];
+                            var begin = _userFirstSplitComboIndex[i];
+                            var end = _userFirstSplitComboIndex[i + 1];
 
-                        _userAdjustmentBuffer[j] = comboAdjustment;
-                    }
+                            for (int j = begin; j < end; ++j)
+                            {
+                                var comboAdjustment = 0f;
+                                for (int k = 0; k < 3; ++k)
+                                {
+                                    var splitZVIndex = splitCombosPtr[j * 3 + k];
+                                    comboAdjustment += splitZVBufferPtr[splitZVIndex];
+                                }
+                                adjustmentBufferPtr[j] = comboAdjustment;
+                            }
 
-                    var userTotalValue = 0f;
-                    for (int j = begin; j < end; ++j)
-                    {
-                        _values[j] += _userAdjustmentBuffer[j] - userTotalDec;
-                        if (_values[j] < 0) _values[j] = 0;
-                        userTotalValue += _values[j];
-                    }
+                            //TODO this should be the total objective function (of all users)
+                            //this should be calculated from SplitZV buffer
+                            var userTotalDec = 0f;
+                            for (int j = begin; j < end; ++j)
+                            {
+                                userTotalDec += adjustmentBufferPtr[j] * valuePtr[j];
+                            }
 
-                    if (userTotalValue < 1)
-                    {
-                        //Normalize by addition.
-                        var normalize = (userTotalValue - 1) / (end - begin);
-                        for (int j = begin; j < end; ++j)
-                        {
-                            _values[j] -= normalize;
-                        }
-                    }
-                    else
-                    {
-                        //Normalize by multiplication.
-                        var normalize = 1f / userTotalValue;
-                        for (int j = begin; j < end; ++j)
-                        {
-                            _values[j] *= normalize;
+                            var userTotalValue = 0f;
+                            for (int j = begin; j < end; ++j)
+                            {
+                                var newVal = MathF.Max(0, valuePtr[j] + adjustmentBufferPtr[j] - userTotalDec);
+                                valuePtr[j] = newVal;
+                                userTotalValue += newVal;
+                            }
+
+                            //Normalize by multiplication.
+                            var normalize = 1f / userTotalValue;
+                            for (int j = begin; j < end; ++j)
+                            {
+                                valuePtr[j] *= normalize;
+                            }
                         }
                     }
                 }
