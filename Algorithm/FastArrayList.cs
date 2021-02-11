@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Algorithm
@@ -63,13 +64,21 @@ namespace PcrBattleChannel.Algorithm
             }
         }
 
-        public void EnsureSize(int totalSize)
+        public void EnsureSize(int totalSize, bool updateCount)
         {
-            if (Data.Length < totalSize)
+            if (Data is null)
+            {
+                Data = new T[totalSize];
+            }
+            else if (Data.Length < totalSize)
             {
                 var newData = new T[totalSize];
                 Array.Copy(Data, newData, Count);
                 Data = newData;
+            }
+            if (updateCount)
+            {
+                Count = totalSize;
             }
         }
 
@@ -89,6 +98,18 @@ namespace PcrBattleChannel.Algorithm
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
                 return ref Data[index];
+            }
+        }
+
+        public ref T DataRef
+        {
+            get
+            {
+                if (Data is null)
+                {
+                    return ref Unsafe.NullRef<T>();
+                }
+                return ref Data[0];
             }
         }
     }
