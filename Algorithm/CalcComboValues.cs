@@ -408,7 +408,9 @@ namespace PcrBattleChannel.Algorithm
             {
                 if (!_disposedValue)
                 {
-                    _splitCombos.Dispose();
+                    _splitCombos1.Dispose();
+                    _splitCombos2.Dispose();
+                    _splitCombos3.Dispose();
                     _splitZVBuffer.Dispose();
                     _values.Dispose();
                     _bossBuffer.Dispose();
@@ -440,7 +442,9 @@ namespace PcrBattleChannel.Algorithm
             private readonly List<(int begin, int end)> _userSplitComboRange = new();
             //This list contains the SplitZV index (pointing to elements in _splitZVBoss and _splitZVDamage)
             //for each combo. Each combo has 3 items in this list.
-            private FastArrayList<int> _splitCombos = default;
+            private FastArrayList<int> _splitCombos1 = default;
+            private FastArrayList<int> _splitCombos2 = default;
+            private FastArrayList<int> _splitCombos3 = default;
             //Other info of the split combos. Because these are not used in the inner loop of calculation,
             //they are separated from the _splitCombos.
             private readonly List<(int user, int comboGroup)> _splitComboInfo = new();
@@ -534,10 +538,14 @@ namespace PcrBattleChannel.Algorithm
                     };
                     if (!zvinfo.HasValue)
                     {
-                        for (int i = 0; i < 3; ++i)
+                        for (int i = index; i < 3; ++i)
                         {
-                            _splitCombos.Add(i < index ? buffer[i] : 0);
+                            buffer[i] = 0;
                         }
+                        _splitCombos1.Add(buffer[0]);
+                        _splitCombos2.Add(buffer[1]);
+                        _splitCombos3.Add(buffer[2]);
+
                         _splitComboInfo.Add(currentCombo);
                         _userAdjustmentBuffer.Add(0);
                         _valueInitBuffer.Add(bossHpProduct); //Here the list is used to store per group info.
@@ -574,7 +582,9 @@ namespace PcrBattleChannel.Algorithm
                 }
 
                 _splitZVMap.Clear();
-                _splitCombos.Clear();
+                _splitCombos1.Clear();
+                _splitCombos2.Clear();
+                _splitCombos3.Clear();
                 _splitComboInfo.Clear();
                 _splitZVDamage.Clear();
                 _splitZVBoss.Clear();
@@ -669,9 +679,9 @@ namespace PcrBattleChannel.Algorithm
                     alignedCount = (alignedCount + 7) & ~7;
                     while (_splitComboInfo.Count < alignedCount)
                     {
-                        _splitCombos.Add(0);
-                        _splitCombos.Add(0);
-                        _splitCombos.Add(0);
+                        _splitCombos1.Add(0);
+                        _splitCombos2.Add(0);
+                        _splitCombos3.Add(0);
                         _splitComboInfo.Add((0, 0));
                         _userAdjustmentBuffer.Add(0);
                         _values.Add(0);
@@ -708,10 +718,9 @@ namespace PcrBattleChannel.Algorithm
                         if (_values[j] > removeThreshold)
                         {
                             _values[compressPointer] = _values[j];
-                            for (int k = 0; k < 3; ++k)
-                            {
-                                _splitCombos[compressPointer * 3 + k] = _splitCombos[j * 3 + k];
-                            }
+                            _splitCombos1[compressPointer] = _splitCombos1[j];
+                            _splitCombos2[compressPointer] = _splitCombos2[j];
+                            _splitCombos3[compressPointer] = _splitCombos3[j];
                             //No need to move _userAdjustmentBuffer because it's updated in each step.
 
                             compressPointer += 1;
@@ -726,7 +735,9 @@ namespace PcrBattleChannel.Algorithm
                 }
 
                 _values.Truncate(compressPointer);
-                _splitCombos.Truncate(compressPointer * 3);
+                _splitCombos1.Truncate(compressPointer);
+                _splitCombos2.Truncate(compressPointer);
+                _splitCombos3.Truncate(compressPointer);
                 _userAdjustmentBuffer.Truncate(compressPointer);
             }
 
@@ -736,7 +747,8 @@ namespace PcrBattleChannel.Algorithm
                 fixed (float* splitZVBufferPtr = &_splitZVBuffer.DataRef, userBossBufferPtr = &_userBossBuffer.DataRef,
                     bossBufferPtr = &_bossBuffer.DataRef)
                 {
-                    fixed (int* splitComboPtr = &_splitCombos[0])
+                    fixed (int* splitComboPtr1 = &_splitCombos1[0], splitComboPtr2 = &_splitCombos2[0],
+                        splitComboPtr3 = &_splitCombos3[0])
                     {
                         for (int i = 0; i < _bosses.Count; ++i)
                         {
@@ -756,9 +768,9 @@ namespace PcrBattleChannel.Algorithm
                             for (int j = begin; j < end; ++j)
                             {
                                 var v = _values[j];
-                                splitZVBufferPtr[splitComboPtr[j * 3 + 0]] += v;
-                                splitZVBufferPtr[splitComboPtr[j * 3 + 1]] += v;
-                                splitZVBufferPtr[splitComboPtr[j * 3 + 2]] += v;
+                                splitZVBufferPtr[splitComboPtr1[j]] += v;
+                                splitZVBufferPtr[splitComboPtr2[j]] += v;
+                                splitZVBufferPtr[splitComboPtr3[j]] += v;
                             }
 
                             //Calculate user's damage in _userBossBuffer (we need these values in adjustment step).
@@ -822,11 +834,14 @@ namespace PcrBattleChannel.Algorithm
                     for (int j = begin; j < end; ++j)
                     {
                         var comboAdjustment = 0f;
-                        for (int k = 0; k < 3; ++k)
-                        {
-                            var splitZVIndex = _splitCombos[j * 3 + k];
-                            comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex]] * _splitZVDamage[splitZVIndex];
-                        }
+
+                        var splitZVIndex1 = _splitCombos1[j];
+                        var splitZVIndex2 = _splitCombos2[j];
+                        var splitZVIndex3 = _splitCombos3[j];
+                        comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex1]] * _splitZVDamage[splitZVIndex1];
+                        comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex2]] * _splitZVDamage[splitZVIndex2];
+                        comboAdjustment += _bossBuffer[_splitZVBoss[splitZVIndex3]] * _splitZVDamage[splitZVIndex3];
+
                         _values[j] -= comboAdjustment;
                         if (_values[j] < 0)
                         {
@@ -884,7 +899,8 @@ namespace PcrBattleChannel.Algorithm
                 fixed (float* adjustmentBufferPtr = &_userAdjustmentBuffer[0], userBossBufferPtr = &_userBossBuffer.DataRef,
                     splitZVBufferPtr = &_splitZVBuffer[0], valuePtr = &_values[0], bossBufferPtr = &_bossBuffer.DataRef)
                 {
-                    fixed (int* splitCombosPtr = &_splitCombos[0])
+                    fixed (int* splitCombosPtr1 = &_splitCombos1[0], splitCombosPtr2 = &_splitCombos2[0],
+                        splitCombosPtr3 = &_splitCombos3[0])
                     {
                         for (int i = 0; i < _userSplitComboRange.Count; ++i) //User
                         {
@@ -900,26 +916,13 @@ namespace PcrBattleChannel.Algorithm
                             var (begin, end) = _userSplitComboRange[i];
 
                             //Calculate adjustment (gradient).
-                            //TODO SIMD (_mm_mask_i32gather_ps)
-                            for (int j = begin; j < end; ++j)
-                            {
-                                var comboAdjustment = 0f;
-                                for (int k = 0; k < 3; ++k)
-                                {
-                                    comboAdjustment += splitZVBufferPtr[splitCombosPtr[j * 3 + k]];
-                                }
-                                adjustmentBufferPtr[j] = comboAdjustment - userObjectiveFunc;
-                            }
+                            SimdHelper.CalculateGradient(splitZVBufferPtr,
+                                &splitCombosPtr1[begin], &splitCombosPtr2[begin], &splitCombosPtr3[begin],
+                                userObjectiveFunc, &adjustmentBufferPtr[begin], end - begin);
 
                             //Update values.
-                            //TODO SIMD
-                            var userTotalValue = 0f;
-                            for (int j = begin; j < end; ++j)
-                            {
-                                var newVal = MathF.Max(0, valuePtr[j] + adjustmentBufferPtr[j]);
-                                valuePtr[j] = newVal;
-                                userTotalValue += newVal;
-                            }
+                            var userTotalValue = SimdHelper.UpdateValueSum(&valuePtr[begin],
+                                &adjustmentBufferPtr[begin], end - begin);
 
                             if (userTotalValue == 0f)
                             {
@@ -927,12 +930,8 @@ namespace PcrBattleChannel.Algorithm
                             }
 
                             //Normalize by multiplication.
-                            //TODO SIMD
                             var normalize = 1f / userTotalValue;
-                            for (int j = begin; j < end; ++j)
-                            {
-                                valuePtr[j] *= normalize;
-                            }
+                            SimdHelper.MultiplyConst(&valuePtr[begin], normalize, end - begin);
                         }
                     }
                 }
