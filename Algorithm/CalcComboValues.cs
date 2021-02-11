@@ -820,7 +820,7 @@ namespace PcrBattleChannel.Algorithm
                 {
                     _splitZVBuffer[i] = deltaRatio * _bossBuffer[_splitZVBoss[i]] * _splitZVDamage[i];
                 }
-                
+
                 fixed (float* adjustmentBufferPtr = &_userAdjustmentBuffer[0],
                     splitZVBufferPtr = &_splitZVBuffer[0], valuePtr = &_values[0])
                 {
@@ -853,7 +853,7 @@ namespace PcrBattleChannel.Algorithm
                             var userTotalValue = 0f;
                             for (int j = begin; j < end; ++j)
                             {
-                                var newVal = MathF.Max(0, valuePtr[j] + adjustmentBufferPtr[j] - userTotalDec);
+                                var newVal = MathF.Max(0, valuePtr[j] + (adjustmentBufferPtr[j] - userTotalDec));
                                 valuePtr[j] = newVal;
                                 userTotalValue += newVal;
                             }
