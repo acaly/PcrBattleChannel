@@ -31,11 +31,6 @@ namespace PcrBattleChannel.Models
 
         public int BossIndex { get; set; }
         public float BossDamageRatio { get; set; }
-        public int PredictBossIndex { get; set; }
-        public float PredictBossDamageRatio { get; set; }
-
-        [DataType(DataType.DateTime)]
-        public DateTime LastCalculation { get; set; }
 
         [DataType(DataType.DateTime)]
         [Obsolete("Use memory storage")]
@@ -43,6 +38,7 @@ namespace PcrBattleChannel.Models
 
         [Display(Name = "Yobot API地址")]
         public string YobotAPI { get; set; }
-        public DateTime LastYobotSync { get; set; }
+
+        public float DamageCoefficient { get; set; }
     }
 }

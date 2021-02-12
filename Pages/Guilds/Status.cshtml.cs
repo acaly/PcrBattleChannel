@@ -38,9 +38,9 @@ namespace PcrBattleChannel.Pages.Guilds
         public string LastUpdateTime { get; set; }
 
         [BindProperty]
-        [Display(Name = "血量矫正系数")]
+        [Display(Name = "伤害矫正系数")]
         [Range(0.5, 2)]
-        public float? PlanRatio { get; set; }
+        public float PlanRatio { get; set; }
 
         [BindProperty]
         [Display(Name = "当前周目")]
@@ -119,6 +119,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
             Guild = guild;
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
 
             var stages = await _context.DbContext.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
             FirstLapForStages = stages.Select(s => s.StartLap).ToArray();
@@ -136,25 +137,13 @@ namespace PcrBattleChannel.Pages.Guilds
             }
             BossNamesString = JsonConvert.SerializeObject(BossNames);
 
-            LastUpdateTime = guild.LastCalculation.ToString("MM-dd HH:mm");
+            LastUpdateTime = imGuild.LastCalculation.ToString("MM-dd HH:mm");
             (CurrentLap, CurrentBoss) = ConvLap(guild.BossIndex);
             CurrentLap += 1; //convert to 1-based.
             CurrentBoss += 1;
             CurrentBossRatio = guild.BossDamageRatio;
 
-            var allPlans = await _context.DbContext.GuildBossStatuses
-                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
-                .Select(s => s.DamageRatio)
-                .Distinct()
-                .ToListAsync();
-            if (allPlans.Count == 1)
-            {
-                PlanRatio = allPlans[0];
-            }
-            else if (allPlans.Count == 0)
-            {
-                PlanRatio = 1.0f;
-            }
+            PlanRatio = guild.DamageCoefficient;
 
             return Page();
         }
@@ -170,24 +159,9 @@ namespace PcrBattleChannel.Pages.Guilds
             Console.WriteLine($"validate {timer.ElapsedMilliseconds} ms");
             var imGuild = await _context.GetGuildAsync(guild.GuildID);
 
-            if (PlanRatio.HasValue)
-            {
-                await _context.DbContext.GuildBossStatuses
-                    .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
-                    .DeleteFromQueryAsync();
-                foreach (var b in _context.DbContext.Bosses)
-                {
-                    var s = new GuildBossStatus
-                    {
-                        GuildID = guild.GuildID,
-                        BossID = b.BossID,
-                        IsPlan = true,
-                        DamageRatio = PlanRatio.Value,
-                    };
-                    _context.DbContext.GuildBossStatuses.Add(s);
-                }
-            }
+            guild.DamageCoefficient = PlanRatio;
 
+            //TODO cache
             var stages = await _context.DbContext.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
             FirstLapForStages = stages.Select(s => s.StartLap).ToArray();
             BossNames = new();
@@ -195,16 +169,10 @@ namespace PcrBattleChannel.Pages.Guilds
             {
                 var bosses = await _context.DbContext.Bosses
                     .Where(b => b.BattleStageID == s.BattleStageID)
-                    .OrderBy(b => b.BossID)
-                    .Select(b => b.Name)
+                    .Select(b => (string)null) //We only need count for boss index conversion.
                     .ToListAsync();
                 BossNames.Add(bosses);
             }
-
-            //Have to save here to allow calculator to read boss plans.
-            await _context.DbContext.SaveChangesAsync();
-
-            Console.WriteLine($"boss status update {timer.ElapsedMilliseconds} ms");
 
             //1. Update guild status.
             var newBossIndex = ConvLap(CurrentLap - 1, CurrentBoss - 1);
@@ -218,6 +186,9 @@ namespace PcrBattleChannel.Pages.Guilds
             }
             guild.BossIndex = newBossIndex.Value;
             guild.BossDamageRatio = CurrentBossRatio;
+
+            //This is the only save we need for this request.
+            await _context.DbContext.SaveChangesAsync();
 
             Console.WriteLine($"guild progress update {timer.ElapsedMilliseconds} ms");
 
@@ -253,10 +224,6 @@ namespace PcrBattleChannel.Pages.Guilds
             await CalcComboValues.RunAllAsync(_context.DbContext, guild, imGuild);
 
             Console.WriteLine($"value calculation {timer.ElapsedMilliseconds} ms");
-
-            await _context.DbContext.SaveChangesAsync();
-
-            Console.WriteLine($"save {timer.ElapsedMilliseconds} ms");
 
             return RedirectToPage("/Home/Index");
         }

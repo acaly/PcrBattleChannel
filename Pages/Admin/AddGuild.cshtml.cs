@@ -17,12 +17,10 @@ namespace PcrBattleChannel.Pages.Admin
     public class AddGuildModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public AddGuildModel(ApplicationDbContext context, UserManager<PcrIdentityUser> userManager)
+        public AddGuildModel(ApplicationDbContext context)
         {
             _context = context;
-            _userManager = userManager;
         }
 
         public class InputModel
@@ -79,6 +77,7 @@ namespace PcrBattleChannel.Pages.Admin
                 },
                 Owner = owner,
                 OwnerID = owner.Id,
+                DamageCoefficient = 1,
             };
             _context.Guilds.Add(guild);
             owner.Guild = guild;
@@ -97,19 +96,6 @@ namespace PcrBattleChannel.Pages.Admin
                     Description = "什么配置都可以。",
                 };
                 _context.CharacterConfigs.Add(config);
-            }
-
-            //Create default boss plans.
-            foreach (var b in _context.Bosses)
-            {
-                var s = new GuildBossStatus
-                {
-                    Guild = guild,
-                    BossID = b.BossID,
-                    IsPlan = true,
-                    DamageRatio = 1,
-                };
-                _context.GuildBossStatuses.Add(s);
             }
 
             await _context.SaveChangesAsync();

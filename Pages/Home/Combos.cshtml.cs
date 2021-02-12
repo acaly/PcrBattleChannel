@@ -201,7 +201,7 @@ namespace PcrBattleChannel.Pages.Home
 
             UsedCharacters = await _context.DbContext.UserCharacterStatuses
                 .Include(s => s.Character)
-                .Where(s => s.UserID == user.Id && s.IsUsed == true)
+                .Where(s => s.UserID == user.Id)
                 .ToListAsync();
             UsedCharacters.Sort((a, b) => Math.Sign(a.Character.Range - b.Character.Range));
             UsedCharacterIds = UsedCharacters.Select(c => c.CharacterID).ToHashSet();
@@ -249,7 +249,6 @@ namespace PcrBattleChannel.Pages.Home
 
             Console.WriteLine($"total variants: {imGuild.ZhouVariants.Count()}");
             Console.WriteLine($"total combos: {imUser.TotalComboCount}");
-            System.Diagnostics.Debugger.Break();
 
             return RedirectToPage();
         }
@@ -314,7 +313,6 @@ namespace PcrBattleChannel.Pages.Home
                         //Page will need this reference, so load it here.
                         Character = await _context.DbContext.Characters.FirstAsync(c => c.CharacterID == cid),
                         CharacterID = cid,
-                        IsUsed = true,
                     };
                     UsedCharacters.Add(s);
                     _context.DbContext.UserCharacterStatuses.Add(s);

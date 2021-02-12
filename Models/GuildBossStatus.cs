@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace PcrBattleChannel.Models
 {
+    [Obsolete("Use memory storage")]
     public class GuildBossStatus
     {
         public int GuildBossStatusID { get; set; }
-
-        public bool IsPlan { get; set; }
 
         [ForeignKey(nameof(Guild))]
         public int GuildID { get; set; }

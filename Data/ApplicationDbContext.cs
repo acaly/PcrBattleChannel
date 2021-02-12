@@ -48,35 +48,6 @@ namespace PcrBattleChannel.Data
                 .WithMany()
                 .HasForeignKey(u => u.Attempt3ID)
                 .OnDelete(DeleteBehavior.ClientSetNull);
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            builder.Entity<UserZhouVariant>()
-                .HasOne(v => v.User)
-                .WithMany(u => u.ZhouVariants)
-                .HasForeignKey(v => v.UserID);
-
-            builder.Entity<UserZhouVariant>()
-                .HasOne(v => v.ZhouVariant)
-                .WithMany()
-                .HasForeignKey(v => v.ZhouVariantID)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<UserCombo>()
-                .HasOne(c => c.Zhou1)
-                .WithMany()
-                .HasForeignKey(c => c.Zhou1ID)
-                .OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<UserCombo>()
-                .HasOne(c => c.Zhou2)
-                .WithMany()
-                .HasForeignKey(c => c.Zhou2ID)
-                .OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<UserCombo>()
-                .HasOne(c => c.Zhou3)
-                .WithMany()
-                .HasForeignKey(c => c.Zhou3ID)
-                .OnDelete(DeleteBehavior.Restrict);
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         //Game characters. Imported from Admin/EditGlobalData.
@@ -94,14 +65,8 @@ namespace PcrBattleChannel.Data
         public DbSet<Boss> Bosses { get; set; }
 
         //Tables associated with a session and a guild/user.
-        public DbSet<GuildBossStatus> GuildBossStatuses { get; set; }
         public DbSet<Zhou> Zhous { get; set; }
         public DbSet<ZhouVariant> ZhouVariants { get; set; }
         public DbSet<ZhouVariantCharacterConfig> ZhouVariantCharacterConfigs { get; set; }
-
-        [Obsolete("Use memory storage")]
-        public DbSet<UserZhouVariant> UserZhouVariants { get; set; }
-        [Obsolete("Use memory storage")]
-        public DbSet<UserCombo> UserCombos { get; set; }
     }
 }

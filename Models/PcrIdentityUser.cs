@@ -19,11 +19,6 @@ namespace PcrBattleChannel.Models
 
         //TODO some of these navigation collections are not used
 
-        [Obsolete("Use memory storage")]
-        public ICollection<UserZhouVariant> ZhouVariants { get; set; }
-        [Obsolete("Use memory storage")]
-        public ICollection<UserCombo> Combos { get; set; }
-
         public ICollection<UserCharacterStatus> CharacterStatuses { get; set; }
         public int Attempts { get; set; }
         public int GuessedAttempts { get; set; } //Number of attempts that are from guessing.
@@ -33,9 +28,6 @@ namespace PcrBattleChannel.Models
         public bool IsIgnored { get; set; }
 
         public bool ComboIncludesDrafts { get; set; }
-
-        [Obsolete("Use memory storage")]
-        public bool IsValueApproximate { get; set; }
 
         //Attempts
 
@@ -53,9 +45,6 @@ namespace PcrBattleChannel.Models
         public int? Attempt3ID { get; set; }
         public ZhouVariant Attempt3 { get; set; }
         public int? Attempt3Borrow { get; set; }
-
-        [Obsolete("Use memory storage")]
-        public DateTime LastComboUpdate { get; set; }
 
         public DateTime LastConfirm { get; set; }
     }

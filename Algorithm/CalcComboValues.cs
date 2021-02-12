@@ -42,8 +42,7 @@ namespace PcrBattleChannel.Algorithm
         {
             public Guild Guild { get; init; }
             public List<int> FirstLapForStages { get; init; }
-            public List<List<GuildBossStatus>> Bosses { get; init; }
-            public Dictionary<int, float> BossPlanRatios { get; init; } //BossID -> plan ratio
+            public List<List<Boss>> Bosses { get; init; }
             public InMemoryUser[] Users { get; set; } //with .ZhouX loaded
 
             public BossIndexInfo ConvertBossIndex(int bossIndex)
@@ -505,12 +504,12 @@ namespace PcrBattleChannel.Algorithm
                     }
                     _splitBossTable[tableIndex].Add(_bossTotalHp.Count);
 
-                    float hp = count * bossObj.Boss.Life;
+                    float hp = count * bossObj.Life;
                     if (_bossTotalHp.Count == 0)
                     {
                         hp *= 1 - FirstBossHp;
                     }
-                    _bossTotalHp.Add(hp / bossObj.DamageRatio / DamageScale);
+                    _bossTotalHp.Add(hp / StaticInfo.Guild.DamageCoefficient / DamageScale);
                 }
             }
 
@@ -1169,45 +1168,31 @@ namespace PcrBattleChannel.Algorithm
         //Run for all users in the guild.
         public static async Task RunAllAsync(ApplicationDbContext context, Guild guild, InMemoryGuild imGuild)
         {
-            await context.GuildBossStatuses
-                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == false)
-                .DeleteFromQueryAsync();
-
             var allUsers = imGuild.Members.ToArray();
 
             var stages = await context.BattleStages
                 .OrderBy(s => s.StartLap)
-                .ToListAsync();
+                .ToListAsync(); //TODO cache
             var stageLapList = new List<int>();
-            var bossList = new List<List<GuildBossStatus>>();
+            var bossList = new List<List<Boss>>();
             for (int i = 0; i < stages.Count; ++i)
             {
                 stageLapList.Add(stages[i].StartLap);
                 bossList.Add(new());
             }
 
-            var bossPlans = await context.GuildBossStatuses
-                .Include(s => s.Boss)
-                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
-                .ToListAsync();
-            var planRatios = new Dictionary<int, float>();
+            var bossPlans = await context.Bosses.OrderBy(b => b.BossID).ToListAsync(); //TODO cache in memory
             foreach (var boss in bossPlans)
             {
-                var stageID = boss.Boss.BattleStageID;
+                var stageID = boss.BattleStageID;
                 var stage = stages.FindIndex(s => s.BattleStageID == stageID);
                 bossList[stage].Add(boss);
-                planRatios.Add(boss.BossID, boss.DamageRatio);
-            }
-            foreach (var bossListStage in bossList)
-            {
-                bossListStage.Sort((b1, b2) => b1.Boss.BossID - b2.Boss.BossID);
             }
 
             var staticInfo = new StaticInfo()
             {
                 FirstLapForStages = stageLapList,
                 Bosses = bossList,
-                BossPlanRatios = planRatios,
                 Users = allUsers,
                 Guild = guild,
             };
@@ -1250,21 +1235,15 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
             }
+            imGuild.PredictBossBalance.Clear();
             foreach (var (bossID, value) in currentResult.BossValues)
             {
-                var newStatus = new GuildBossStatus
-                {
-                    GuildID = guild.GuildID,
-                    BossID = bossID,
-                    DamageRatio = value,
-                    IsPlan = false,
-                    //TODO extract more results
-                };
-                context.GuildBossStatuses.Add(newStatus);
+                imGuild.PredictBossBalance.Add((bossID, value));
             }
-            guild.PredictBossIndex = currentResult.EndBossIndex;
-            guild.PredictBossDamageRatio = currentResult.EndBossDamage;
-            guild.LastCalculation = TimeZoneHelper.BeijingNow;
+            imGuild.PredictBossBalance.Sort((b1, b2) => b1.bossID - b2.bossID);
+            imGuild.PredictBossIndex = currentResult.EndBossIndex;
+            imGuild.PredictBossDamageRatio = currentResult.EndBossDamage;
+            imGuild.LastCalculation = TimeZoneHelper.BeijingNow;
             foreach (var user in allUsers)
             {
                 user.IsValueApproximate = false;
@@ -1284,30 +1263,21 @@ namespace PcrBattleChannel.Algorithm
 
             var stages = await context.BattleStages
                 .OrderBy(s => s.StartLap)
-                .ToListAsync();
+                .ToListAsync(); //TODO cache
             var stageLapList = new List<int>();
-            var bossList = new List<List<GuildBossStatus>>();
+            var bossList = new List<List<Boss>>();
             for (int i = 0; i < stages.Count; ++i)
             {
                 stageLapList.Add(stages[i].StartLap);
                 bossList.Add(new());
             }
 
-            var bossPlans = await context.GuildBossStatuses
-                .Include(s => s.Boss)
-                .Where(s => s.GuildID == guild.GuildID && s.IsPlan == true)
-                .ToListAsync();
-            var planRatios = new Dictionary<int, float>();
+            var bossPlans = await context.Bosses.OrderBy(b => b.BossID).ToListAsync(); //TODO cache
             foreach (var boss in bossPlans)
             {
-                var stageID = boss.Boss.BattleStageID;
+                var stageID = boss.BattleStageID;
                 var stage = stages.FindIndex(s => s.BattleStageID == stageID);
                 bossList[stage].Add(boss);
-                planRatios.Add(boss.BossID, boss.DamageRatio);
-            }
-            foreach (var bossListStage in bossList)
-            {
-                bossListStage.Sort((b1, b2) => b1.Boss.BossID - b2.Boss.BossID);
             }
 
             var zhous = await context.Zhous
@@ -1320,13 +1290,14 @@ namespace PcrBattleChannel.Algorithm
             {
                 FirstLapForStages = stageLapList,
                 Bosses = bossList,
-                BossPlanRatios = planRatios,
                 Users = allUsers,
                 Guild = guild,
             };
 
-            var currentResult = RunApproximate(staticInfo, true, guild, Solver.InitValues_FromComboCurrentValuesExceptLast);
-            var totalResult = RunApproximate(staticInfo, false, guild, Solver.InitValues_FromComboTotalValuesExceptLast);
+            var currentResult = RunApproximate(staticInfo, true, guild, imGuild.PredictBossIndex,
+                Solver.InitValues_FromComboCurrentValuesExceptLast);
+            var totalResult = RunApproximate(staticInfo, false, guild, imGuild.PredictBossIndex,
+                Solver.InitValues_FromComboTotalValuesExceptLast);
 
             for (int comboIndex = 0; comboIndex < imUser.TotalComboCount; ++comboIndex)
             {
@@ -1466,7 +1437,7 @@ namespace PcrBattleChannel.Algorithm
         }
 
         private static ResultStorage RunApproximate(StaticInfo staticInfo, bool fixSelected,
-            Guild guild, Solver.InitValuesDelegate initValues)
+            Guild guild, int predictBossIndex, Solver.InitValuesDelegate initValues)
         {
             using var solver = new Solver
             {
@@ -1475,7 +1446,7 @@ namespace PcrBattleChannel.Algorithm
 
                 FirstBoss = staticInfo.ConvertBossIndex(guild.BossIndex),
                 FirstBossHp = guild.BossDamageRatio,
-                LastBoss = staticInfo.ConvertBossIndex(guild.PredictBossIndex),
+                LastBoss = staticInfo.ConvertBossIndex(predictBossIndex),
 
                 DamageScale = 1f,
             };

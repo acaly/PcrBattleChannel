@@ -152,7 +152,7 @@ namespace PcrBattleChannel.Algorithm
                     //(this depends on how the website is used)
                     if (await RunGuildAsync(context, g, imGuild, bosses))
                     {
-                        g.LastYobotSync = TimeZoneHelper.BeijingNow;
+                        imGuild.LastYobotSync = TimeZoneHelper.BeijingNow;
 
                         //Update values for all combos (in the list).
                         await CalcComboValues.RunAllAsync(context.DbContext, g, imGuild);
@@ -176,7 +176,7 @@ namespace PcrBattleChannel.Algorithm
             {
                 if (await RunGuildAsync(context, g, imGuild, bosses) || forceRecalc)
                 {
-                    g.LastYobotSync = TimeZoneHelper.BeijingNow;
+                    imGuild.LastYobotSync = TimeZoneHelper.BeijingNow;
 
                     //Update values for all combos (in the list).
                     await CalcComboValues.RunAllAsync(context.DbContext, g, imGuild);
@@ -316,9 +316,9 @@ namespace PcrBattleChannel.Algorithm
             }
             else
             {
-                var bossInfo = bosses.ConvertToInfo(data.Challenges[^1]);
-                newBossIndex = bossInfo.bossIndex;
-                newBossDamageRatio = 1 - data.Challenges[^1].HealthRemain / (float)bossInfo.hp;
+                var (bossIndex, hp) = bosses.ConvertToInfo(data.Challenges[^1]);
+                newBossIndex = bossIndex;
+                newBossDamageRatio = 1 - data.Challenges[^1].HealthRemain / (float)hp;
             }
             if (guild.BossIndex != newBossIndex || MathF.Abs(guild.BossDamageRatio - newBossDamageRatio) > 0.0001f)
             {
@@ -488,7 +488,6 @@ namespace PcrBattleChannel.Algorithm
                 {
                     UserID = user.Id,
                     CharacterID = imZhouVariant.CharacterIDs[i],
-                    IsUsed = true,
                 };
                 //Only add to the temporary list without modifying database. The user might
                 //become ignored before we finish matching all attempts. If that happen, we

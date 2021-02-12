@@ -20,7 +20,7 @@ else
 {
     var startIndex = Model.Guild.BossIndex;
     var startConv = Model.ConvLap(startIndex);
-    var predIndex = Model.Guild.PredictBossIndex;
+    var predIndex = Model.GuildPredictBossIndex;
     var predConv = Model.ConvLap(predIndex);
     var m = Model;
     <div class="row pt-5">
@@ -47,7 +47,7 @@ else
                     @(predConv.lap + 1) 周目 @(predConv.boss + 1) 号Boss
                     @(Model.GetBossName(predConv.stage, predConv.boss))
                     (@(Model.GetBossShortName(predConv.stage, predConv.boss))) -
-                    @(Model.Guild.PredictBossDamageRatio.ToString("P0"))
+                    @(Model.GuildPredictBossRatio.ToString("P0"))
                 </dd>
                 <dt>今日已出</dt>
                 <dd>
@@ -86,8 +86,8 @@ else
             <dl>
                 @foreach (var s in Model.BossStatus)
                 {
-                    <dt>@(s.Boss.Name) (@(s.Boss.ShortName))</dt>
-                    <dd>@(s.DamageRatio.ToString("P0"))</dd>
+                    <dt>@(s.boss.Name) (@(s.boss.ShortName))</dt>
+                    <dd>@(s.value.ToString("P0"))</dd>
                 }
             </dl>
         </div>

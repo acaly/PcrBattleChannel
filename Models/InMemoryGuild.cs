@@ -24,6 +24,12 @@ namespace PcrBattleChannel.Models
         private readonly Stack<int> _freeZhouIndex = new();
 
         public DateTime LastZhouUpdate { get; private set; }
+        public DateTime LastCalculation { get; set; }
+        public DateTime LastYobotSync { get; set; }
+
+        public int PredictBossIndex { get; set; }
+        public float PredictBossDamageRatio { get; set; }
+        public List<(int bossID, float balance)> PredictBossBalance { get; } = new();
 
         //If cloneFrom is null, no ZhouVariant is matched. Caller should call InMemoryUser.MatchAllZhou.
         public void AddUser(string id, int attemptsToday, string cloneFrom)

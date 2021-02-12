@@ -13,19 +13,21 @@ namespace PcrBattleChannel.Pages.Home
 {
     public class IndexModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly InMemoryStorageContext _context;
         private readonly SignInManager<PcrIdentityUser> _signInManager;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
         public IndexModel(InMemoryStorageContext memContext, SignInManager<PcrIdentityUser> signInManager,
             UserManager<PcrIdentityUser> userManager)
         {
-            _context = memContext.DbContext;
+            _context = memContext;
             _signInManager = signInManager;
             _userManager = userManager;
         }
 
         public Guild Guild { get; private set; }
+        public int GuildPredictBossIndex { get; private set; }
+        public float GuildPredictBossRatio { get; private set; }
 
         public int[] FirstLapForStages { get; private set; }
         public List<List<string>> BossNames { get; private set; }
@@ -34,7 +36,7 @@ namespace PcrBattleChannel.Pages.Home
         public int GuessedAttempts { get; private set; }
         public int RemainingAttempts { get; private set; }
         public int UnknownAttempts { get; private set; }
-        public List<GuildBossStatus> BossStatus { get; private set; }
+        public List<(Boss boss, float value)> BossStatus { get; private set; }
 
         public string GetBossName(int stage, int boss)
         {
@@ -94,41 +96,39 @@ namespace PcrBattleChannel.Pages.Home
                 return Page();
             }
 
-            Guild = await _context.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
+            Guild = await _context.DbContext.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            GuildPredictBossIndex = imGuild.PredictBossIndex;
+            GuildPredictBossRatio = imGuild.PredictBossDamageRatio;
 
-            var stages = await _context.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
+            var stages = await _context.DbContext.BattleStages.OrderBy(s => s.StartLap).ToListAsync();
             FirstLapForStages = stages.Select(s => s.StartLap).OrderBy(i => i).ToArray();
 
             BossNames = new();
             BossShortNames = new();
+            var allBosses = await _context.DbContext.Bosses
+                .ToListAsync();
             foreach (var s in stages)
             {
-                var names = await _context.Bosses
+                var b = allBosses
                     .Where(b => b.BattleStageID == s.BattleStageID)
-                    .OrderBy(b => b.BossID)
-                    .Select(b => b.Name)
-                    .ToListAsync();
-                BossNames.Add(names);
-                var shortNames = await _context.Bosses
-                    .Where(b => b.BattleStageID == s.BattleStageID)
-                    .OrderBy(b => b.BossID)
-                    .Select(b => b.ShortName)
-                    .ToListAsync();
-                BossShortNames.Add(shortNames);
+                    .OrderBy(b => b.BossID);
+                BossNames.Add(b.Select(b => b.Name).ToList());
+                BossShortNames.Add(b.Select(b => b.ShortName).ToList());
             }
 
-            var usedAttempts = await _context.Users
+            var usedAttempts = await _context.DbContext.Users
                 .Where(u => u.GuildID == Guild.GuildID)
                 .Select(u => u.Attempts)
                 .SumAsync();
-            var guessedAttempts = await _context.Users
+            var guessedAttempts = await _context.DbContext.Users
                 .Where(u => u.GuildID == Guild.GuildID)
                 .Select(u => u.GuessedAttempts)
                 .SumAsync();
-            var totalAttempts = 3 * await _context.Users
+            var totalAttempts = 3 * await _context.DbContext.Users
                 .Where(u => u.GuildID == Guild.GuildID)
                 .CountAsync();
-            var unknownUsersQueryable = _context.Users
+            var unknownUsersQueryable = _context.DbContext.Users
                 .Where(u => u.GuildID == Guild.GuildID && u.IsIgnored);
             var unknownUsers = await unknownUsersQueryable.CountAsync();
             var unknownUsedAttempts = await unknownUsersQueryable.SumAsync(u => u.Attempts);
@@ -138,11 +138,9 @@ namespace PcrBattleChannel.Pages.Home
             RemainingAttempts = totalAttempts - usedAttempts;
             UnknownAttempts = 3 * unknownUsers - unknownUsedAttempts;
 
-            BossStatus = await _context.GuildBossStatuses
-                .Include(s => s.Boss)
-                .Where(s => s.GuildID == Guild.GuildID && s.IsPlan == false)
-                .OrderBy(s => s.BossID)
-                .ToListAsync();
+            BossStatus = imGuild.PredictBossBalance
+                .Select(b => (allBosses.FirstOrDefault(bb => bb.BossID == b.bossID), b.balance))
+                .ToList();
 
             return Page();
         }
