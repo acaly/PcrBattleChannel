@@ -85,12 +85,17 @@ namespace PcrBattleChannel.Models
 
         private void DeleteZhouVariantInternal(int index)
         {
+            var toRemove = _zhouVariants[index];
+            if (toRemove is null)
+            {
+                return;
+            }
+
             foreach (var u in _members)
             {
                 u?.RemoveZhouVariant(index);
             }
 
-            var toRemove = _zhouVariants[index];
             _freeZhouIndex.Push(index);
             _zhouVariants[index] = null;
             _zhouVariantIndexMap.Remove(toRemove.ZhouVariantID);
@@ -247,7 +252,7 @@ namespace PcrBattleChannel.Models
             bool changed = false;
             for (int i = _zhouVariants.Count - 1; i >= 0; --i)
             {
-                if (_zhouVariants[i].ZhouID == zid)
+                if (_zhouVariants[i]?.ZhouID == zid)
                 {
                     DeleteZhouVariantInternal(i);
                     changed = true;
