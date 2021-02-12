@@ -1,6 +1,7 @@
 ﻿using PcrBattleChannel.Data;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -260,6 +261,15 @@ namespace PcrBattleChannel.Models
                     Index = User._comboGroups[Index].StartIndex + index * User.ComboZhouCount,
                 };
             }
+
+            public IEnumerable<Combo> Combos
+            {
+                get
+                {
+                    var g = this;
+                    return Enumerable.Range(0, Count).Select(ii => g.GetCombo(ii));
+                }
+            }
         }
 
         public readonly struct Combo
@@ -269,6 +279,7 @@ namespace PcrBattleChannel.Models
 
             public int ZhouCount => User.ComboZhouCount;
 
+            [DisplayFormat(DataFormatString = "{0:P1}")]
             public float CurrentValue
             {
                 get => User._comboValues[Index].current;
@@ -280,6 +291,7 @@ namespace PcrBattleChannel.Models
                 }
             }
 
+            [DisplayFormat(DataFormatString = "{0:P1}")]
             public float TotalValue
             {
                 get => User._comboValues[Index].total;

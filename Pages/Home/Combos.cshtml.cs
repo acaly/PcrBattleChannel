@@ -28,9 +28,10 @@ namespace PcrBattleChannel.Pages.Home
             _userManager = userManager;
         }
 
-        public List<(string name, List<InMemoryUser.Combo> list, float currentValue, float totalValue)> UserCombo { get; private set; }
+        public List<(string name, InMemoryUser.ComboGroup group, float currentValue, float totalValue)> UserCombo { get; private set; }
         public PcrIdentityUser AppUser { get; private set; }
         public bool IsUserValueApproximate { get; private set; }
+        public int TotalUserCombs { get; private set; }
         public List<UserCharacterStatus> UsedCharacters { get; private set; }
         public HashSet<int> UsedCharacterIds { get; private set; }
 
@@ -52,7 +53,17 @@ namespace PcrBattleChannel.Pages.Home
             public CombosModel Parent { get; init; }
         }
 
+        public class ComboGroupModel
+        {
+            public InMemoryUser.ComboGroup Item { get; init; }
+            public CombosModel Parent { get; init; }
+
+            public SingleComboModel CreateSingleModel(InMemoryUser.Combo c) => new() { Item = c, Parent = Parent };
+        }
+
         public SingleComboModel CreateSingleModel(InMemoryUser.Combo c) => new() { Item = c, Parent = this };
+
+        public ComboGroupModel CreateGroupModel(InMemoryUser.ComboGroup g) => new() { Item = g, Parent = this };
 
         private async Task CacheZhouData(int zid)
         {
@@ -136,6 +147,7 @@ namespace PcrBattleChannel.Pages.Home
             var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
             var imUser = imGuild.GetUserById(user.Id);
             IsUserValueApproximate = imUser.IsValueApproximate;
+            TotalUserCombs = imUser.TotalComboCount;
 
             await GetUserInfo(user);
             var allBosses = (await _context.DbContext.Bosses.ToListAsync()).ToDictionary(b => b.BossID);
@@ -155,12 +167,10 @@ namespace PcrBattleChannel.Pages.Home
                 var g = imUser.GetComboGroup(i);
                 if (g.Count == 0) continue;
 
-                var list = new List<InMemoryUser.Combo>();
                 float currentValue = 0, totalValue = 0;
                 for (int j = 0; j < g.Count; ++j)
                 {
                     var c = g.GetCombo(j);
-                    list.Add(c);
                     currentValue += c.CurrentValue;
                     totalValue += c.TotalValue;
                     for (int k = 0; k < c.ZhouCount; ++k)
@@ -168,7 +178,6 @@ namespace PcrBattleChannel.Pages.Home
                         await CacheZhouData(c.GetZhouVariant(k).ZhouID);
                     }
                 }
-                list.Sort((c1, c2) => MathF.Sign(c2.CurrentValue - c1.CurrentValue));
 
                 comboNameBuilder.Clear();
                 var (b1, b2, b3) = g.GetCombo(0).BossIDTuple;
@@ -189,7 +198,7 @@ namespace PcrBattleChannel.Pages.Home
                     comboNameBuilder.Append(allBosses[b3].ShortName);
                     AddBoss(b3, currentValue);
                 }
-                UserCombo.Add((comboNameBuilder.ToString(), list, currentValue, totalValue));
+                UserCombo.Add((comboNameBuilder.ToString(), g, currentValue, totalValue));
             }
 
             UserCombo.Sort((a, b) => MathF.Sign(b.currentValue - a.currentValue));
@@ -210,6 +219,41 @@ namespace PcrBattleChannel.Pages.Home
             await GetAllCharacters(user);
 
             return Page();
+        }
+
+        //Ajax
+        public async Task<IActionResult> OnGetGroupPartialAsync(long time, int index)
+        {
+            if (time == 0 || index < 0)
+            {
+                return StatusCode(400);
+            }
+            if (!_signInManager.IsSignedIn(User))
+            {
+                return StatusCode(400);
+            }
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null || !user.GuildID.HasValue)
+            {
+                return StatusCode(400);
+            }
+            var imGuild = await _context.GetGuildAsync(user.GuildID.Value);
+            var imUser = imGuild.GetUserById(user.Id);
+            if (time != imUser.LastComboCalculation.Ticks || index >= imUser.ComboGroupCount)
+            {
+                return StatusCode(400);
+            }
+
+            await GetUserInfo(user);
+
+            var group = imUser.GetComboGroup(index);
+            foreach (var c in group.Combos)
+            {
+                await CacheZhouData(c.GetZhouVariant(0).ZhouID);
+                await CacheZhouData(c.GetZhouVariant(1).ZhouID);
+                await CacheZhouData(c.GetZhouVariant(2).ZhouID);
+            }
+            return Partial("_Combo_ComboGroupPartial", CreateGroupModel(group));
         }
 
         public async Task<IActionResult> OnPostRefreshAsync()
@@ -374,6 +418,9 @@ namespace PcrBattleChannel.Pages.Home
             c.SwitchBorrow();
 
             SingleComboModel model = CreateSingleModel(c);
+            await CacheZhouData(c.GetZhouVariant(0).ZhouID);
+            await CacheZhouData(c.GetZhouVariant(1).ZhouID);
+            await CacheZhouData(c.GetZhouVariant(2).ZhouID);
 
             return Partial("_Combo_ComboPartial", model);
         }

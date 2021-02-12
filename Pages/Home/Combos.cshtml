@@ -86,14 +86,27 @@
         <span class="d-inline-block font-weight-bold">（当前/整体）</span>
     </div>
 </div>
+@{ var totalDisplayedCombos = 0; }
 @for (int i = 0; i < Model.UserCombo.Count; ++i)
 {
     var group = Model.UserCombo[i];
-    var containsSelected = group.list.Any(c => c.Index == c.User.SelectedComboIndex);
+    var containsSelected = group.group.Combos.Any(c => c.Index == c.User.SelectedComboIndex);
+    if (group.totalValue == 0 && group.currentValue == 0)
+    {
+        <div class="row align-bottom py-2 border-bottom">
+            <div class="col-xl-10 col-lg-9 col-8">
+                @(Model.UserCombo.Count - i) 组，共 @(Model.TotalUserCombs - totalDisplayedCombos) 个套餐未显示。
+            </div>
+            <div class="col-xl-2 col-lg-3 col-4">
+            </div>
+        </div>
+        break;
+    }
+    totalDisplayedCombos += group.group.Count;
     <div class="row align-bottom py-2 border-bottom">
         <div class="col-xl-10 col-lg-9 col-8">
-            <a href="javascript:void(0)" onclick="$('#toggle-combo-group-@i').toggle()">
-                @group.name (@group.list.Count 个套餐)
+            <a href="javascript:void(0)" onclick="combo_group_title_click(@i)">
+                @group.name (@group.group.Count 个套餐)
             </a>
             @(containsSelected ? " - 已预约" : "")
         </div>
@@ -101,14 +114,24 @@
             <span>@group.totalValue.ToString("P1") / @group.currentValue.ToString("P1")</span>
         </div>
     </div>
-    <div id="toggle-combo-group-@i" style="display:none">
-        @foreach (var item in group.list)
+    <div id="toggle-combo-group-@i" style="display:none" data-loaded="@(i < 20 ? 1 : 0)">
+        @if (i < 20)
         {
-            <div id="combo-@item.Index">
-                <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />
-            </div>
+            <partial name="_Combo_ComboGroupPartial" model="Model.CreateGroupModel(group.group)" />
         }
     </div>
+    @if (i >= 20)
+    {
+        <form method="get" asp-page-handler="grouppartial"
+              asp-route-time="@group.group.User.LastComboCalculation.Ticks" asp-route-index="@group.group.Index"
+              data-ajax="true" data-ajax-method="get"
+              data-ajax-mode="replace"
+              data-ajax-update="#toggle-combo-group-@i"
+              data-ajax-failure="combo_group_load_failure"
+              data-group-dindex="@i"
+              id="combo-group-load-form-@i">
+        </form>
+    }
 }
 
 <style>
@@ -127,9 +150,9 @@
         display: none;
     }
 
-        #character-list .tick-mark img {
-            width: 100%;
-        }
+    #character-list .tick-mark img {
+        width: 100%;
+    }
 
     #character-list .selected .tick-mark {
         display: block;
@@ -139,6 +162,23 @@
     <partial name="_ValidationScriptsPartial" />
     <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
     <script>
+        function combo_group_title_click(i) {
+            var group = $('#toggle-combo-group-' + i);
+            if (group[0].getAttribute('data-loaded') == '0') {
+                $('#combo-group-load-form-' + i).submit();
+                group[0].setAttribute('data-loaded', '1');
+                group.toggle();
+            }
+            else {
+                group.toggle();
+            }
+        }
+        function combo_group_load_failure() {
+            alert('加载失败。请尝试刷新页面。');
+        }
+        function combo_borrow_swap_failure() {
+            alert('更新失败');
+        }
         function user_status_confirm_success() {
             $('#status-confirm-button').prop('disabled', true);
             $('.guessed').hide();

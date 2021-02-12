@@ -479,7 +479,7 @@ namespace PcrBattleChannel.Algorithm
             private void ListAndSplitBosses()
             {
                 _bosses.Clear();
-                StaticInfo.ListBossesInRange(FirstBoss, LastBoss, _bosses, FirstBossHp);
+                StaticInfo.ListBossesInRange(FirstBoss, LastBoss, _bosses, 1 - FirstBossHp);
 
                 _alignedBossCount = (_bosses.Count + 7) & ~7; //Align to 256 bit boundary (AVX requirement).
 
@@ -717,6 +717,7 @@ namespace PcrBattleChannel.Algorithm
                             _splitCombos1[compressPointer] = _splitCombos1[j];
                             _splitCombos2[compressPointer] = _splitCombos2[j];
                             _splitCombos3[compressPointer] = _splitCombos3[j];
+                            _splitComboInfo[compressPointer] = _splitComboInfo[j];
                             //No need to move _userAdjustmentBuffer because it's updated in each step.
 
                             compressPointer += 1;
@@ -734,6 +735,7 @@ namespace PcrBattleChannel.Algorithm
                 _splitCombos1.Truncate(compressPointer);
                 _splitCombos2.Truncate(compressPointer);
                 _splitCombos3.Truncate(compressPointer);
+                _splitComboInfo.RemoveRange(compressPointer, _splitComboInfo.Count - compressPointer);
                 _userAdjustmentBuffer.Truncate(compressPointer);
 
                 //Refresh rev map.
