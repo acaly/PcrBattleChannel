@@ -82,82 +82,86 @@ namespace PcrBattleChannel.Algorithm
                 return ret + bossInfo.Step;
             }
 
-            //lastBoss is inclusive.
             public void ListBossesInRange(BossIndexInfo firstBoss, BossIndexInfo lastBoss,
-                List<(BossIndexInfo boss, int count)> results, bool firstIsSpecial)
+                List<(BossIndexInfo boss, float count)> results, float firstRatio)
             {
-                if (firstBoss.Lap == lastBoss.Lap)
+                int stage = firstBoss.Stage;
+                int lap = firstBoss.Lap;
+                int lapEnd = lastBoss.Lap + 1;
+
+                //1. Add full laps.
+                while (lap < lapEnd)
                 {
-                    //Simple case: single lap.
-                    var stage = firstBoss.Stage;
-                    var lap = firstBoss.Lap;
-                    for (int i = firstBoss.Step; i <= lastBoss.Step; ++i)
+                    var lapCurrentEnd = stage == FirstLapForStages.Count - 1 ? int.MaxValue : FirstLapForStages[stage + 1];
+                    lapCurrentEnd = Math.Min(lapCurrentEnd, lapEnd);
+
+                    var currentCount = lapCurrentEnd - lap;
+
+                    for (int step = 0; step < Bosses[stage].Count; ++ step)
                     {
-                        results.Add((new(stage, lap, i), 1));
+                        results.Add((new(stage, lap, step), currentCount));
                     }
-                    return;
+
+                    lap = lapCurrentEnd;
+                    stage += 1;
                 }
 
-                BossIndexInfo currentRangeStart = firstBoss;
-
-                void Purge(int endStage, int endLap) //endLap: exclusive
+                void Decrease(BossIndexInfo boss, float count)
                 {
-                    var bossCount = Bosses[currentRangeStart.Stage].Count;
-                    var rangeLaps = endLap - currentRangeStart.Lap;
-                    for (int i = currentRangeStart.Step; i < bossCount; ++i)
+                    for (int i = 0; i < results.Count; ++i)
                     {
-                        results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps));
-                    }
-                    if (rangeLaps > 1)
-                    {
-                        for (int i = 0; i < currentRangeStart.Step; ++i)
+                        var r = results[i];
+                        if (r.boss.Stage == boss.Stage && r.boss.Step == boss.Step)
                         {
-                            results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps - 1));
+                            r.count -= count;
+                            if (r.count <= 0)
+                            {
+                                results.RemoveAt(i);
+                            }
+                            else
+                            {
+                                results[i] = r;
+                            }
+                            return;
                         }
                     }
-                    currentRangeStart = new(endStage, endLap, 0);
                 }
 
-                //Loop from second lap. Stop before last lap.
+                //2. Skip bosses before the first.
+                for (int step = 0; step < firstBoss.Step; ++step)
                 {
-                    int stage, lap;
-                    for (stage = firstBoss.Stage, lap = firstBoss.Lap + 1; lap <= lastBoss.Lap; ++lap)
-                    {
-                        if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
-                        {
-                            stage += 1;
-                            Purge(stage, lap);
-                        }
-                        else if (lap == firstBoss.Lap + 1 && firstIsSpecial)
-                        {
-                            Purge(stage, lap);
-                        }
-                    }
+                    Decrease(new(firstBoss.Stage, firstBoss.Lap, step), 1);
+                }
 
-                    ////Still need to update stage first.
-                    //if (stage + 1 < FirstLapForStages.Count && lap >= FirstLapForStages[stage + 1])
-                    //{
-                    //    stage += 1;
-                    //    Purge(stage, lap);
-                    //}
+                //3. Skip bosses after the last.
+                for (int step = lastBoss.Step + 1; step < Bosses[lastBoss.Stage].Count; ++step)
+                {
+                    Decrease(new(lastBoss.Stage, lastBoss.Lap, step), 1);
+                }
 
-                    //Purge last range. This starts from first boss, but may ends in the middle.
-                    var bossCount = Bosses[currentRangeStart.Stage].Count;
-                    var bossCountLast = lastBoss.Step + 1;
-                    var rangeLaps = lastBoss.Lap - currentRangeStart.Lap + 1;
+                //4. First boss.
+                if (firstRatio != 1)
+                {
+                    Decrease(firstBoss, 1 - firstRatio);
+                }
 
-                    //Note that we reversed the two loops in order to put last boss last.
-                    if (rangeLaps > 1)
+                //5. Move last boss to last and reduce.
+                var lastBossIndex = results.FindIndex(ii => ii.boss.Stage == lastBoss.Stage && ii.boss.Step == lastBoss.Step);
+                if (lastBossIndex != -1)
+                {
+                    var r1 = results[lastBossIndex];
+                    results[lastBossIndex] = results[^1];
+
+                    r1.count -= 1;
+                    if (r1.count <= 0)
                     {
-                        for (int i = bossCountLast; i < bossCount; ++i)
-                        {
-                            results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps - 1));
-                        }
+                        results.RemoveAt(results.Count - 1);
                     }
-                    for (int i = 0; i < bossCountLast; ++i)
+                    else
                     {
-                        results.Add((new(currentRangeStart.Stage, currentRangeStart.Lap, i), rangeLaps));
+                        results[^1] = r1;
                     }
+                    results.Add((lastBoss, 1));
                 }
             }
         }
@@ -434,7 +438,7 @@ namespace PcrBattleChannel.Algorithm
             //than 1 stage. Use 1 for generating final results
             public float DamageScale { get; set; }
 
-            private readonly List<(BossIndexInfo boss, int count)> _bosses = new();
+            private readonly List<(BossIndexInfo boss, float count)> _bosses = new();
             private int _alignedBossCount;
             private readonly List<float> _bossTotalHp = new();
             private readonly List<List<int>> _splitBossTable = new();
@@ -442,8 +446,8 @@ namespace PcrBattleChannel.Algorithm
 
             private readonly List<(int begin, int end)> _userSplitComboRange = new();
 
-            //This list contains the SplitZV index (pointing to elements in _splitZVBoss and _splitZVDamage)
-            //for each combo. Each combo has 3 items in this list.
+            //These lists contains the SplitZV index (pointing to elements in _splitZVBoss and _splitZVDamage)
+            //for each combo.
             private FastArrayList<int> _splitCombos1 = default;
             private FastArrayList<int> _splitCombos2 = default;
             private FastArrayList<int> _splitCombos3 = default;
@@ -473,29 +477,15 @@ namespace PcrBattleChannel.Algorithm
 
             private readonly Dictionary<(int user, int comboGroup), float> _valueMergeIntermediate = new();
 
-            private void ListAndSplitBosses(bool firstIsSpecial, bool lastIsSpecial)
+            private void ListAndSplitBosses()
             {
-                //Note that here firstIsSpecial means first boss is special, but
-                //ListBossesInRange method treats the whole lap as special. This is
-                //OK. We only end up with a few more bosses in the following calc.
                 _bosses.Clear();
-                StaticInfo.ListBossesInRange(FirstBoss, LastBoss, _bosses, firstIsSpecial || FirstBoss.Step != 0);
+                StaticInfo.ListBossesInRange(FirstBoss, LastBoss, _bosses, FirstBossHp);
 
-                //ListBossesInRange does not handle last, but we can split it here.
-                if (lastIsSpecial && _bosses[^1].count > 1)
-                {
-                    var b = _bosses[^1];
-
-                    b.count -= 1;
-                    _bosses[^1] = b;
-                    b.count = 1;
-                    _bosses.Add(b);
-                }
                 _alignedBossCount = (_bosses.Count + 7) & ~7; //Align to 256 bit boundary (AVX requirement).
 
                 _splitBossTableIndex.Clear();
                 _bossTotalHp.Clear();
-                int maxCount = 0;
                 foreach (var (boss, count) in _bosses)
                 {
                     var bossObj = StaticInfo.Bosses[boss.Stage][boss.Step];
@@ -521,8 +511,6 @@ namespace PcrBattleChannel.Algorithm
                         hp *= 1 - FirstBossHp;
                     }
                     _bossTotalHp.Add(hp / bossObj.DamageRatio / DamageScale);
-
-                    maxCount = Math.Max(count, maxCount);
                 }
             }
 
@@ -818,54 +806,47 @@ namespace PcrBattleChannel.Algorithm
             {
                 //_bossBuffer used as damage ratio.
                 fixed (float* splitZVBufferPtr = &_splitZVBuffer.DataRef, userBossBufferPtr = &_userBossBuffer.DataRef,
-                    bossBufferPtr = &_bossBuffer.DataRef)
+                    bossBufferPtr = &_bossBuffer.DataRef, valuePtr = &_values.DataRef)
                 {
-                    fixed (int* splitComboPtr1 = &_splitCombos1[0], splitComboPtr2 = &_splitCombos2[0],
-                        splitComboPtr3 = &_splitCombos3[0])
+                    for (int i = 0; i < _bosses.Count; ++i)
                     {
-                        for (int i = 0; i < _bosses.Count; ++i)
+                        bossBufferPtr[i] = 0;
+                    }
+
+                    for (int i = 0; i < _userSplitComboRange.Count; ++i)
+                    {
+                        for (int j = 0; j < _splitZVBoss.Count; ++j)
                         {
-                            bossBufferPtr[i] = 0;
+                            splitZVBufferPtr[j] = 0;
                         }
 
-                        for (int i = 0; i < _userSplitComboRange.Count; ++i)
+                        //Merge SplitZV values.
+                        var comboBegin = _userSplitComboRange[i].begin;
+                        fixed (int* splitComboRevMapPtr = &_splitComboRevMap.DataRef)
                         {
                             for (int j = 0; j < _splitZVBoss.Count; ++j)
                             {
-                                splitZVBufferPtr[j] = 0;
+                                var (begin, end) = _splitComboRevMapRange[i * _splitZVBoss.Count + j];
+                                splitZVBufferPtr[j] = SimdHelper.CollectSum(&valuePtr[comboBegin],
+                                    &splitComboRevMapPtr[begin], end - begin);
                             }
+                        }
 
-                            //Merge SplitZV values.
-                            var (comboBegin, _) = _userSplitComboRange[i];
-                            fixed (int* splitComboRevMapPtr = &_splitComboRevMap.DataRef)
-                            {
-                                fixed (float* valuePtr = &_values.DataRef)
-                                {
-                                    for (int j = 0; j < _splitZVBoss.Count; ++j)
-                                    {
-                                        var (begin, end) = _splitComboRevMapRange[i * _splitZVBoss.Count + j];
-                                        splitZVBufferPtr[j] = SimdHelper.CollectSum(&valuePtr[comboBegin],
-                                            &splitComboRevMapPtr[begin], end - begin);
-                                    }
-                                }
-                            }
+                        //Calculate user's damage in _userBossBuffer (we need these values in adjustment step).
+                        float* userBossBufferSegmentPtr = &userBossBufferPtr[_alignedBossCount * i];
+                        for (int j = 0; j < _bosses.Count; ++j)
+                        {
+                            userBossBufferSegmentPtr[j] = 0;
+                        }
+                        for (int j = 0; j < _splitZVBoss.Count; ++j)
+                        {
+                            userBossBufferSegmentPtr[_splitZVBoss[j]] += _splitZVDamage[j] * _splitZVBuffer[j];
+                        }
 
-                            //Calculate user's damage in _userBossBuffer (we need these values in adjustment step).
-                            float* userBossBufferSegmentPtr = &userBossBufferPtr[_alignedBossCount * i];
-                            for (int j = 0; j < _bosses.Count; ++j)
-                            {
-                                userBossBufferSegmentPtr[j] = 0;
-                            }
-                            for (int j = 0; j < _splitZVBoss.Count; ++j)
-                            {
-                                userBossBufferSegmentPtr[_splitZVBoss[j]] += _splitZVDamage[j] * _splitZVBuffer[j];
-                            }
-
-                            //Merge to _bossBuffer.
-                            for (int j = 0; j < _bosses.Count; ++j)
-                            {
-                                bossBufferPtr[j] += userBossBufferSegmentPtr[j];
-                            }
+                        //Merge to _bossBuffer.
+                        for (int j = 0; j < _bosses.Count; ++j)
+                        {
+                            bossBufferPtr[j] += userBossBufferSegmentPtr[j];
                         }
                     }
                 }
@@ -952,7 +933,6 @@ namespace PcrBattleChannel.Algorithm
                 const float GradientLastBoss = 0.02f;
                 const float GradientOverKilledBoss1 = 0.01f;
                 const float GradientOverKilledBoss2 = 0.5f;
-                float deltaRatio = learningRate / (1 + learningRate);
 
                 //_bossBuffer used for adjustment
                 for (int i = 0; i < _bosses.Count; ++i)
@@ -970,7 +950,7 @@ namespace PcrBattleChannel.Algorithm
                 //Adjustment coefficient for each SplitZV.
                 for (int i = 0; i < _splitZVBoss.Count; ++i)
                 {
-                    _splitZVBuffer[i] = deltaRatio * _bossBuffer[_splitZVBoss[i]] * _splitZVDamage[i];
+                    _splitZVBuffer[i] = learningRate * _bossBuffer[_splitZVBoss[i]] * _splitZVDamage[i];
                 }
 
                 fixed (float* adjustmentBufferPtr = &_userAdjustmentBuffer[0], userBossBufferPtr = &_userBossBuffer.DataRef,
@@ -988,7 +968,7 @@ namespace PcrBattleChannel.Algorithm
                             {
                                 userObjectiveFunc += userBossBufferSegmentPtr[j] * bossBufferPtr[j];
                             }
-                            userObjectiveFunc *= deltaRatio;
+                            userObjectiveFunc *= learningRate;
 
                             var (begin, end) = _userSplitComboRange[i];
 
@@ -1060,7 +1040,7 @@ namespace PcrBattleChannel.Algorithm
                 result.ComboValues.Clear();
                 result.EndBossDamage = 0f;
 
-                ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: true);
+                ListAndSplitBosses();
                 SplitCombosAndInitValues(initValues: null);
 
                 int damage;
@@ -1096,7 +1076,7 @@ namespace PcrBattleChannel.Algorithm
 
             public float RunEstimate()
             {
-                ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: false);
+                ListAndSplitBosses();
                 SplitCombosAndInitValues(initValues: null);
 
                 for (int i = 0; i < 10; ++i)
@@ -1123,7 +1103,7 @@ namespace PcrBattleChannel.Algorithm
             //Run approximately, with given initial values (given by delegate).
             public void RunApproximate(InitValuesDelegate initValues)
             {
-                ListAndSplitBosses(firstIsSpecial: FirstBossHp != 0, lastIsSpecial: false);
+                ListAndSplitBosses();
                 SplitCombosAndInitValues(initValues);
 
                 float learningRate = 0.01f;
