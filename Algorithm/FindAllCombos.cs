@@ -195,7 +195,7 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Initialize builder.
-            _comboListBuilder.Reset(newComboSize);
+            _comboListBuilder.Reset(user.Guild, newComboSize);
 
             //Iterate and generate results (3 cases).
 

@@ -8,6 +8,7 @@ namespace PcrBattleChannel.Models
 {
     internal class InMemoryComboListBuilder
     {
+        private InMemoryGuild _guild;
         private readonly Dictionary<(int, int, int), int> _bossMap = new();
         private readonly List<List<(int, InMemoryComboBorrowInfo)>> _comboData = new();
         private int _comboDataCount;
@@ -20,8 +21,9 @@ namespace PcrBattleChannel.Models
             return _comboData[index];
         }
 
-        public void Reset(int zhouCount)
+        public void Reset(InMemoryGuild guild, int zhouCount)
         {
+            _guild = guild;
             foreach (var list in _comboData)
             {
                 list.Clear();
@@ -33,10 +35,13 @@ namespace PcrBattleChannel.Models
 
         public void AddCombo(int z1, int z2, int z3, InMemoryComboBorrowInfo[] borrowInfo)
         {
-            var bossID = (z1, z2, z3);
+            var bossID = (_guild.GetZhouVariantByIndex(z1)?.BossID ?? 0,
+                _guild.GetZhouVariantByIndex(z2)?.BossID ?? 0,
+                _guild.GetZhouVariantByIndex(z3)?.BossID ?? 0);
             if (!_bossMap.TryGetValue(bossID, out var index))
             {
                 index = _comboDataCount++;
+                _bossMap.Add(bossID, index);
                 if (_comboData.Count == index)
                 {
                     _comboData.Add(new());

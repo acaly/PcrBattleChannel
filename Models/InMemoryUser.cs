@@ -258,7 +258,7 @@ namespace PcrBattleChannel.Models
                 return new Combo
                 {
                     User = User,
-                    Index = User._comboGroups[Index].StartIndex + index * User.ComboZhouCount,
+                    Index = User._comboGroups[Index].StartIndex + index,
                 };
             }
 
