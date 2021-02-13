@@ -505,10 +505,6 @@ namespace PcrBattleChannel.Algorithm
                     _splitBossTable[tableIndex].Add(_bossTotalHp.Count);
 
                     float hp = count * bossObj.Life;
-                    if (_bossTotalHp.Count == 0)
-                    {
-                        hp *= 1 - FirstBossHp;
-                    }
                     _bossTotalHp.Add(hp / StaticInfo.Guild.DamageCoefficient / DamageScale);
                 }
             }
@@ -1385,7 +1381,7 @@ namespace PcrBattleChannel.Algorithm
 
             //2. Total value (approximate).
             solver.FixSelectedComboUserIndex = null; //Fix none.
-            var totalResult = solver.RunApproximate(Solver.InitValues_NoValue, loops: 2);
+            var totalResult = solver.RunApproximate(Solver.InitValues_NoValue, loops: 4);
 
             for (int userIndex = 0; userIndex < allUsers.Length; ++userIndex)
             {
@@ -1419,7 +1415,7 @@ namespace PcrBattleChannel.Algorithm
                     allUserIndexSet.Remove(fixedUsers[i]);
                 }
 
-                var partialCurrentResult = solver.RunApproximate(Solver.InitValues_NoValue, loops: 2);
+                var partialCurrentResult = solver.RunApproximate(Solver.InitValues_NoValue, loops: 4);
 
                 for (int i = unfixBegin; i < unfixEnd; ++i)
                 {
