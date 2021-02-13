@@ -26,6 +26,7 @@ namespace PcrBattleChannel.Pages.Home
         }
 
         public Guild Guild { get; private set; }
+        public bool IsAdmin { get; private set; }
         public int GuildPredictBossIndex { get; private set; }
         public float GuildPredictBossRatio { get; private set; }
 
@@ -95,6 +96,7 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return Page();
             }
+            IsAdmin = user.IsGuildAdmin;
 
             Guild = await _context.DbContext.Guilds.FirstOrDefaultAsync(g => g.GuildID == user.GuildID.Value);
             var imGuild = await _context.GetGuildAsync(user.GuildID.Value);

@@ -202,5 +202,28 @@ namespace PcrBattleChannel.Pages.Guilds
 
             return RedirectToPage("/Home/Index");
         }
+
+        public async Task<IActionResult> OnPostCalcAsync()
+        {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            var guild = await CheckUserPrivilege();
+            if (guild is null)
+            {
+                return RedirectToPage("/Home/Index");
+            }
+            Console.WriteLine($"validate {timer.ElapsedMilliseconds} ms");
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
+
+            //1. Refresh users' combo lists.
+            var comboCalculator = new FindAllCombos();
+            await comboCalculator.UpdateGuildAsync(_context, guild.GuildID, imGuild);
+            Console.WriteLine($"user combo refresh {timer.ElapsedMilliseconds} ms");
+
+            //2. Calculate values.
+            await CalcComboValues.RunAllAsync(_context.DbContext, guild, imGuild);
+            Console.WriteLine($"value calculation {timer.ElapsedMilliseconds} ms");
+
+            return RedirectToPage("/Home/Index");
+        }
     }
 }

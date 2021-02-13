@@ -73,6 +73,34 @@ else
                 <dd>
                     @(Model.UnknownAttempts) 刀
                 </dd>
+
+                @if (Model.IsAdmin)
+                {
+                    <dt>
+                        进度管理
+                    </dt>
+                    <dd>
+                        <div>
+                            <a href="javascript:void(0)" onclick="$('#calc-form').submit()">重新计算</a>
+                            @Html.HelpMessage("不修改当前进度的情况下重新计算预测进度和分刀。" +
+                                "注意：根据公会里轴的数量，这一操作可能会持续若干秒至几分钟，请耐心等待。")
+                        </div>
+                        <div>
+                            <a asp-page="/Guilds/Status">编辑状态</a>
+                            @Html.HelpMessage("手动编辑公会当前公会战的进度（当前Boss和当前Boss的血量）并重新计算。" +
+                                "如果设置好yobot接口后进度会定期自动更新，不推荐手动进行修改。" +
+                                "注意：根据公会里轴的数量，这一操作可能会持续若干秒至几分钟，请耐心等待。")
+                        </div>
+                        <div>
+                            <a href="javascript:void(0)" onclick="$('#sync-form').submit()">Yobot同步</a>
+                            @Html.HelpMessage("强制立即从yobot接口读取当前的进度，并重新计算所有玩家的套餐及推荐度。" +
+                                "注意：根据公会里轴的数量，这一操作可能会持续若干秒至几分钟，请耐心等待。")
+                        </div>
+                        <form method="post" asp-page="/Guilds/Index" asp-page-handler="sync" id="sync-form"></form>
+                        <form method="post" asp-page="/Guilds/Status" asp-page-handler="calc" id="calc-form"></form>
+                    </dd>
+                }
+
             </dl>
         </div>
         <div class="col-md-6">

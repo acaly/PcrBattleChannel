@@ -25,8 +25,9 @@ namespace PcrBattleChannel.Pages.Home
             _userManager = userManager;
         }
 
-        public List<(Character character, CharacterConfig[] configs)>[] CharacterConfigs { get; set; }
-        public Dictionary<int, int> IncludedConfigs { get; set; } //CC id -> UserCC id.
+        public bool IsAdmin { get; private set; }
+        public List<(Character character, CharacterConfig[] configs)>[] CharacterConfigs { get; private set; }
+        public Dictionary<int, int> IncludedConfigs { get; private set; } //CC id -> UserCC id.
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -39,6 +40,7 @@ namespace PcrBattleChannel.Pages.Home
             {
                 return RedirectToPage("/Home/Index");
             }
+            IsAdmin = user.IsGuildAdmin;
 
             //All configs.
 
