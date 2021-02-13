@@ -509,7 +509,7 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
-            private void SplitCombosAndInitValues(InitValuesDelegate initValues)
+            private void SplitCombosAndInitValues(InitValuesDelegate initValues, bool lastIsSpecial)
             {
                 (int user, int comboGroup) currentCombo = default;
                 (int a, int b, int c) splitBuffer = default;
@@ -554,17 +554,27 @@ namespace PcrBattleChannel.Algorithm
                             //Note that the split ZV does not distinguish ZVs with same damage on same
                             //boss. This including the merged ZVs (whose damages have been averaged and 
                             //converted to int).
+                            var bossTotalHp = _bossTotalHp[splitBossID];
                             if (!_splitZVMap.TryGetValue(zvinfo.Value, out var splitZVIndex))
                             {
                                 splitZVIndex = _splitZVBoss.Count;
                                 _splitZVBoss.Add(splitBossID);
-                                _splitZVDamage.Add(zvinfo.Value.damage / _bossTotalHp[splitBossID]);
+                                _splitZVDamage.Add(zvinfo.Value.damage / bossTotalHp);
                                 _splitZVBuffer.Add(0);
                                 _splitZVMap[zvinfo.Value] = splitZVIndex;
                             }
                             buffer[index] = splitZVIndex;
+
+                            if (lastIsSpecial && splitBossID == _bosses.Count - 1)
+                            {
+                                //For the last boss, we give it zero hp product.
+                                //This effectively zeros the initial values of the combos that covers
+                                //the last boss.
+                                //bossTotalHp *= 0.01f;
+                                bossTotalHp = 0;
+                            }
                             SplitCombo(buffer, ref comboGroup, damage,
-                                bossHpProduct * _bossTotalHp[splitBossID] / 1_000_000f,
+                                bossHpProduct * bossTotalHp / 1_000_000f,
                                 index + 1);
                         }
                     }
@@ -637,6 +647,14 @@ namespace PcrBattleChannel.Algorithm
                             {
                                 sumBossHpProduct += _valueInitBuffer[i];
                             }
+                            if (sumBossHpProduct == 0)
+                            {
+                                //Avoid division by 0.
+                                //This will give all combos in the group a zero init value, and the
+                                //total value of the user will be less than 1 (and even equals to 0).
+                                //We will check this later.
+                                sumBossHpProduct = 1;
+                            }
                             var splitComboNormalize = 1f / sumBossHpProduct;
 
                             //Add init values.
@@ -659,6 +677,30 @@ namespace PcrBattleChannel.Algorithm
 
                             groupIndex = _comboMerger.Results[groupIndex].NextGroupIndex;
                         } while (groupIndex != 0);
+                    }
+
+                    //If all combos have zero init values, we re-init them with the same value.
+                    //This can happen when all combos of the user cover the last boss.
+                    //Because the AdjustGradient cannot handle all-zero values (will throw),
+                    //we have to fix this here.
+                    //Note that this time each combo have same value instead of each combo group.
+                    //This is only to make it simpler, as this case should be very rare.
+                    bool allZero = true;
+                    for (int i = userRangeBegin; i < _splitComboInfo.Count; ++i)
+                    {
+                        if (_values[i] != 0)
+                        {
+                            allZero = false;
+                            break;
+                        }
+                    }
+                    if (allZero)
+                    {
+                        var reinitValue = 1f / (_splitComboInfo.Count - userRangeBegin);
+                        for (int i = userRangeBegin; i < _splitComboInfo.Count; ++i)
+                        {
+                            _values[i] = reinitValue;
+                        }
                     }
 
                     _userSplitComboRange.Add((userRangeBegin, _splitComboInfo.Count));
@@ -928,6 +970,8 @@ namespace PcrBattleChannel.Algorithm
 
             private unsafe void AdjustGradient(float learningRate)
             {
+                //0.02 isn't enough to give the last boss some damage, but if this is too large
+                //the current optimization will be too inaccurate.
                 const float GradientLastBoss = 0.02f;
                 const float GradientOverKilledBoss1 = 0.01f;
                 const float GradientOverKilledBoss2 = 0.5f;
@@ -1039,7 +1083,7 @@ namespace PcrBattleChannel.Algorithm
                 result.EndBossDamage = 0f;
 
                 ListAndSplitBosses();
-                SplitCombosAndInitValues(initValues: null);
+                SplitCombosAndInitValues(initValues: null, lastIsSpecial: true);
 
                 int damage = 0;
                 float learningRate = 0.01f;
@@ -1073,7 +1117,7 @@ namespace PcrBattleChannel.Algorithm
             public float RunInternalEstimate()
             {
                 ListAndSplitBosses();
-                SplitCombosAndInitValues(initValues: null);
+                SplitCombosAndInitValues(initValues: null, lastIsSpecial: false);
 
                 for (int i = 0; i < 10; ++i)
                 {
@@ -1102,7 +1146,7 @@ namespace PcrBattleChannel.Algorithm
                 DamageScale = 1f;
 
                 ListAndSplitBosses();
-                SplitCombosAndInitValues(initValues);
+                SplitCombosAndInitValues(initValues, lastIsSpecial: true);
 
                 float learningRate = 0.01f;
                 for (int i = 0; i < loops; ++i)
