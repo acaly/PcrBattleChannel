@@ -1035,7 +1035,7 @@ namespace PcrBattleChannel.Algorithm
                 result.EndBossDamage = MathF.Min(1, _bossBuffer[_bosses.Count - 1]);
             }
 
-            public void Run(ResultStorage result, bool forceMergeResults)
+            public void RunInternal(ResultStorage result, bool forceMergeResults)
             {
                 result.BossValues.Clear();
                 result.ComboValues.Clear();
@@ -1075,7 +1075,7 @@ namespace PcrBattleChannel.Algorithm
                 }
             }
 
-            public float RunEstimate()
+            public float RunInternalEstimate()
             {
                 ListAndSplitBosses();
                 SplitCombosAndInitValues(initValues: null);
@@ -1102,8 +1102,10 @@ namespace PcrBattleChannel.Algorithm
             public delegate bool InitValuesDelegate(StaticInfo staticInfo, int userIndex, List<float> buffer);
 
             //Run approximately, with given initial values (given by delegate).
-            public void RunApproximate(InitValuesDelegate initValues)
+            public ResultStorage RunApproximate(InitValuesDelegate initValues)
             {
+                DamageScale = 1f;
+
                 ListAndSplitBosses();
                 SplitCombosAndInitValues(initValues);
 
@@ -1113,6 +1115,10 @@ namespace PcrBattleChannel.Algorithm
                     CalculateDamage();
                     AdjustGradient(learningRate);
                 }
+
+                var ret = new ResultStorage();
+                Merge(ret);
+                return ret;
             }
 
             //Initial values from the result of another calculation.
@@ -1165,6 +1171,113 @@ namespace PcrBattleChannel.Algorithm
                 }
                 return false;
             }
+
+            public ResultStorage Run()
+            {
+                DamageScale = 1f;
+
+                var firstBoss = StaticInfo.ConvertBossIndex(StaticInfo.Guild.BossIndex);
+                var totalPower = 1f;
+                if (StaticInfo.Guild.BossDamageRatio != 0 || firstBoss.Step != 0)
+                {
+                    var lastBossStep = StaticInfo.Bosses[firstBoss.Stage].Count - 1;
+
+                    //Close the current lap.
+                    //We no longer use estimated value to do this.
+
+                    //AdjustAverage cannot handle this case. It will sometimes reports less than 1 ratio
+                    //although when fully optimized the value can be very large. This is a problem especially
+                    //when the current lap only has one or two bosses left.
+
+                    firstBoss = StaticInfo.ConvertBossIndex(StaticInfo.Guild.BossIndex + (lastBossStep - firstBoss.Step) + 1);
+                }
+
+                //Run full laps.
+                for (int stage = firstBoss.Stage; ; ++stage)
+                {
+                    DamageScale = totalPower;
+                    FirstBoss = firstBoss;
+                    LastBoss = new(stage, firstBoss.Lap, StaticInfo.Bosses[firstBoss.Stage].Count - 1);
+                    var estimatedLaps = RunInternalEstimate();
+                    var nextStageStart = stage == StaticInfo.FirstLapForStages.Count - 1 ?
+                        int.MaxValue : StaticInfo.FirstLapForStages[stage + 1];
+                    var numLapsInThisStage = nextStageStart - firstBoss.Lap;
+                    if (estimatedLaps < numLapsInThisStage)
+                    {
+                        //Can't finish current stage.
+                        var actualLaps = (int)MathF.Floor(estimatedLaps);
+                        firstBoss = new(stage, firstBoss.Lap + actualLaps, 0);
+                        break;
+                    }
+                    else
+                    {
+                        firstBoss = new(stage + 1, StaticInfo.FirstLapForStages[stage + 1], 0);
+                        totalPower -= numLapsInThisStage / estimatedLaps * totalPower;
+                    }
+                }
+
+                //Now we have a basic estimation. Run with binary search.
+                const int InitStep = 8;
+                var firstBossIndex = StaticInfo.Guild.BossIndex;
+                var lastBossIndex = StaticInfo.ConvertBossIndex(firstBoss) + 2; //estimated lap (middle).
+                var searchStep = InitStep;
+                int? lastBalance = null;
+
+                var result = new ResultStorage();
+
+                DamageScale = 1.0f;
+                if (StaticInfo.Guild.BossDamageRatio >= 0.99f)
+                {
+                    firstBossIndex += 1;
+                    FirstBossHp = 0;
+                }
+                else
+                {
+                    FirstBossHp = StaticInfo.Guild.BossDamageRatio;
+                }
+
+                do
+                {
+                    FirstBoss = StaticInfo.ConvertBossIndex(firstBossIndex);
+                    LastBoss = StaticInfo.ConvertBossIndex(lastBossIndex);
+                    RunInternal(result, false);
+                    if (result.Balance == 0)
+                    {
+                        return result;
+                    }
+                    else
+                    {
+                        if (searchStep != InitStep || lastBalance.HasValue && lastBalance != result.Balance)
+                        {
+                            searchStep /= 2;
+                        }
+                        if (result.Balance > 0)
+                        {
+                            lastBossIndex += searchStep;
+                        }
+                        else
+                        {
+                            lastBossIndex -= searchStep;
+                            if (lastBossIndex < firstBossIndex)
+                            {
+                                lastBossIndex = firstBossIndex;
+                                searchStep = 1;
+                            }
+                        }
+                    }
+                    lastBalance = result.Balance;
+                } while (searchStep > 0);
+
+                if (lastBalance < 0)
+                {
+                    //We stopped at a (-1) state. Better move back 1 step.
+                    LastBoss = StaticInfo.ConvertBossIndex(lastBossIndex - 1);
+                    RunInternal(result, false);
+                }
+
+                Merge(result);
+                return result;
+            }
         }
 
         //Run for all users in the guild.
@@ -1199,13 +1312,17 @@ namespace PcrBattleChannel.Algorithm
                 Guild = guild,
             };
 
+            using var solver = new Solver { StaticInfo = staticInfo };
+
             //Accurate.
-            var currentResult = Run(staticInfo, true);
+            solver.FixSelectedCombo = true;
+            var currentResult = solver.Run();
 
             //TODO approximate
             //copy from accurate: all non-fixed
             //fix: none
-            var totalResult = Run(staticInfo, false);
+            solver.FixSelectedCombo = false;
+            var totalResult = solver.Run();
 
             //TODO approximate, grouped
             //copy from accurate: all users except the group
@@ -1296,10 +1413,20 @@ namespace PcrBattleChannel.Algorithm
                 Guild = guild,
             };
 
-            var currentResult = RunApproximate(staticInfo, true, guild, imGuild.PredictBossIndex,
-                Solver.InitValues_FromComboCurrentValuesExceptLast);
-            var totalResult = RunApproximate(staticInfo, false, guild, imGuild.PredictBossIndex,
-                Solver.InitValues_FromComboTotalValuesExceptLast);
+            using var solver = new Solver
+            {
+                StaticInfo = staticInfo,
+
+                FirstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex),
+                FirstBossHp = staticInfo.Guild.BossDamageRatio,
+                LastBoss = staticInfo.ConvertBossIndex(imGuild.PredictBossIndex),
+            };
+
+            solver.FixSelectedCombo = true;
+            var currentResult = solver.RunApproximate(Solver.InitValues_FromComboCurrentValuesExceptLast);
+
+            solver.FixSelectedCombo = false;
+            var totalResult = solver.RunApproximate(Solver.InitValues_FromComboTotalValuesExceptLast);
 
             for (int comboIndex = 0; comboIndex < imUser.TotalComboCount; ++comboIndex)
             {
@@ -1324,139 +1451,6 @@ namespace PcrBattleChannel.Algorithm
             }
 
             imUser.IsValueApproximate = true;
-        }
-
-        public static ResultStorage Run(StaticInfo staticInfo, bool fixSelected)
-        {
-            using var solver = new Solver
-            {
-                StaticInfo = staticInfo,
-                FixSelectedCombo = fixSelected,
-            };
-
-            var result = new ResultStorage();
-            solver.DamageScale = 1f;
-
-            var firstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex);
-            var totalPower = 1f;
-            if (staticInfo.Guild.BossDamageRatio != 0 || firstBoss.Step != 0)
-            {
-                var lastBossStep = staticInfo.Bosses[firstBoss.Stage].Count - 1;
-
-                //Close the current lap.
-                //We no longer use estimated value to do this.
-
-                //AdjustAverage cannot handle this case. It will sometimes reports less than 1 ratio
-                //although when fully optimized the value can be very large. This is a problem especially
-                //when the current lap only has one or two bosses left.
-
-                firstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex + (lastBossStep - firstBoss.Step) + 1);
-            }
-
-            //Run full laps.
-            for (int stage = firstBoss.Stage; ; ++stage)
-            {
-                solver.DamageScale = totalPower;
-                solver.FirstBoss = firstBoss;
-                solver.LastBoss = new(stage, firstBoss.Lap, staticInfo.Bosses[firstBoss.Stage].Count - 1);
-                var estimatedLaps = solver.RunEstimate();
-                var nextStageStart = stage == staticInfo.FirstLapForStages.Count - 1 ?
-                    int.MaxValue : staticInfo.FirstLapForStages[stage + 1];
-                var numLapsInThisStage = nextStageStart - firstBoss.Lap;
-                if (estimatedLaps < numLapsInThisStage)
-                {
-                    //Can't finish current stage.
-                    var actualLaps = (int)MathF.Floor(estimatedLaps);
-                    firstBoss = new(stage, firstBoss.Lap + actualLaps, 0);
-                    break;
-                }
-                else
-                {
-                    firstBoss = new(stage + 1, staticInfo.FirstLapForStages[stage + 1], 0);
-                    totalPower -= numLapsInThisStage / estimatedLaps * totalPower;
-                }
-            }
-
-            //Now we have a basic estimation. Run with binary search.
-            const int InitStep = 8;
-            var firstBossIndex = staticInfo.Guild.BossIndex;
-            var lastBossIndex = staticInfo.ConvertBossIndex(firstBoss) + 2; //estimated lap (middle).
-            var searchStep = InitStep;
-            int? lastBalance = null;
-
-            solver.DamageScale = 1.0f;
-            if (staticInfo.Guild.BossDamageRatio >= 0.99f)
-            {
-                firstBossIndex += 1;
-                solver.FirstBossHp = 0;
-            }
-            else
-            {
-                solver.FirstBossHp = staticInfo.Guild.BossDamageRatio;
-            }
-
-            do
-            {
-                solver.FirstBoss = staticInfo.ConvertBossIndex(firstBossIndex);
-                solver.LastBoss = staticInfo.ConvertBossIndex(lastBossIndex);
-                solver.Run(result, false);
-                if (result.Balance == 0)
-                {
-                    return result;
-                }
-                else
-                {
-                    if (searchStep != InitStep || lastBalance.HasValue && lastBalance != result.Balance)
-                    {
-                        searchStep /= 2;
-                    }
-                    if (result.Balance > 0)
-                    {
-                        lastBossIndex += searchStep;
-                    }
-                    else
-                    {
-                        lastBossIndex -= searchStep;
-                        if (lastBossIndex < firstBossIndex)
-                        {
-                            lastBossIndex = firstBossIndex;
-                            searchStep = 1;
-                        }
-                    }
-                }
-                lastBalance = result.Balance;
-            } while (searchStep > 0);
-
-            if (lastBalance < 0)
-            {
-                //We stopped at a (-1) state. Better move back 1 step.
-                solver.LastBoss = staticInfo.ConvertBossIndex(lastBossIndex - 1);
-                solver.Run(result, false);
-            }
-
-            solver.Merge(result);
-            return result;
-        }
-
-        private static ResultStorage RunApproximate(StaticInfo staticInfo, bool fixSelected,
-            Guild guild, int predictBossIndex, Solver.InitValuesDelegate initValues)
-        {
-            using var solver = new Solver
-            {
-                StaticInfo = staticInfo,
-                FixSelectedCombo = fixSelected,
-
-                FirstBoss = staticInfo.ConvertBossIndex(guild.BossIndex),
-                FirstBossHp = guild.BossDamageRatio,
-                LastBoss = staticInfo.ConvertBossIndex(predictBossIndex),
-
-                DamageScale = 1f,
-            };
-            solver.RunApproximate(initValues);
-
-            var result = new ResultStorage();
-            solver.Merge(result);
-            return result;
         }
     }
 }
