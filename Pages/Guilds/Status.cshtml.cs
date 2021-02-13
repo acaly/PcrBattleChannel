@@ -189,40 +189,15 @@ namespace PcrBattleChannel.Pages.Guilds
 
             //This is the only save we need for this request.
             await _context.DbContext.SaveChangesAsync();
-
             Console.WriteLine($"guild progress update {timer.ElapsedMilliseconds} ms");
 
             //2. Refresh users' combo lists.
-            var allUserIDs = await _context.DbContext.Users
-                .Where(u => u.GuildID == guild.GuildID)
-                .ToListAsync();
             var comboCalculator = new FindAllCombos();
-            foreach (var user in allUserIDs)
-            {
-                if (user.IsIgnored) continue;
-                var imUser = imGuild.GetUserById(user.Id);
-
-                //Refresh only when needed.
-                var attemptCountChanged = imUser.ComboZhouCount != 3 - user.Attempts;
-                var zhouChangedSinceLastUpdate = imUser.LastComboCalculation <= imGuild.LastZhouUpdate;
-                if (attemptCountChanged || zhouChangedSinceLastUpdate)
-                {
-                    var userUsedCharacterIDs = await _context.DbContext.UserCharacterStatuses
-                        .Where(s => s.UserID == user.Id)
-                        .Select(s => s.CharacterID)
-                        .ToListAsync();
-
-                    var userUsedCharacterSet = userUsedCharacterIDs.ToHashSet();
-                    var inheritComboInfo = InheritCombo.GetInheritInfo(imUser, userUsedCharacterSet);
-                    comboCalculator.Run(imUser, userUsedCharacterSet, 3 - user.Attempts, inheritComboInfo, user.ComboIncludesDrafts);
-                }
-            }
-
+            await comboCalculator.UpdateGuildAsync(_context, guild.GuildID, imGuild);
             Console.WriteLine($"user combo refresh {timer.ElapsedMilliseconds} ms");
 
             //3. Calculate values.
             await CalcComboValues.RunAllAsync(_context.DbContext, guild, imGuild);
-
             Console.WriteLine($"value calculation {timer.ElapsedMilliseconds} ms");
 
             return RedirectToPage("/Home/Index");

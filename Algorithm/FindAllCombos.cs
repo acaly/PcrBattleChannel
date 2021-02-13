@@ -332,5 +332,32 @@ namespace PcrBattleChannel.Algorithm
 
             user.LastComboCalculation = TimeZoneHelper.BeijingNow;
         }
+
+        public async Task UpdateGuildAsync(InMemoryStorageContext context, int guildID, InMemoryGuild imGuild)
+        {
+            var allUserIDs = await context.DbContext.Users
+                .Where(u => u.GuildID == guildID)
+                .ToListAsync();
+            foreach (var user in allUserIDs)
+            {
+                if (user.IsIgnored) continue;
+                var imUser = imGuild.GetUserById(user.Id);
+
+                //Refresh only when needed.
+                var attemptCountChanged = imUser.ComboZhouCount != 3 - user.Attempts;
+                var zhouChangedSinceLastUpdate = imUser.LastComboCalculation <= imGuild.LastZhouUpdate;
+                if (attemptCountChanged || zhouChangedSinceLastUpdate)
+                {
+                    var userUsedCharacterIDs = await context.DbContext.UserCharacterStatuses
+                        .Where(s => s.UserID == user.Id)
+                        .Select(s => s.CharacterID)
+                        .ToListAsync();
+
+                    var userUsedCharacterSet = userUsedCharacterIDs.ToHashSet();
+                    var inheritComboInfo = InheritCombo.GetInheritInfo(imUser, userUsedCharacterSet);
+                    Run(imUser, userUsedCharacterSet, 3 - user.Attempts, inheritComboInfo, user.ComboIncludesDrafts);
+                }
+            }
+        }
     }
 }

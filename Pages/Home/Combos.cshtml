@@ -111,7 +111,7 @@
             @(containsSelected ? " - 已预约" : "")
         </div>
         <div class="col-xl-2 col-lg-3 col-4">
-            <span>@group.totalValue.ToString("P1") / @group.currentValue.ToString("P1")</span>
+            <span>@group.currentValue.ToString("P1") / @group.totalValue.ToString("P1")</span>
         </div>
     </div>
     <div id="toggle-combo-group-@i" style="display:none" data-loaded="@(i < 20 ? 1 : 0)">

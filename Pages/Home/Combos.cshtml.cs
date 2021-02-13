@@ -154,7 +154,7 @@ namespace PcrBattleChannel.Pages.Home
             var bossDict = new Dictionary<Boss, float>();
             void AddBoss(int bossID, float value)
             {
-                if (bossID == 0) return;
+                if (bossID == 0 || value == 0) return;
                 var boss = allBosses[bossID];
                 bossDict.TryGetValue(boss, out var oldVal);
                 bossDict[boss] = oldVal + value;
@@ -201,7 +201,7 @@ namespace PcrBattleChannel.Pages.Home
                 UserCombo.Add((comboNameBuilder.ToString(), g, currentValue, totalValue));
             }
 
-            UserCombo.Sort((a, b) => MathF.Sign(b.currentValue - a.currentValue));
+            UserCombo.Sort((a, b) => MathF.Sign(b.currentValue - a.currentValue) * 2 + MathF.Sign(b.totalValue - a.totalValue));
 
             BossValues = bossDict
                 .OrderBy(bb => bb.Key.BossID)

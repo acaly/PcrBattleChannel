@@ -19,6 +19,8 @@ namespace PcrBattleChannel
 {
     public class Startup
     {
+        public static bool LoadIMContext { get; set; } = true;
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -66,7 +68,7 @@ namespace PcrBattleChannel
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ApplicationDbContext dataContext)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, InMemoryStorageContext dataContext)
         {
             if (env.IsDevelopment())
             {
@@ -102,7 +104,24 @@ namespace PcrBattleChannel
                 .AddSupportedUICultures(supportedCultures);
             app.UseRequestLocalization(localizationOptions);
 
-            dataContext.Database.Migrate();
+            dataContext.DbContext.Database.Migrate();
+
+            if (LoadIMContext)
+            {
+                Console.WriteLine("Loading IM context");
+                var guilds = dataContext.DbContext.Guilds.ToList();
+
+                var comboCalculator = new FindAllCombos();
+
+                foreach (var g in guilds)
+                {
+                    var imGuild = dataContext.GetGuildAsync(g.GuildID).Result;
+                    comboCalculator.UpdateGuildAsync(dataContext, g.GuildID, imGuild).Wait();
+                    CalcComboValues.RunAllAsync(dataContext.DbContext, g, imGuild).Wait();
+                }
+
+                Console.WriteLine("IM context loaded.");
+            }
         }
     }
 }
