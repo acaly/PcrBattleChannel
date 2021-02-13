@@ -427,7 +427,7 @@ namespace PcrBattleChannel.Algorithm
             public float AdjustmentCoefficient { get; set; } = 0.1f;
 
             public StaticInfo StaticInfo { get; set; }
-            public bool FixSelectedCombo { get; set; }
+            public HashSet<int> FixSelectedComboUserIndex { get; set; }
             
             public BossIndexInfo FirstBoss { get; set; }
             public BossIndexInfo LastBoss { get; set; }
@@ -602,9 +602,9 @@ namespace PcrBattleChannel.Algorithm
                     //Get init value if provided.
                     //Here _valueInitBuffer is used to store initial values of each combo of the user.
                     _valueInitBuffer.Clear();
-                    bool useInitValue = initValues?.Invoke(StaticInfo, userIndex, _valueInitBuffer) ?? false;
+                    bool useInitValue = false;
 
-                    if (FixSelectedCombo && user.SelectedComboIndex != -1)
+                    if (FixSelectedComboUserIndex?.Contains(user.Index) == true && user.SelectedComboIndex != -1)
                     {
                         //Make a group containing one combo.
                         _comboMerger.RunSingle(userIndex, user.SelectedComboIndex,
@@ -612,6 +612,7 @@ namespace PcrBattleChannel.Algorithm
                     }
                     else
                     {
+                        useInitValue = initValues?.Invoke(StaticInfo, userIndex, _valueInitBuffer) ?? false;
                         _comboMerger.Run(userIndex, user,
                             useInitValue ? _valueInitBuffer : null, //Only provide if we got it from the delegate.
                             _comboGroupSpreadInfoList);
@@ -1044,7 +1045,7 @@ namespace PcrBattleChannel.Algorithm
                 ListAndSplitBosses();
                 SplitCombosAndInitValues(initValues: null);
 
-                int damage;
+                int damage = 0;
                 float learningRate = 0.01f;
                 for (int i = 0; i < 4; ++i)
                 {
@@ -1053,20 +1054,18 @@ namespace PcrBattleChannel.Algorithm
                         CalculateDamage();
                         AdjustGradient(learningRate);
                     }
+                    Compress(0.05f);
                     if ((damage = CalculateDamage()) > 0)
                     {
                         result.Balance = damage;
                         return;
                     }
-                    Compress(0.05f);
 
                     if (i == 1)
                     {
                         learningRate = 0.005f;
                     }
                 }
-
-                damage = CalculateDamage();
 
                 result.Balance = damage;
                 if (damage == 0 || forceMergeResults)
@@ -1102,7 +1101,7 @@ namespace PcrBattleChannel.Algorithm
             public delegate bool InitValuesDelegate(StaticInfo staticInfo, int userIndex, List<float> buffer);
 
             //Run approximately, with given initial values (given by delegate).
-            public ResultStorage RunApproximate(InitValuesDelegate initValues)
+            public ResultStorage RunApproximate(InitValuesDelegate initValues, int loops = 4)
             {
                 DamageScale = 1f;
 
@@ -1110,15 +1109,40 @@ namespace PcrBattleChannel.Algorithm
                 SplitCombosAndInitValues(initValues);
 
                 float learningRate = 0.01f;
-                for (int i = 0; i < 1000; ++i)
+                for (int i = 0; i < loops; ++i)
+                {
+                    for (int j = 0; j < 500; ++j)
+                    {
+                        CalculateDamage();
+                        AdjustGradient(learningRate);
+                    }
+                    Compress(0.05f);
+
+                    if (i == 1)
+                    {
+                        learningRate = 0.005f;
+                    }
+                }
+                if (loops == 0)
                 {
                     CalculateDamage();
-                    AdjustGradient(learningRate);
                 }
 
                 var ret = new ResultStorage();
                 Merge(ret);
                 return ret;
+            }
+
+            //Init value system.
+            //These methods can provide a set of init values for approximate calculations.
+            //However, it seems that if we provide init values for SOME users, while leaving others
+            //with default init values (uniform across combo groups), then the results is very different
+            //from a normal, accurate calculation.
+            //Currently InitValues_NoValue is used to provide no init values.
+
+            public static bool InitValues_NoValue(StaticInfo staticInfo, int userIndex, List<float> buffer)
+            {
+                return false;
             }
 
             //Initial values from the result of another calculation.
@@ -1156,6 +1180,21 @@ namespace PcrBattleChannel.Algorithm
                     return true;
                 }
                 return false;
+            }
+
+            public static bool InitValues_FromComboCurrentValues(StaticInfo staticInfo, int userIndex,
+                List<float> buffer)
+            {
+                if (staticInfo.Users[userIndex].SelectedComboIndex != -1)
+                {
+                    //Fixed users do not have valid current values. Return false to use uniform.
+                    return false;
+                }
+                foreach (var c in staticInfo.Users[userIndex].AllCombos)
+                {
+                    buffer.Add(c.CurrentValue);
+                }
+                return true;
             }
 
             public static bool InitValues_FromComboTotalValuesExceptLast(StaticInfo staticInfo, int userIndex,
@@ -1314,25 +1353,44 @@ namespace PcrBattleChannel.Algorithm
 
             using var solver = new Solver { StaticInfo = staticInfo };
 
-            //Accurate.
-            solver.FixSelectedCombo = true;
+            //1. Current value (accurate).
+            var allUserIndexSet = Enumerable.Range(0, 30).ToHashSet();
+            solver.FixSelectedComboUserIndex = allUserIndexSet; //Fix all.
             var currentResult = solver.Run();
 
-            //TODO approximate
-            //copy from accurate: all non-fixed
-            //fix: none
-            solver.FixSelectedCombo = false;
-            var totalResult = solver.Run();
+            var fixedUsers = new List<int>();
 
-            //TODO approximate, grouped
-            //copy from accurate: all users except the group
-            //fix: all users except the group
-            //----
+            //Write current results to IM context. This is needed by Solver.InitValues_FromComboCurrentValuesExceptFixed.
+            for (int userIndex = 0; userIndex < allUsers.Length; ++userIndex)
+            {
+                var user = allUsers[userIndex];
+                for (int comboIndex = 0; comboIndex < user.TotalComboCount; ++comboIndex)
+                {
+                    var comboID = (userIndex, comboIndex);
+                    var c = user.GetCombo(comboIndex);
+                    if (currentResult.ComboValues.TryGetValue(comboID, out var value))
+                    {
+                        c.CurrentValue = value;
+                    }
+                    else
+                    {
+                        c.CurrentValue = 0;
+                    }
+                }
+                if (user.SelectedComboIndex != -1)
+                {
+                    fixedUsers.Add(userIndex);
+                }
+            }
+
+            //2. Total value (approximate).
+            solver.FixSelectedComboUserIndex = null; //Fix none.
+            var totalResult = solver.RunApproximate(Solver.InitValues_NoValue, loops: 2);
 
             for (int userIndex = 0; userIndex < allUsers.Length; ++userIndex)
             {
                 var user = allUsers[userIndex];
-                for (int comboIndex = 0; comboIndex < user.TotalComboCount; ++ comboIndex)
+                for (int comboIndex = 0; comboIndex < user.TotalComboCount; ++comboIndex)
                 {
                     var comboID = (userIndex, comboIndex);
                     var c = user.GetCombo(comboIndex);
@@ -1344,16 +1402,52 @@ namespace PcrBattleChannel.Algorithm
                     {
                         c.TotalValue = 0;
                     }
-                    if (currentResult.ComboValues.TryGetValue(comboID, out var value))
+                }
+            }
+
+            //3. Current value (fixed users, approximate).
+            //If we don't do this, fixed users will only see a combo with 100% current value.
+            solver.FixSelectedComboUserIndex = allUserIndexSet;
+            var unfixStep = Math.Max(5, fixedUsers.Count / 3);
+            for (int unfixBegin = 0; unfixBegin < fixedUsers.Count; unfixBegin += unfixStep)
+            {
+                var unfixEnd = Math.Min(unfixBegin + unfixStep, fixedUsers.Count);
+
+                //Temporarily unfix them.
+                for (int i = unfixBegin; i < unfixEnd; ++i)
+                {
+                    allUserIndexSet.Remove(fixedUsers[i]);
+                }
+
+                var partialCurrentResult = solver.RunApproximate(Solver.InitValues_NoValue, loops: 2);
+
+                for (int i = unfixBegin; i < unfixEnd; ++i)
+                {
+                    var userIndex = fixedUsers[i];
+                    var user = allUsers[userIndex];
+
+                    //Fix again.
+                    allUserIndexSet.Add(userIndex);
+
+                    //Update
+                    //Note that modifying the current values of these users won't affect other calculations,
+                    //because init values of fixed users will be ignored (the delegate won't be called).
+                    for (int comboIndex = 0; comboIndex < user.TotalComboCount; ++comboIndex)
                     {
-                        c.CurrentValue = value;
-                    }
-                    else
-                    {
-                        c.CurrentValue = 0;
+                        var comboID = (userIndex, comboIndex);
+                        var c = user.GetCombo(comboIndex);
+                        if (partialCurrentResult.ComboValues.TryGetValue(comboID, out var value))
+                        {
+                            c.CurrentValue = value;
+                        }
+                        else
+                        {
+                            c.CurrentValue = 0;
+                        }
                     }
                 }
             }
+
             imGuild.PredictBossBalance.Clear();
             foreach (var (bossID, value) in currentResult.BossValues)
             {
@@ -1419,14 +1513,14 @@ namespace PcrBattleChannel.Algorithm
 
                 FirstBoss = staticInfo.ConvertBossIndex(staticInfo.Guild.BossIndex),
                 FirstBossHp = staticInfo.Guild.BossDamageRatio,
-                LastBoss = staticInfo.ConvertBossIndex(imGuild.PredictBossIndex),
+                LastBoss = staticInfo.ConvertBossIndex(Math.Max(imGuild.PredictBossIndex, staticInfo.Guild.BossIndex)),
             };
 
-            solver.FixSelectedCombo = true;
-            var currentResult = solver.RunApproximate(Solver.InitValues_FromComboCurrentValuesExceptLast);
+            solver.FixSelectedComboUserIndex = Enumerable.Range(0, 30).ToHashSet(); //Fix all.
+            var currentResult = solver.RunApproximate(Solver.InitValues_NoValue);
 
-            solver.FixSelectedCombo = false;
-            var totalResult = solver.RunApproximate(Solver.InitValues_FromComboTotalValuesExceptLast);
+            solver.FixSelectedComboUserIndex = null; //Fix none.
+            var totalResult = solver.RunApproximate(Solver.InitValues_NoValue);
 
             for (int comboIndex = 0; comboIndex < imUser.TotalComboCount; ++comboIndex)
             {
