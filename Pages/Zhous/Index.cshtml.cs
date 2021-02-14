@@ -244,16 +244,6 @@ namespace PcrBattleChannel.Pages.Zhous
                 .OrderBy(z => z.BossID)
                 .ToListAsync();
 
-            //UserZhouSettings = imGuild.ZhouVariants
-            //    .Where(zv => zv.UserData[imUser.Index].BorrowPlusOne != 0)
-            //    .Select(zv => zv.ZhouID)
-            //    .ToHashSet();
-            //
-            //AllConfigs = await _context.DbContext.CharacterConfigs
-            //    .Include(cc => cc.Character)
-            //    .Where(cc => cc.GuildID == user.GuildID.Value)
-            //    .ToDictionaryAsync(cc => cc.CharacterConfigID);
-
             await DoFilter(allZhous, imGuild);
 
             switch (FilterAction)
@@ -304,6 +294,10 @@ namespace PcrBattleChannel.Pages.Zhous
                     Configs,
                 });
             case Action.Draft:
+                if (!user.IsGuildAdmin)
+                {
+                    return RedirectToPage();
+                }
                 foreach (var v in Zhou.SelectMany(z => z.variants))
                 {
                     v.IsDraft = true;
@@ -317,6 +311,10 @@ namespace PcrBattleChannel.Pages.Zhous
                     Configs,
                 });
             case Action.UndoDraft:
+                if (!user.IsGuildAdmin)
+                {
+                    return RedirectToPage();
+                }
                 foreach (var v in Zhou.SelectMany(z => z.variants))
                 {
                     v.IsDraft = false;
@@ -330,6 +328,10 @@ namespace PcrBattleChannel.Pages.Zhous
                     Configs,
                 });
             case Action.Delete:
+                if (!user.IsGuildAdmin)
+                {
+                    return RedirectToPage();
+                }
                 foreach (var (zhou, variants) in Zhou)
                 {
                     if (zhou.Variants.Count == variants.Count)

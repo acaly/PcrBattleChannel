@@ -9,16 +9,22 @@
     <div class="col-12">
         <h4>公会轴表 - @Model.Guild.Name</h4>
         <hr />
-        @if (Model.IsAdmin)
-        {
-            <p>
-                <a asp-page="Create">写新轴</a> |
-                <a asp-page="Import">批量导入</a> |
-                <a href="javascript:void(0)" onclick="$('#filter-form').toggle()">过滤</a>
-            </p>
-        }
+        <p>
+            @if (Model.IsAdmin)
+            {
+                <span>
+                    <a asp-page="Create">写新轴</a> |
+                </span>
+                <span>
+                    <a asp-page="Import">批量导入</a>
+                </span>
+            }
+        </p>
     </div>
     <div class="col-12 pb-2">
+        <div class="d-inline-block py-1">
+            <a class="btn btn-primary" href="javascript:void(0)" onclick="$('#filter-form').toggle()">确定</a>
+        </div>
         <div class="d-inline-block py-1">
             <button type="button" class="btn btn-outline-success filter-action-button"
                     data-filter-action="match">
@@ -31,24 +37,27 @@
                 取消匹配
             </button>
         </div>
-        <div class="d-inline-block py-1">
-            <button type="button" class="btn btn-outline-warning filter-action-button"
-                    data-filter-action="draft">
-                设为草稿
-            </button>
-        </div>
-        <div class="d-inline-block py-1">
-            <button type="button" class="btn btn-outline-secondary filter-action-button"
-                    data-filter-action="undodraft">
-                取消草稿
-            </button>
-        </div>
-        <div class="d-inline-block py-1">
-            <button type="button" class="btn btn-outline-danger filter-action-button"
-                    data-filter-action="delete" data-filter-action-confirm="确定删除这些轴？">
-                删除
-            </button>
-        </div>
+        @if (Model.IsAdmin)
+        {
+            <div class="d-inline-block py-1">
+                <button type="button" class="btn btn-outline-warning filter-action-button"
+                        data-filter-action="draft">
+                    设为草稿
+                </button>
+            </div>
+            <div class="d-inline-block py-1">
+                <button type="button" class="btn btn-outline-secondary filter-action-button"
+                        data-filter-action="undodraft">
+                    取消草稿
+                </button>
+            </div>
+            <div class="d-inline-block py-1">
+                <button type="button" class="btn btn-outline-danger filter-action-button"
+                        data-filter-action="delete" data-filter-action-confirm="确定删除这些轴？">
+                    删除
+                </button>
+            </div>
+        }
     </div>
     <div class="col-12">
         <form id="filter-form" method="post" asp-page-handler="filter" style="display:none" class="pb-2">
