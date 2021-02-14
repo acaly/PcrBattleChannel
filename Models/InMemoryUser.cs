@@ -338,11 +338,13 @@ namespace PcrBattleChannel.Models
 
             public InMemoryZhouVariant GetZhouVariant(int index)
             {
+                if (index >= ZhouCount) return null;
                 return User.Guild.GetZhouVariantByIndex(User._comboList[Index * ZhouCount + index].zhou);
             }
 
             public InMemoryComboBorrowInfo GetZhouBorrow(int index)
             {
+                if (index >= ZhouCount) return default;
                 return User._comboList[Index * ZhouCount + index].borrow;
             }
 

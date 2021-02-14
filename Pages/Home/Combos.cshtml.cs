@@ -249,9 +249,10 @@ namespace PcrBattleChannel.Pages.Home
             var group = imUser.GetComboGroup(index);
             foreach (var c in group.Combos)
             {
-                await CacheZhouData(c.GetZhouVariant(0).ZhouID);
-                await CacheZhouData(c.GetZhouVariant(1).ZhouID);
-                await CacheZhouData(c.GetZhouVariant(2).ZhouID);
+                for (int i = 0; i < c.ZhouCount; ++i)
+                {
+                    await CacheZhouData(c.GetZhouVariant(i).ZhouID);
+                }
             }
             return Partial("_Combo_ComboGroupPartial", CreateGroupModel(group));
         }
@@ -418,9 +419,10 @@ namespace PcrBattleChannel.Pages.Home
             c.SwitchBorrow();
 
             SingleComboModel model = CreateSingleModel(c);
-            await CacheZhouData(c.GetZhouVariant(0).ZhouID);
-            await CacheZhouData(c.GetZhouVariant(1).ZhouID);
-            await CacheZhouData(c.GetZhouVariant(2).ZhouID);
+            for (int i = 0; i < c.ZhouCount; ++i)
+            {
+                await CacheZhouData(c.GetZhouVariant(i).ZhouID);
+            }
 
             return Partial("_Combo_ComboPartial", model);
         }

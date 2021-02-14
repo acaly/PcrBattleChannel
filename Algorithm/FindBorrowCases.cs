@@ -34,9 +34,15 @@ namespace PcrBattleChannel.Algorithm
                     {
                         SetSingle(fixedA ?? -1, -1, -1);
                     }
-                    Run3(a, b, _dummyC, fixedA, fixedB, null);
+                    else
+                    {
+                        Run3(a, b, _dummyC, fixedA, fixedB, null);
+                    }
                 }
-                Run3(a, b, c, fixedA, fixedB, fixedC);
+                else
+                {
+                    Run3(a, b, c, fixedA, fixedB, fixedC);
+                }
             }
             catch
             {

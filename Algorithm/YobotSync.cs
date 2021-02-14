@@ -386,21 +386,21 @@ namespace PcrBattleChannel.Algorithm
             switch (selectedZhou)
             {
             case 0:
-                if (yobotBossID == selectedCombo.GetZhouVariant(0).BossID && (mask & 1) != 0)
+                if (yobotBossID == selectedCombo.GetZhouVariant(0)?.BossID && (mask & 1) != 0)
                 {
                     mask -= 1;
                     ret = 0;
                 }
                 break;
             case 1:
-                if (yobotBossID == selectedCombo.GetZhouVariant(1).BossID && (mask & 2) != 0)
+                if (yobotBossID == selectedCombo.GetZhouVariant(1)?.BossID && (mask & 2) != 0)
                 {
                     mask -= 2;
                     ret = 1;
                 }
                 break;
             case 2:
-                if (yobotBossID == selectedCombo.GetZhouVariant(2).BossID && (mask & 4) != 0)
+                if (yobotBossID == selectedCombo.GetZhouVariant(2)?.BossID && (mask & 4) != 0)
                 {
                     mask -= 4;
                     ret = 2;
@@ -413,15 +413,15 @@ namespace PcrBattleChannel.Algorithm
             }
 
             //Then check others (must only have one matching).
-            if (yobotBossID == selectedCombo.GetZhouVariant(0).BossID)
+            if (yobotBossID == selectedCombo.GetZhouVariant(0)?.BossID)
             {
                 ret = 0;
             }
-            if (yobotBossID == selectedCombo.GetZhouVariant(1).BossID)
+            if (yobotBossID == selectedCombo.GetZhouVariant(1)?.BossID)
             {
                 ret = ret.HasValue ? -1 : 1;
             }
-            if (yobotBossID == selectedCombo.GetZhouVariant(2).BossID)
+            if (yobotBossID == selectedCombo.GetZhouVariant(2)?.BossID)
             {
                 ret = ret.HasValue ? -1 : 2;
             }

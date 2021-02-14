@@ -362,9 +362,9 @@ namespace PcrBattleChannel.Algorithm
                 for (int i = 0; i < input.TotalComboCount; ++i)
                 {
                     var combo = input.GetCombo(i);
-                    var comboTotalDamage = combo.GetZhouVariant(0).Damage +
-                        combo.GetZhouVariant(1).Damage +
-                        combo.GetZhouVariant(2).Damage;
+                    var comboTotalDamage = combo.GetZhouVariant(0)?.Damage ?? 0 +
+                        combo.GetZhouVariant(1)?.Damage ?? 0 +
+                        combo.GetZhouVariant(2)?.Damage ?? 0;
                     var outputElement = mappingOutput[firstOutput + i];
                     ref var g = ref _resultBuffer[outputElement.ComboGroupIndex];
                     var groupTotalDamage = g.AverageTotalDamage * g.Count;
@@ -456,9 +456,9 @@ namespace PcrBattleChannel.Algorithm
 
             //Other info of the split combos. Because these are not used in the inner loop of calculation,
             //they are separated from the _splitCombos.
-            private readonly List<(int user, int comboGroup)> _splitComboInfo = new();
-            private readonly List<float> _splitZVDamage = new();
-            private readonly List<int> _splitZVBoss = new();
+            private readonly List<(int user, int comboGroup)> _splitComboInfo = new(); //split combo -> combo group info
+            private readonly List<float> _splitZVDamage = new(); //split zv -> damage
+            private readonly List<int> _splitZVBoss = new(); //split zv -> boss
             //Used to store intermediate results for each split ZV during the calculation.
             private FastArrayList<float> _splitZVBuffer = default;
             private readonly Dictionary<(int, int), int> _splitZVMap = new(); //(split boss index, damage) -> split ZV index
@@ -722,11 +722,11 @@ namespace PcrBattleChannel.Algorithm
                         }
                     }
 
+                    _userSplitComboRange[i] = (currentUserNewBegin, compressPointer);
+
                     //Align.
                     //Note that we don't clear the data in the padding. They are not used.
                     compressPointer = (compressPointer + 7) & ~7;
-
-                    _userSplitComboRange[i] = (currentUserNewBegin, compressPointer);
                 }
 
                 _values.Truncate(compressPointer);
