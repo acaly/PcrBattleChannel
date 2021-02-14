@@ -23,7 +23,7 @@
     </div>
     <div class="col-12 pb-2">
         <div class="d-inline-block py-1">
-            <a class="btn btn-primary" href="javascript:void(0)" onclick="$('#filter-form').toggle()">确定</a>
+            <a class="btn btn-primary" href="javascript:void(0)" onclick="$('#filter-form').toggle()">过滤</a>
         </div>
         <div class="d-inline-block py-1">
             <button type="button" class="btn btn-outline-success filter-action-button"
@@ -120,18 +120,28 @@
                                 <div class="row">
                                     @foreach (var g in Model.AllConfigs.Values.GroupBy(cc => cc.Character).OrderBy(g => g.Key.Range))
                                     {
-                                        <div class="col-6 py-1">
-                                            <span class="font-weight-bold">@g.Key.Name</span>
-                                            @foreach (var cc in g)
-                                            {
-                                                <div>
-                                                    <a href="javascript:void(0)" class="config-choose-link"
-                                                       data-config-id="@cc.CharacterConfigID"
-                                                       data-config-text="@cc.Character.Name @(cc.Kind == CharacterConfigKind.Default ? string.Empty : $"({cc.Name})")">
-                                                        @(cc.Kind == CharacterConfigKind.Default ? "任意" : cc.Name)
-                                                    </a>
+                                        if (!Model.AllCharactersInZhou.Contains(g.Key.CharacterID)) continue;
+                                        <div class="col-md-6 col-12 py-1">
+                                            <div class="row">
+                                                <div class="col-auto">
+                                                    <div class="d-inline-block" style="max-width:50px">
+                                                        <img src="~/images/icons/@(g.Key.InternalID.ToString() ?? "0000")31.jpg" style="max-width:100%;height:auto" />
+                                                    </div>
                                                 </div>
-                                            }
+                                                <div class="col-8">
+                                                    <span class="font-weight-bold">@g.Key.Name</span>
+                                                    @foreach (var cc in g)
+                                                    {
+                                                        <div>
+                                                            <a href="javascript:void(0)" class="config-choose-link"
+                                                               data-config-id="@cc.CharacterConfigID"
+                                                               data-config-text="@cc.Character.Name @(cc.Kind == CharacterConfigKind.Default ? string.Empty : $"({cc.Name})")">
+                                                                @(cc.Kind == CharacterConfigKind.Default ? "任意" : cc.Name)
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
                                         </div>
                                     }
                                 </div>
@@ -186,7 +196,7 @@
                 </div>
             </div>
             <div class="d-inline-block py-1">
-                <button type="submit" class="btn btn-primary">过滤</button>
+                <button type="submit" class="btn btn-primary">确定</button>
             </div>
         </form>
     </div>

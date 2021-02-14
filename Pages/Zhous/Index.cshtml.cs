@@ -32,6 +32,7 @@ namespace PcrBattleChannel.Pages.Zhous
         public HashSet<int> UserZhouSettings { get; set; }
         public List<string> AllBosses { get; private set; }
         public Dictionary<int, CharacterConfig> AllConfigs { get; private set; }
+        public HashSet<int> AllCharactersInZhou { get; private set; }
 
         public enum Action
         {
@@ -198,6 +199,16 @@ namespace PcrBattleChannel.Pages.Zhous
                 .Include(cc => cc.Character)
                 .Where(cc => cc.GuildID == user.GuildID.Value)
                 .ToDictionaryAsync(cc => cc.CharacterConfigID);
+
+            AllCharactersInZhou = new();
+            foreach (var z in allZhous)
+            {
+                AllCharactersInZhou.Add(z.C1ID.Value);
+                AllCharactersInZhou.Add(z.C2ID.Value);
+                AllCharactersInZhou.Add(z.C3ID.Value);
+                AllCharactersInZhou.Add(z.C4ID.Value);
+                AllCharactersInZhou.Add(z.C5ID.Value);
+            }
 
             await DoFilter(allZhous, imGuild);
 
