@@ -8,8 +8,11 @@
 <hr />
 
 <partial name="_Combo_StatusPartial" model="Model" />
+
 <div class="row pt-2 pb-4">
-    <div class="col-md-10">
+    <div class="col-md-12">
+        <h4>套餐推荐</h4>
+        <hr />
         <form method="post" asp-page-handler="setdraft"
               data-ajax="true" data-ajax-method="post"
               data-ajax-failure="draft_option_update_failure">
@@ -103,6 +106,7 @@
         break;
     }
     totalDisplayedCombos += group.group.Count;
+    var lazyLoad = i >= 20 || group.group.Count > 6;
     <div class="row align-bottom py-2 border-bottom">
         <div class="col-xl-10 col-lg-9 col-8">
             <a href="javascript:void(0)" onclick="combo_group_title_click(@i)">
@@ -114,13 +118,13 @@
             <span>@group.currentValue.ToString("P1") / @group.totalValue.ToString("P1")</span>
         </div>
     </div>
-    <div id="toggle-combo-group-@i" style="display:none" data-loaded="@(i < 20 ? 1 : 0)">
-        @if (i < 20)
+    <div id="toggle-combo-group-@i" style="display:none" data-loaded="@(lazyLoad ? 0 : 1)">
+        @if (!lazyLoad)
         {
             <partial name="_Combo_ComboGroupPartial" model="Model.CreateGroupModel(group.group)" />
         }
     </div>
-    @if (i >= 20)
+    @if (lazyLoad)
     {
         <form method="get" asp-page-handler="grouppartial"
               asp-route-time="@group.group.User.LastComboCalculation.Ticks" asp-route-index="@group.group.Index"
@@ -150,9 +154,9 @@
         display: none;
     }
 
-    #character-list .tick-mark img {
-        width: 100%;
-    }
+        #character-list .tick-mark img {
+            width: 100%;
+        }
 
     #character-list .selected .tick-mark {
         display: block;

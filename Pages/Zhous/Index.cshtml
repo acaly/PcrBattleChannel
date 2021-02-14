@@ -2,48 +2,194 @@
 @model PcrBattleChannel.Pages.Zhous.IndexModel
 @{
     ViewData["Title"] = "公会轴表";
-    var draftCount = Model.Zhou.Count(zz => zz.Variants.All(zv => zv.IsDraft));
+    var draftCount = Model.Zhou.Count(zz => zz.variants.All(zv => zv.IsDraft));
 }
 
-<div class="pb-4">
-    <h4>公会轴表 - @Model.Guild.Name</h4>
-    <hr />
-    @if (Model.IsAdmin)
-    {
-        <p>
-            <a asp-page="Create">写新轴</a> |
-            <a asp-page="Import">批量导入</a>
-            @if (Model.IsOwner)
-            {
-                <span> |
-                    <a href="javascript:void(0);" onclick="if (confirm('确定删除公会里的所有轴吗？')) $('#delete-all-form').submit()">
-                        删除全部
-                    </a>
-                </span>
-            }
-        </p>
-    }
-    @if (Model.IsOwner)
-    {
-        <form id="delete-all-form" method="post" asp-page-handler="deleteall"></form>
-    }
-    <form method="post" asp-page-handler="refresh">
-        <button type="submit" class="btn btn-primary">重新匹配</button>
-        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()">显示草稿 (@draftCount)</button>
-        <button type="button" class="btn btn-secondary toggle-draft" onclick="$('.toggle-draft').toggle()" style="display:none">隐藏草稿 (@draftCount)</button>
-    </form>
+<div class="pb-1 row">
+    <div class="col-12">
+        <h4>公会轴表 - @Model.Guild.Name</h4>
+        <hr />
+        @if (Model.IsAdmin)
+        {
+            <p>
+                <a asp-page="Create">写新轴</a> |
+                <a asp-page="Import">批量导入</a> |
+                <a href="javascript:void(0)" onclick="$('#filter-form').toggle()">过滤</a>
+            </p>
+        }
+    </div>
+    <div class="col-12 pb-2">
+        <div class="d-inline-block py-1">
+            <button type="button" class="btn btn-outline-success filter-action-button"
+                    data-filter-action="match">
+                重新匹配
+            </button>
+        </div>
+        <div class="d-inline-block py-1">
+            <button type="button" class="btn btn-outline-secondary filter-action-button"
+                    data-filter-action="undomatch">
+                取消匹配
+            </button>
+        </div>
+        <div class="d-inline-block py-1">
+            <button type="button" class="btn btn-outline-warning filter-action-button"
+                    data-filter-action="draft">
+                设为草稿
+            </button>
+        </div>
+        <div class="d-inline-block py-1">
+            <button type="button" class="btn btn-outline-secondary filter-action-button"
+                    data-filter-action="undodraft">
+                取消草稿
+            </button>
+        </div>
+        <div class="d-inline-block py-1">
+            <button type="button" class="btn btn-outline-danger filter-action-button"
+                    data-filter-action="delete" data-filter-action-confirm="确定删除这些轴？">
+                删除
+            </button>
+        </div>
+    </div>
+    <div class="col-12">
+        <form id="filter-form" method="post" asp-page-handler="filter" style="display:none" class="pb-2">
+            <input id="filter-action" type="hidden" asp-for="FilterAction" onchange="$(this.form).submit()" />
+            <div class="form-group input-group-sm">
+                <label class="control-label">搜索轴名</label>
+                <input class="form-control" type="text" asp-for="Search" />
+            </div>
+            <div class="form-group input-group-sm">
+                <label class="control-label">指定Boss</label>
+                <select class="form-control" asp-for="Bosses" style="height:auto">
+                    @foreach (var b in Model.AllBosses)
+                    {
+                        <option>@b</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group input-group-sm">
+                <label class="control-label">指定角色</label>
+                <input id="config-list" type="hidden" asp-for="Configs" />
+
+                <div id="config-list-item-template" class="d-none">
+                    <div class="col-auto config-list-item" data-config-id="0">
+                        <div class="input-group mb-2 input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text badge-light config-list-item-text"></span>
+                            </div>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" onclick="config_list_delete_item(this)">x</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="config-list-group-template" class="d-none">
+                    <div class="form-row">
+                        <div class="config-list-group-container form-row col-auto">
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group mb-2">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="config_list_add_item_c(this)">
+                                    添加角色
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal" id="chooseCCDialog" tabindex="-1" role="dialog"
+                     aria-labelledby="chooseCCLabel" aria-hidden="true"
+                     style="overflow-y:scroll">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="chooseCCLabel">选择角色/配置</h5>
+                                <button type="button" class="close" onclick="$('#chooseCCDialog').hide()">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    @foreach (var g in Model.AllConfigs.Values.GroupBy(cc => cc.Character).OrderBy(g => g.Key.Range))
+                                    {
+                                        <div class="col-6 py-1">
+                                            <span class="font-weight-bold">@g.Key.Name</span>
+                                            @foreach (var cc in g)
+                                            {
+                                                <div>
+                                                    <a href="javascript:void(0)" class="config-choose-link"
+                                                       data-config-id="@cc.CharacterConfigID"
+                                                       data-config-text="@cc.Character.Name @(cc.Kind == CharacterConfigKind.Default ? string.Empty : $"({cc.Name})")">
+                                                        @(cc.Kind == CharacterConfigKind.Default ? "任意" : cc.Name)
+                                                    </a>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="$('#chooseCCDialog').hide()">关闭</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="config-list-container">
+                    @foreach (var group in (Model.Configs ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        <div class="form-row">
+                            <div class="config-list-group-container form-row col-auto">
+                                @foreach (var ccids in group.Split(','))
+                                {
+                                    if (!int.TryParse(ccids, out var ccid)) continue;
+                                    if (!Model.AllConfigs.TryGetValue(ccid, out var cc)) continue;
+                                    <div class="col-auto config-list-item" data-config-id="@cc.CharacterConfigID">
+                                        <div class="input-group input-group-sm mb-2">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text badge-light">
+                                                    @cc.Character.Name
+                                                    @(cc.Kind == CharacterConfigKind.Default ? string.Empty : $"({cc.Name})")
+                                                </span>
+                                            </div>
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="config_list_delete_item(this)">&times;</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-auto">
+                                <div class="input-group mb-2">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="config_list_add_item_c(this)">
+                                        添加角色
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div>
+                    <div class="input-group">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="config_list_add_group_c()">
+                            添加条件组
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="d-inline-block py-1">
+                <button type="submit" class="btn btn-primary">过滤</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="row">
     <div class="w-100 border-bottom"></div>
     @for (int i = 0; i < Model.Zhou.Count; ++i)
     {
-        var item = Model.Zhou[i];
+        var item = Model.Zhou[i].zhou;
         var style = i == 0 ? @"style=""width:12%""" : "";
-        var isDraft = item.Variants.All(v => v.IsDraft);
-        var toggleDraftClass = isDraft ? "toggle-draft" : string.Empty;
-        var toggleDraftStyleHtml = isDraft ? @"style=""display:none""" : string.Empty;
-        <div class="col-lg-6 col-xl-4 @toggleDraftClass" @Html.Raw(toggleDraftStyleHtml)>
+        <div class="col-lg-6 col-xl-4">
             <div class="row py-2">
                 <div class="col pr-1 text-center">
                     <div class="d-inline-block" style="max-width:70px">
@@ -77,7 +223,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 col-xl-8 @toggleDraftClass" @Html.Raw(toggleDraftStyleHtml)>
+        <div class="col-lg-6 col-xl-8">
             <div class="row py-2">
                 <div class="col-sm-6 py-1">
                     <div>
@@ -111,6 +257,76 @@
                 </div>
             </div>
         </div>
-        <div class="w-100 border-bottom @toggleDraftClass" @Html.Raw(toggleDraftStyleHtml)></div>
+        <div class="w-100 border-bottom"></div>
     }
 </div>
+
+@section scripts
+{
+    <script>
+        add_item_target = null;
+        function config_list_add_group_c() {
+            var newItem = $('#config-list-group-template').children().clone(true);
+            $('#config-list-container').append(newItem);
+        }
+        function config_list_add_item_c(e) {
+            var group = $(e).closest('div.form-row').children('.config-list-group-container');
+            add_item_target = group;
+            $('#chooseCCDialog').toggle();
+        }
+        function config_list_add_item(group, ccid, text) {
+            var newItem = $('#config-list-item-template').children().clone(true);
+            newItem.find('.config-list-item-text').html(text);
+            newItem.attr('data-config-id', ccid);
+            group.append(newItem);
+            config_list_str_update();
+        }
+        function config_list_delete_item(e) {
+            $(e).closest('.config-list-item').remove();
+            config_list_str_update();
+        }
+        function config_list_str_update() {
+            var isFirst = true;
+            var text = "";
+            $('#config-list-container .config-list-group-container').each(function () {
+                if (isFirst) {
+                    isFirst = false;
+                }
+                else {
+                    text = text + ';';
+                }
+                var isGroupFirst = true;
+                $(this).find('.config-list-item').each(function () {
+                    console.log(this);
+                    if (isGroupFirst) {
+                        isGroupFirst = false;
+                    }
+                    else {
+                        text = text + ',';
+                    }
+                    text = text + this.getAttribute('data-config-id');
+                });
+            });
+            $('#config-list').val(text);
+        }
+        $(document).ready(function () {
+            $('.filter-action-button').click(function () {
+                var action = this.getAttribute('data-filter-action');
+                var confirmtext = this.getAttribute('data-filter-action-confirm');
+                if (confirmtext) {
+                    if (!confirm(confirmtext)) return false;
+                }
+                $('#filter-form')[0].reset();
+                $('#filter-action').val(action).trigger('change');
+            })
+            $('.config-choose-link').click(function () {
+                if (add_item_target != null) {
+                    var ccid = this.getAttribute('data-config-id');
+                    var cctext = this.getAttribute('data-config-text');
+                    config_list_add_item(add_item_target, ccid, cctext);
+                }
+                $('#chooseCCDialog').hide();
+            });
+        });
+    </script>
+}

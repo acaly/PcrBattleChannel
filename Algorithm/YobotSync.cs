@@ -222,7 +222,7 @@ namespace PcrBattleChannel.Algorithm
                         userData = Array.Empty<YobotChallenge>();
                     }
 
-                    if (u.Attempts > userData.Length)
+                    if (u.Attempts > userData.Length || u.IsIgnored)
                     {
                         if (TimeZoneHelper.GetGameDate(u.LastConfirm) == gameToday)
                         {
@@ -245,7 +245,7 @@ namespace PcrBattleChannel.Algorithm
                     }
 
                     //Don't use else if. ClearUserAttempts will reset u.Attempts.
-                    if (u.Attempts < userData.Length)
+                    if (u.Attempts < userData.Length && !u.IsIgnored)
                     {
                         //u.Attempts + imUser.ComboZhouCount != 3 is possible when user selected a combo, and
                         //then manually updated used characters without recalculating combos.

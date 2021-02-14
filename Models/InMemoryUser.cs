@@ -166,6 +166,39 @@ namespace PcrBattleChannel.Models
             _comboGroups[^1] = new() { StartIndex = _comboValues.Count };
         }
 
+        public void MatchZhouVariant(int zvid, HashSet<int> userAllCharacterIDs, HashSet<int> userAllConfigIDs, bool clearCombos)
+        {
+            if (clearCombos)
+            {
+                ClearComboList(null);
+            }
+            if (Guild.TryGetZhouVariantById(zvid, out var zv))
+            {
+                int? borrowId = null;
+                void SetBorrow(int index)
+                {
+                    borrowId = borrowId.HasValue ? -1 : index;
+                }
+                bool CheckCharacterConfig(int index)
+                {
+                    foreach (var g in zv.CharacterConfigIDs[index])
+                    {
+                        if (!g.Any(c => userAllConfigIDs.Contains(c)))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                for (int i = 0; i < 5; ++i)
+                {
+                    if (!userAllCharacterIDs.Contains(zv.CharacterIDs[i]) || !CheckCharacterConfig(i)) SetBorrow(i);
+                }
+                var borrowPlusOne = (borrowId ?? 5) + 1;
+                zv.UserData[Index].BorrowPlusOne = (byte)borrowPlusOne;
+            }
+        }
+
         public void MatchAllZhouVariants(HashSet<int> userAllCharacterIDs, HashSet<int> userAllConfigIDs)
         {
             ClearComboList(null);
