@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using PcrBattleChannel.Data;
 using PcrBattleChannel.Models;
 
 namespace PcrBattleChannel.Areas.Identity.Pages.Account
@@ -16,10 +18,12 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account
     [AllowAnonymous]
     public class ResetPasswordModel : PageModel
     {
+        private readonly ApplicationDbContext _context;
         private readonly UserManager<PcrIdentityUser> _userManager;
 
-        public ResetPasswordModel(UserManager<PcrIdentityUser> userManager)
+        public ResetPasswordModel(ApplicationDbContext context, UserManager<PcrIdentityUser> userManager)
         {
+            _context = context;
             _userManager = userManager;
         }
 
@@ -29,8 +33,7 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account
         public class InputModel
         {
             [Required]
-            [EmailAddress]
-            public string Email { get; set; }
+            public ulong QQ { get; set; }
 
             [Required]
             [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
@@ -68,24 +71,17 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.QQID == Input.QQ);
             if (user == null)
             {
                 // Don't reveal that the user does not exist
                 return RedirectToPage("./ResetPasswordConfirmation");
             }
 
-            var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
-            if (result.Succeeded)
-            {
-                return RedirectToPage("./ResetPasswordConfirmation");
-            }
+            await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-            return Page();
+            // Don't reveal that the user does not exist
+            return RedirectToPage("./ResetPasswordConfirmation");
         }
     }
 }

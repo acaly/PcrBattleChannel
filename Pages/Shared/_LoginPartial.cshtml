@@ -65,9 +65,12 @@
     }
     else
     {
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">注册</a>
-        </li>
+        if (PcrBattleChannel.Areas.Identity.Pages.Account.RegisterModel.AllowRegister)
+        {
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">注册</a>
+            </li>
+        }
         <li class="nav-item">
             <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">登录</a>
         </li>

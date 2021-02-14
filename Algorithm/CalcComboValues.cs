@@ -954,11 +954,11 @@ namespace PcrBattleChannel.Algorithm
                     _splitZVBuffer[i] = learningRate * _bossBuffer[_splitZVBoss[i]] * _splitZVDamage[i];
                 }
 
-                fixed (float* adjustmentBufferPtr = &_userAdjustmentBuffer[0], userBossBufferPtr = &_userBossBuffer.DataRef,
-                    splitZVBufferPtr = &_splitZVBuffer[0], valuePtr = &_values[0], bossBufferPtr = &_bossBuffer.DataRef)
+                fixed (float* adjustmentBufferPtr = &_userAdjustmentBuffer.DataRef, userBossBufferPtr = &_userBossBuffer.DataRef,
+                    splitZVBufferPtr = &_splitZVBuffer.DataRef, valuePtr = &_values.DataRef, bossBufferPtr = &_bossBuffer.DataRef)
                 {
-                    fixed (int* splitCombosPtr1 = &_splitCombos1[0], splitCombosPtr2 = &_splitCombos2[0],
-                        splitCombosPtr3 = &_splitCombos3[0])
+                    fixed (int* splitCombosPtr1 = &_splitCombos1.DataRef, splitCombosPtr2 = &_splitCombos2.DataRef,
+                        splitCombosPtr3 = &_splitCombos3.DataRef)
                     {
                         for (int i = 0; i < _userSplitComboRange.Count; ++i) //User
                         {
@@ -982,7 +982,7 @@ namespace PcrBattleChannel.Algorithm
                             var userTotalValue = SimdHelper.UpdateValueSum(&valuePtr[begin],
                                 &adjustmentBufferPtr[begin], end - begin);
 
-                            if (userTotalValue == 0f)
+                            if (userTotalValue == 0f && begin < end)
                             {
                                 throw new Exception("Normalize zero value");
                             }

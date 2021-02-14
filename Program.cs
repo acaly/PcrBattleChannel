@@ -14,10 +14,11 @@ namespace PcrBattleChannel
     {
         private static readonly Dictionary<string, Action<string>> _argHandlers = new()
         {
-            { "admin", val => Areas.Identity.Pages.Account.RegisterModel.AdminEmail = val },
+            { "admin", val => Areas.Identity.Pages.Account.RegisterModel.AdminQQ = ulong.Parse(val) },
             { "yobot_sync", val => YobotSyncScheduler.Interval = TimeSpan.FromMinutes(double.Parse(val)) },
             { "allow_add_guild", val => Pages.Home.AddGuildModel.IsAllowed = true },
             { "skip_im_loading", val => Startup.LoadIMContext = false },
+            { "forbid_register", val => Areas.Identity.Pages.Account.RegisterModel.AllowRegister = false },
         };
 
         private static void HandleArgs(string[] args)

@@ -97,6 +97,10 @@
             </table>
 
             <div class="form-group">
+                <a asp-page="/Guilds/ImportUserList">批量创建</a>
+                @Html.HelpMessage("直接输入QQ号列表来批量创建用户。")
+            </div>
+            <div class="form-group">
                 <a asp-page="/Guilds/CloneUsers">克隆会员</a>
                 @Html.HelpMessage("会长可以以公会内指定的一名会员为模板，创建Box完全相同的多个虚拟会员账户。" +
                     "这些账户会被加入到公会的分刀计算当中。可以用来测试分刀功能。如果部分会员无法访问本网站也可以用这个方法补足。")
@@ -112,9 +116,9 @@
         <form method="post">
             <input type="hidden" asp-for="Guild.GuildID" />
             <div class="form-group">
-                <label asp-for="InviteMemberEmail" class="control-label"></label>
-                <input asp-for="InviteMemberEmail" class="form-control" />
-                <span asp-validation-for="InviteMemberEmail" class="text-danger"></span>
+                <label asp-for="InviteMemberQQ" class="control-label"></label>
+                <input asp-for="InviteMemberQQ" class="form-control" />
+                <span asp-validation-for="InviteMemberQQ" class="text-danger"></span>
             </div>
             <button class="btn btn-primary" type="submit" asp-page-handler="invite">邀请</button>
         </form>

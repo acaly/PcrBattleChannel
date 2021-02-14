@@ -17,22 +17,14 @@
         <form method="post">
             <div asp-validation-summary="All" class="text-danger"></div>
             <div class="form-group">
-                <label asp-for="TemplateUserEmail"></label>
-                <input asp-for="TemplateUserEmail" class="form-control" />
-                <span asp-validation-for="TemplateUserEmail" class="text-danger"></span>
+                <label asp-for="TemplateUserQQ"></label>
+                <input asp-for="TemplateUserQQ" class="form-control" />
+                <span asp-validation-for="TemplateUserQQ" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="CloneCount"></label>
                 <input asp-for="CloneCount" class="form-control" />
                 <span asp-validation-for="CloneCount" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="EmailFormat"></label>
-                @Html.HelpMessage("指定用于生成的新用户的邮箱的格式化字符串。使用“{0}”来放置克隆编号。" +
-                    "例如指定user{0}@abc.com会依次生成user1@abc.com、user2@abc.com等等。" +
-                    "注意：这些邮箱无法用于登录，仅用于服务器内部操作。")
-                <input asp-for="EmailFormat" class="form-control" />
-                <span asp-validation-for="EmailFormat" class="text-danger"></span>
             </div>
             <button type="submit" class="btn btn-primary">确认</button>
         </form>

@@ -56,6 +56,11 @@ namespace PcrBattleChannel.Areas.Identity.Pages.Account.Manage
             {
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
+            if (user.GuildID.HasValue)
+            {
+                ModelState.AddModelError(string.Empty, "删除用户前必须退出公会");
+                return Page();
+            }
 
             RequirePassword = await _userManager.HasPasswordAsync(user);
             if (RequirePassword)

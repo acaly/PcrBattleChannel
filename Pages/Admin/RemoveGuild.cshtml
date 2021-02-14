@@ -31,7 +31,7 @@
                             <td>@Html.DisplayFor(modelItem => item.Name)</td>
                             @if (item.Owner is not null)
                             {
-                                <td>@Html.DisplayFor(modelItem => item.Owner.Email)</td>
+                                <td>@Html.DisplayFor(modelItem => item.Owner.QQID)</td>
                                 <td>@Html.DisplayFor(modelItem => item.Owner.GameID)</td>
                             }
                             else

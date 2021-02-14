@@ -25,7 +25,7 @@ namespace PcrBattleChannel.Pages.Admin
         }
 
         [BindProperty]
-        public string Email { get; set; }
+        public ulong QQ { get; set; }
 
         public void OnGet()
         {
@@ -33,7 +33,7 @@ namespace PcrBattleChannel.Pages.Admin
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var u = await _context.Users.FirstOrDefaultAsync(u => u.Email == Email);
+            var u = await _context.Users.FirstOrDefaultAsync(u => u.QQID == QQ);
             await _signInManager.SignInAsync(u, false);
             return RedirectToPage("/Home/Index");
         }

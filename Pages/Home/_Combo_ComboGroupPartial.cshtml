@@ -1,6 +1,6 @@
 ﻿@model PcrBattleChannel.Pages.Home.CombosModel.ComboGroupModel
 
-@foreach (var item in Model.Item.Combos.OrderBy(c => c.CurrentValue))
+@foreach (var item in Model.Item.Combos.OrderByDescending(c => c.CurrentValue))
 {
     <div id="combo-@item.Index">
         <partial name="_Combo_ComboPartial" model="Model.CreateSingleModel(item)" />

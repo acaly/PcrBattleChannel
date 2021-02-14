@@ -34,9 +34,8 @@ namespace PcrBattleChannel.Pages.Guilds
         public Guild Guild { get; set; }
 
         [BindProperty]
-        [Display(Name = "Email")]
-        [DataType(DataType.EmailAddress)]
-        public string InviteMemberEmail { get; set; }
+        [Display(Name = "QQ")]
+        public ulong InviteMemberQQ { get; set; }
 
         private async Task<Guild> CheckUserPrivilege()
         {
@@ -102,7 +101,7 @@ namespace PcrBattleChannel.Pages.Guilds
                 return RedirectToPage("/Home/Index");
             }
 
-            var user = await _context.DbContext.Users.FirstOrDefaultAsync(u => u.Email == InviteMemberEmail);
+            var user = await _context.DbContext.Users.FirstOrDefaultAsync(u => u.QQID == InviteMemberQQ);
             if (user is null)
             {
                 StatusMessage = "错误：用户不存在。";

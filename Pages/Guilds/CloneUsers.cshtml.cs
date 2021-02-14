@@ -33,19 +33,14 @@ namespace PcrBattleChannel.Pages.Guilds
 
         [BindProperty]
         [Required]
-        [Display(Name = "模板用户Email")]
-        public string TemplateUserEmail { get; set; }
+        [Display(Name = "模板用户QQ")]
+        public ulong TemplateUserQQ { get; set; }
 
         [BindProperty]
         [Required]
         [Display(Name = "克隆数量")]
         [Range(0, 30)]
         public int CloneCount { get; set; }
-
-        [BindProperty]
-        [Required]
-        [Display(Name = "邮箱格式")]
-        public string EmailFormat { get; set; }
 
         private async Task<Guild> CheckUserPrivilege()
         {
@@ -104,7 +99,7 @@ namespace PcrBattleChannel.Pages.Guilds
             }
 
             var templateUser = await _context.DbContext.Users
-                .FirstOrDefaultAsync(u => u.Email == TemplateUserEmail);
+                .FirstOrDefaultAsync(u => u.QQID == TemplateUserQQ);
             if (templateUser is null)
             {
                 StatusMessage2 = "错误：模板用户不存在。";
@@ -116,25 +111,16 @@ namespace PcrBattleChannel.Pages.Guilds
                 return Page();
             }
 
+            const string EmailFormat = "clone_{0}_{1}@example.com";
+            var cloneTime = DateTime.UtcNow.Ticks.ToString();
+
             var templateUserConfigs = await _context.DbContext.UserCharacterConfigs
                 .Where(cc => cc.UserID == templateUser.Id).ToListAsync();
 
-            for (int i = 0; i < CloneCount; ++i)
-            {
-                var email = string.Format(EmailFormat, i + 1).ToUpperInvariant();
-                if (await _context.DbContext.Users.AnyAsync(u => u.NormalizedEmail == email))
-                {
-                    StatusMessage2 = $"错误：用户{string.Format(EmailFormat, i + 1)}已存在。";
-                    return Page();
-                }
-            }
-
-            var imGuild = await _context.GetGuildAsync(guild.GuildID);
             var newUserList = new List<PcrIdentityUser>();
-
             for (int i = 0; i < CloneCount; ++i)
             {
-                var email = string.Format(EmailFormat, i + 1);
+                var email = string.Format(EmailFormat, cloneTime, i).ToUpperInvariant();
                 var user = new PcrIdentityUser()
                 {
                     Email = null,
@@ -143,20 +129,31 @@ namespace PcrBattleChannel.Pages.Guilds
                     EmailConfirmed = true,
                     GuildID = guild.GuildID,
                 };
+                newUserList.Add(user);
+                if (await _context.DbContext.Users.AnyAsync(u => u.NormalizedEmail == email))
+                {
+                    StatusMessage2 = $"错误：用户{email}已存在。请重新尝试。";
+                    return Page();
+                }
+            }
 
-                _context.DbContext.Users.Add(user);
+            var imGuild = await _context.GetGuildAsync(guild.GuildID);
+
+            for (int i = 0; i < CloneCount; ++i)
+            {
+                _context.DbContext.Users.Add(newUserList[i]);
                 {
                     //Clone configs.
                     foreach (var cc in templateUserConfigs)
                     {
                         _context.DbContext.UserCharacterConfigs.Add(new()
                         {
-                            User = user,
+                            User = newUserList[i],
                             CharacterConfigID = cc.CharacterConfigID,
                         });
                     }
                 }
-                newUserList.Add(user);
+                newUserList.Add(newUserList[i]);
             }
 
             await _context.DbContext.SaveChangesAsync();
