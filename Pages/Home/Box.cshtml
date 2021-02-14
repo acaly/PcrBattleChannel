@@ -51,6 +51,11 @@
                         {
                             var isChecked = Model.IncludedConfigs
                                 .TryGetValue(cc.CharacterConfigID, out _) ? "checked" : "";
+                            var additionalAction = string.Empty;
+                            if (cc.Kind != CharacterConfigKind.Default)
+                            {
+                                additionalAction = $"if ($(this).prop('checked')) $('#character-checkbox-{cc.CharacterID}-0:not(:checked)').trigger('change').prop('checked', true);";
+                            }
                             <div class="form-group form-check">
                                 <form method="post" asp-page-handler="update"
                                       asp-route-ccid="@cc.CharacterConfigID"
@@ -59,7 +64,7 @@
                                     <label class="form-check-label">
                                         <input type="checkbox" class="form-check-input character-checkbox character-checkbox-@((int)cc.Kind)"
                                                id="character-checkbox-@cc.CharacterID-@((int)cc.Kind)"
-                                               @Html.Raw(isChecked) onchange="$(this.form).submit()" />
+                                               @Html.Raw(isChecked) onchange="@additionalAction $(this.form).submit()" />
                                         @Html.DisplayFor(m => cc.Name)
                                     </label>
                                 </form>
