@@ -121,7 +121,7 @@ namespace PcrBattleChannel.Pages.Admin
             if (ResetCharacters || forceResetCharacters)
             {
                 await _context.Characters.DeleteFromQueryAsync();
-                ImportCharacters();
+                await ImportCharacters();
             }
 
             var stageText = string.IsNullOrWhiteSpace(StageText) ? "1" : StageText;
@@ -142,14 +142,32 @@ namespace PcrBattleChannel.Pages.Admin
             await _context.SaveChangesAsync();
         }
 
-        private void ImportCharacters()
+        private static Stream OpenCharacterData()
         {
+            try
+            {
+                if (System.IO.File.Exists("InitCharacterData.csv"))
+                {
+                    return System.IO.File.OpenRead("InitCharacterData.csv");
+                }
+            }
+            catch
+            {
+            }
             var res = "PcrBattleChannel.Models.InitCharacterData.csv";
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(res);
+            return Assembly.GetExecutingAssembly().GetManifestResourceStream(res);
+        }
+
+        private async Task ImportCharacters()
+        {
+            using var stream = OpenCharacterData();
             using var reader = new StreamReader(stream);
 
             //Skip title.
             var line = reader.ReadLine();
+
+            var allGuilds = await _context.Guilds.Select(g => g.GuildID).ToListAsync();
+            var allCharacters = new List<Character>();
 
             //Read each row.
             while ((line = reader.ReadLine()) is not null)
@@ -163,7 +181,25 @@ namespace PcrBattleChannel.Pages.Admin
                     HasWeapon = int.Parse(fields[3]) != 0,
                     Range = float.Parse(fields[4]),
                 };
+                allCharacters.Add(c);
                 _context.Characters.Add(c);
+            }
+            await _context.SaveChangesAsync();
+
+            foreach (var c in allCharacters)
+            {
+                foreach (var g in allGuilds)
+                {
+                    var config = new CharacterConfig
+                    {
+                        GuildID = g,
+                        CharacterID = c.CharacterID,
+                        Kind = CharacterConfigKind.Default,
+                        Name = "抽到了",
+                        Description = "什么配置都可以。",
+                    };
+                    _context.CharacterConfigs.Add(config);
+                }
             }
         }
     }

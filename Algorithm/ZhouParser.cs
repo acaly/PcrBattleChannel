@@ -37,6 +37,7 @@ namespace PcrBattleChannel.Algorithm
                 _data.Add(str[0], list);
             }
             list.Add((str, data));
+            list.Sort((a, b) => b.str.Length - a.str.Length); //Order: longer first.
         }
 
         public bool Remove(string str)
@@ -191,6 +192,49 @@ namespace PcrBattleChannel.Algorithm
             'k', 'K', 'w', 'W', 'm', 'M',
         };
 
+        private bool ParseNextCharacter(ref ReadOnlySpan<char> remaining, out string importedName, out CharacterConfig cc)
+        {
+            var r1 = remaining;
+            var r2 = remaining;
+            CharacterConfig cc2 = null;
+            var stdName = _characterNames.TryGet(ref r1, out var importedName1, out var cc1);
+            var alias = _alias.TryGet(ref r2, out var importedName2, out var internalID) &&
+                    _defaultConfigs.TryGetValue(internalID, out cc2);
+            switch ((stdName, alias))
+            {
+            case (true, true):
+                //If both succeeded, take the longer one (e.g. "狼布丁" preferred over "狼").
+                if (r1.Length > r2.Length)
+                {
+                    remaining = r2;
+                    importedName = importedName2;
+                    cc = cc2;
+                    return true;
+                }
+                else
+                {
+                    remaining = r1;
+                    importedName = importedName1;
+                    cc = cc1;
+                    return true;
+                }
+            case (true, false):
+                remaining = r1;
+                importedName = importedName1;
+                cc = cc1;
+                return true;
+            case (false, true):
+                remaining = r2;
+                importedName = importedName2;
+                cc = cc2;
+                return true;
+            default:
+                importedName = default;
+                cc = default;
+                return false;
+            }
+        }
+
         public Zhou Parse(string str, bool hasName, bool createConfigs, List<CharacterConfig> newConfigs)
         {
             var words = str.Split(_separators, hasName ? 3 : 2,
@@ -293,9 +337,7 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
                 //Character alias.
-                else if (_characterNames.TryGet(ref remaining, out importedName, out cc) ||
-                    _alias.TryGet(ref remaining, out importedName, out var internalID) &&
-                    _defaultConfigs.TryGetValue(internalID, out cc))
+                else if (ParseNextCharacter(ref remaining, out importedName, out cc))
                 {
                     addedCharacters.Add((cc.Character, importedName));
                     currentCharacter = _groupedConfigs[cc.CharacterID];
@@ -312,8 +354,12 @@ namespace PcrBattleChannel.Algorithm
                     }
                 }
                 //End of character list.
-                else if (addedCharacters.Count == 5)
+                else if (addedCharacters.Count >= 5)
                 {
+                    if (addedCharacters.Count > 5)
+                    {
+                        throw new Exception($"超过5个角色：{string.Join(", ", addedCharacters.Select(c => c.word))}");
+                    }
                     var endOfDamage = remaining.IndexOfAny(_separatorsEndDamage);
                     if (!int.TryParse(endOfDamage == -1 ? remaining : remaining[..endOfDamage], out var damage))
                     {
