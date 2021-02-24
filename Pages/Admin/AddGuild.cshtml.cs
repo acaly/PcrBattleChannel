@@ -27,8 +27,8 @@ namespace PcrBattleChannel.Pages.Admin
         {
             [Display(Name = "公会名称")]
             public string GuildName { get; set; }
-            [Display(Name = "会长Email")]
-            public string OwnerEmail { get; set; }
+            [Display(Name = "会长QQ")]
+            public ulong OwnerQQ { get; set; }
         }
 
         [TempData]
@@ -43,7 +43,7 @@ namespace PcrBattleChannel.Pages.Admin
             Input = new InputModel
             {
                 GuildName = "",
-                OwnerEmail = "",
+                OwnerQQ = 0,
             };
             if (!await _context.Bosses.AnyAsync())
             {
@@ -60,7 +60,7 @@ namespace PcrBattleChannel.Pages.Admin
             }
 
             var owner = _context.Users
-                .FirstOrDefault(xx => xx.Email == Input.OwnerEmail);
+                .FirstOrDefault(xx => xx.QQID == Input.OwnerQQ);
 
             if (owner is null)
             {
