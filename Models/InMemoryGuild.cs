@@ -49,6 +49,7 @@ namespace PcrBattleChannel.Models
                 var cloneFromIndex = _memberIndexMap[cloneFrom];
                 foreach (var zv in _zhouVariants)
                 {
+                    if (zv is null) continue;
                     zv.UserData[index] = zv.UserData[cloneFromIndex];
                 }
             }
@@ -63,6 +64,7 @@ namespace PcrBattleChannel.Models
             _members[index] = null;
             foreach (var zv in _zhouVariants)
             {
+                if (zv is null) continue;
                 zv.UserData[index] = default;
             }
         }

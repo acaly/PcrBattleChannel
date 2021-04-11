@@ -37,6 +37,8 @@ namespace PcrBattleChannel.Pages.Home
 
         public List<Character> AllCharacters { get; private set; }
 
+        public bool ShowAll { get; private set; }
+
         [BindProperty]
         [Display(Name = "选择已用角色（不含助战）")]
         public string UsedCharacterString { get; set; }
@@ -133,8 +135,9 @@ namespace PcrBattleChannel.Pages.Home
             AllCharacters.Sort((c1, c2) => Math.Sign(c1.Range - c2.Range));
         }
 
-        public async Task<IActionResult> OnGetAsync()
+        public async Task<IActionResult> OnGetAsync(bool showAll = false)
         {
+            ShowAll = showAll;
             if (!_signInManager.IsSignedIn(User))
             {
                 return Redirect("/");

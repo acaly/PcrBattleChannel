@@ -94,11 +94,11 @@
 {
     var group = Model.UserCombo[i];
     var containsSelected = group.group.Combos.Any(c => c.Index == c.User.SelectedComboIndex);
-    if (group.totalValue == 0 && group.currentValue == 0)
+    if (group.totalValue == 0 && group.currentValue == 0 &&!Model.ShowAll)
     {
         <div class="row align-bottom py-2 border-bottom">
             <div class="col-xl-10 col-lg-9 col-8">
-                @(Model.UserCombo.Count - i) 组，共 @(Model.TotalUserCombs - totalDisplayedCombos) 个套餐未显示。
+                <a asp-route-showAll="true">@(Model.UserCombo.Count - i) 组，共 @(Model.TotalUserCombs - totalDisplayedCombos) 个套餐未显示。</a>
             </div>
             <div class="col-xl-2 col-lg-3 col-4">
             </div>
